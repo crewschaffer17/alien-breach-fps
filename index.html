@@ -3,7 +3,6 @@
 <head>
   <meta name="google-site-verification" content="EYSWuHRzc1nmowUe6Gvyz9p23tayUxvlK22Eicllsas" />
   <title>Alien Breach FPS</title>
-</head>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -63,6 +62,34 @@
   @media(max-width:760px){.shop-grid{grid-template-columns:repeat(2,1fr)}.menu-actions{grid-template-columns:1fr}.menu-card{min-height:180px}.menu-sub{margin-bottom:20px}}
   @media(max-width:430px){.shop-grid{grid-template-columns:1fr 1fr;gap:8px}.shop-item{padding:11px;min-height:230px}.shop-item p{font-size:12px}.shop-head{align-items:flex-start;flex-direction:column}}
 
+
+  .account-panel{margin:0 auto 22px;max-width:650px;padding:16px;border:1px solid #477a68;border-radius:12px;background:rgba(5,17,22,.9);display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .account-panel input{min-width:150px;flex:1;background:#081317;color:#eafff5;border:1px solid #477a68;border-radius:6px;padding:12px}
+  .account-panel button{margin:0;padding:11px 14px;font-size:11px}
+  #accountStatus{width:100%;text-align:center;color:#9eb8b0;font-size:12px;min-height:16px}
+  .loadout-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.85fr);gap:16px;align-items:stretch}
+  .loadout-main{min-width:0;background:linear-gradient(145deg,#172b2c,#091116);border:1px solid #365d56;border-radius:12px;padding:18px}
+  .loadout-tabs{display:flex;gap:9px;margin-bottom:18px;flex-wrap:wrap}
+  .loadout-tabs button{margin:0;padding:11px 18px;font-size:11px}
+  .loadout-tabs button.active{background:linear-gradient(90deg,#159d68,#6cf0a9);color:#03130c}
+  .loadout-view.hidden{display:none}
+  .weapon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
+  .weapon-card{border:1px solid #365d56;background:#0a171b;border-radius:9px;padding:15px;min-height:150px}
+  .weapon-card.owned{border-color:#58d99c}
+  .weapon-card h3{margin:6px 0;color:#eafff5}
+  .weapon-card p{font-size:12px;color:#9eb8b0;line-height:1.4;min-height:32px}
+  .weapon-card button{margin:8px 0 0;padding:10px 12px;font-size:10px;width:100%}
+  .weapon-card button:disabled{opacity:.4;cursor:not-allowed}
+  .stats-panel{background:linear-gradient(145deg,#172b2c,#091116);border:1px solid #b18e48;border-radius:12px;padding:18px;min-width:0}
+  .stats-panel h2{margin:0 0 14px;color:#ffe39a;letter-spacing:2px;font-size:19px}
+  .stat-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #29423d}
+  .stat-row:last-child{border-bottom:0}
+  .stat-row span{color:#9eb8b0;font-size:12px;letter-spacing:.6px}
+  .stat-row strong{color:#eafff5;font-size:17px;text-align:right}
+  .loadout-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:15px}
+  .loadout-bottom button{margin:0}
+  @media(max-width:760px){.loadout-layout{grid-template-columns:1fr}.stats-panel{order:2}.loadout-main{order:1}}
+
 </style>
 </head>
 <body>
@@ -86,6 +113,14 @@
     <div class="eyebrow" style="text-align:center">CLASSIFIED // RESEARCH DIVISION</div>
     <h1 class="menu-title">ALIEN <span>BREACH</span></h1>
     <p class="menu-sub">AREA 51 · OUTPOST DEFENSE PROGRAM</p>
+    <div class="account-panel" id="accountPanel">
+      <input id="accountEmail" type="email" autocomplete="email" placeholder="Email address">
+      <input id="accountPassword" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="signInBtn" type="button">SIGN IN</button>
+      <button id="signUpBtn" type="button" class="back-btn">CREATE ACCOUNT</button>
+      <button id="signOutBtn" type="button" class="back-btn" style="display:none">SIGN OUT</button>
+      <div id="accountStatus">Sign in to save your progress to the cloud.</div>
+    </div>
     <div class="menu-actions">
   <section class="menu-card play">
     <div>
@@ -114,6 +149,7 @@
     <button class="menu-btn secondary" id="openLoadout">OPEN LOADOUT →</button>
   </section>
 </div>
+    <button class="menu-btn" id="resumeGame" style="display:none;margin:22px auto 0">CONTINUE SAVED GAME →</button>
     <p style="text-align:center;color:#66877d;font-size:10px;letter-spacing:2px;margin-top:28px">FICTIONAL SCI-FI ARCADE GAME</p>
   </div>
 </div>
@@ -160,45 +196,60 @@
 </div>
 <div id="loadoutScreen" class="screen hidden">
   <div class="shop-wrap">
-
     <div class="shop-head">
       <div>
         <div class="eyebrow">AREA 51 DEPLOYMENT</div>
         <h1>YOUR <span style="color:#68f2ad">LOADOUT</span></h1>
       </div>
+      <div class="credits">CREDITS: <span id="loadoutCredits">0</span></div>
     </div>
-
-    <div class="shop-grid">
-
-      <article class="shop-item">
-        <h3>OWNED WEAPONS</h3>
-        <div id="loadoutWeapons">
-          Loading weapons...
+    <div class="loadout-layout">
+      <section class="loadout-main">
+        <div class="loadout-tabs">
+          <button id="gunsTab" class="active" type="button">GUNS</button>
+          <button id="equipmentTab" class="back-btn" type="button">EQUIPMENT</button>
         </div>
-      </article>
-
-      <article class="shop-item">
-        <h3>HEALTH KITS</h3>
-        <p>Owned: <span id="medkitOwned">0</span></p>
-        <label>Bring into battle:</label>
-        <input id="medkitBring" type="number" min="0" value="0">
-      </article>
-
-      <article class="shop-item">
-        <h3>POWERUPS</h3>
-        <p>Owned: <span id="speedOwned">0</span></p>
-        <label>Bring into battle:</label>
-        <input id="speedBring" type="number" min="0" value="0">
-      </article>
-
+        <div id="gunsView" class="loadout-view">
+          <div class="eyebrow">WEAPON COLLECTION</div>
+          <h2 style="margin:8px 0 16px">YOUR GUNS</h2>
+          <div id="ownedGunCollection" class="weapon-grid"></div>
+        </div>
+        <div id="equipmentView" class="loadout-view hidden">
+          <div class="eyebrow">DEPLOYMENT SUPPLIES</div>
+          <h2 style="margin:8px 0 16px">BATTLE EQUIPMENT</h2>
+          <div class="shop-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+            <article class="shop-item">
+              <h3>HEALTH KITS</h3>
+              <p>Owned: <span id="medkitOwned">0</span></p>
+              <label for="medkitBring">Bring into battle:</label>
+              <input id="medkitBring" type="number" min="0" value="0">
+            </article>
+            <article class="shop-item">
+              <h3>SPEED BOOSTS</h3>
+              <p>Owned: <span id="speedOwned">0</span></p>
+              <label for="speedBring">Bring into battle:</label>
+              <input id="speedBring" type="number" min="0" value="0">
+            </article>
+          </div>
+        </div>
+      </section>
+      <aside class="stats-panel">
+        <div class="eyebrow">PERSONNEL RECORD</div>
+        <h2>PLAYER STATISTICS</h2>
+        <div class="stat-row"><span>BEST GAME SCORE</span><strong id="statBestScore">0</strong></div>
+        <div class="stat-row"><span>MOST ALIEN KILLS · ONE GAME</span><strong id="statBestKills">0</strong></div>
+        <div class="stat-row"><span>MOST ROUNDS · ONE GAME</span><strong id="statMostRounds">0</strong></div>
+        <div class="stat-row"><span>HIGHEST WAVE REACHED</span><strong id="statBestWave">1</strong></div>
+        <div class="stat-row"><span>TOTAL ALIEN KILLS</span><strong id="statTotalKills">0</strong></div>
+        <div class="stat-row"><span>GAMES PLAYED</span><strong id="statGamesPlayed">0</strong></div>
+        <div class="stat-row"><span>TOTAL ROUNDS REACHED</span><strong id="statTotalRounds">0</strong></div>
+      </aside>
     </div>
-
-    <div class="shop-footer">
+    <div class="loadout-bottom">
       <div id="loadoutMessage">Choose your equipment before deployment.</div>
       <button class="back-btn" id="saveLoadout">SAVE LOADOUT</button>
       <button class="back-btn" id="backLoadout">← BACK TO MENU</button>
     </div>
-
   </div>
 </div>
 <div id="overlay" style="display:none">
@@ -210,6 +261,7 @@
     <p style="font-size:10px;letter-spacing:1px">FICTIONAL SCI-FI ARCADE GAME · NON-GRAPHIC</p>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
@@ -265,6 +317,285 @@ let chest = {
     active: true,
     respawnTimer: 0
 };
+// PLAYER SAVE + CLOUD ACCOUNT SYSTEM --------------------------------------
+// Create a Supabase project, run the SQL file supplied with this game, then
+// paste your project's Project URL and anon/public key below.
+// NEVER put a Supabase service_role key in browser code.
+const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_PROJECT_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_PUBLIC_KEY_HERE';
+const SAVE_KEY = 'alienBreach_playerSave_v2';
+let supabaseClient = null;
+let currentUser = null;
+let cloudSaveBusy = false;
+let queuedCloudSave = null;
+let savedBattleAvailable = false;
+let runRecorded = false;
+let stats = {
+    gamesPlayed: 0, totalKills: 0, bestScore: 0,
+    bestKills: 0, mostRounds: 0, bestWave: 1, totalRounds: 0
+};
+const cloudConfigured = () =>
+    window.supabase && SUPABASE_URL.startsWith('https://') &&
+    !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
+
+if (cloudConfigured()) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+function buildSaveData() {
+    return {
+        version: 2,
+        savedAt: Date.now(),
+        profile: {
+            credits, inventory: { ...inventory }, loadout: { ...loadout },
+            stats: { ...stats }
+        },
+        battle: {
+            active: playing,
+            player: { x: player.x, y: player.y, a: player.a, pitch: player.pitch, hp: player.hp },
+            ammo, score, wave,
+            aliens: aliens.map(a => ({ ...a })),
+            orbs: orbs.map(o => ({ ...o })),
+            chest: { ...chest },
+            battleMedkits, battleSpeed, speedBoostTimer, shieldHits, superGunEquipped
+        }
+    };
+}
+
+async function pushCloudSave(data) {
+    if (!supabaseClient || !currentUser) return;
+    queuedCloudSave = data;
+    if (cloudSaveBusy) return;
+    cloudSaveBusy = true;
+    try {
+        while (queuedCloudSave) {
+            const next = queuedCloudSave;
+            queuedCloudSave = null;
+            const row = {
+                user_id: currentUser.id,
+                username: currentUser.email ? currentUser.email.split('@')[0] : 'Player',
+                credits: next.profile.credits,
+                inventory: next.profile.inventory,
+                loadout: next.profile.loadout,
+                stats: next.profile.stats || {},
+                battle: next.battle,
+                updated_at: new Date().toISOString()
+            };
+            const { error } = await supabaseClient.from('player_saves').upsert(row, { onConflict: 'user_id' });
+            if (error) throw error;
+        }
+        setAccountStatus('Cloud save synced ✓');
+    } catch (error) {
+        console.error('Cloud save failed:', error);
+        setAccountStatus('Cloud save error: ' + (error.message || 'Check Supabase setup.'));
+    } finally {
+        cloudSaveBusy = false;
+    }
+}
+
+function saveGame() {
+    try {
+        const data = buildSaveData();
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        if (currentUser) pushCloudSave(data);
+        return true;
+    } catch (error) {
+        console.warn('Alien Breach could not save:', error);
+        return false;
+    }
+}
+
+function applySaveData(data) {
+    if (!data) return;
+    const profile = data.profile || {};
+    const inv = profile.inventory || {};
+    const savedLoadout = profile.loadout || {};
+    credits = Math.max(0, Number(profile.credits) || 0);
+    inventory.shotgun = Boolean(inv.shotgun);
+    inventory.rifle = Boolean(inv.rifle);
+    inventory.medkit = Math.max(0, Math.floor(Number(inv.medkit) || 0));
+    inventory.speed = Math.max(0, Math.floor(Number(inv.speed) || 0));
+
+    loadout.weapon = ['pulse', 'shotgun', 'rifle'].includes(savedLoadout.weapon) ? savedLoadout.weapon : 'pulse';
+    if (loadout.weapon === 'shotgun' && !inventory.shotgun) loadout.weapon = 'pulse';
+    if (loadout.weapon === 'rifle' && !inventory.rifle) loadout.weapon = 'pulse';
+    loadout.medkits = Math.min(inventory.medkit, Math.max(0, Math.floor(Number(savedLoadout.medkits) || 0)));
+    loadout.speed = Math.min(inventory.speed, Math.max(0, Math.floor(Number(savedLoadout.speed) || 0)));
+
+    const savedStats = profile.stats || {};
+    for (const key of Object.keys(stats)) {
+        stats[key] = Math.max(0, Number(savedStats[key]) || 0);
+    }
+    stats.bestWave = Math.max(1, stats.bestWave || 1);
+
+    const b = data.battle || {};
+    savedBattleAvailable = false;
+    if (b.active && b.player && Array.isArray(b.aliens)) {
+        for (const key of ['x', 'y', 'a', 'pitch', 'hp']) {
+            if (Number.isFinite(Number(b.player[key]))) player[key] = Number(b.player[key]);
+        }
+        ammo = Math.max(0, Math.floor(Number(b.ammo) || 0));
+        score = Math.max(0, Math.floor(Number(b.score) || 0));
+        wave = Math.max(1, Math.floor(Number(b.wave) || 1));
+        aliens = Array.isArray(b.aliens) ? b.aliens : [];
+        orbs = Array.isArray(b.orbs) ? b.orbs : [];
+        if (b.chest && Number.isFinite(Number(b.chest.x)) && Number.isFinite(Number(b.chest.y))) chest = { ...chest, ...b.chest };
+        battleMedkits = Math.max(0, Math.floor(Number(b.battleMedkits) || 0));
+        battleSpeed = Math.max(0, Math.floor(Number(b.battleSpeed) || 0));
+        speedBoostTimer = Math.max(0, Number(b.speedBoostTimer) || 0);
+        shieldHits = Math.max(0, Math.floor(Number(b.shieldHits) || 0));
+        superGunEquipped = Boolean(b.superGunEquipped);
+        savedBattleAvailable = true;
+    }
+    document.getElementById('credits').textContent = credits;
+    const loadoutCreditsNode = document.getElementById('loadoutCredits');
+    if (loadoutCreditsNode) loadoutCreditsNode.textContent = credits;
+    document.getElementById('loadoutCredits').textContent = credits;
+    document.getElementById('ammo').textContent = ammo;
+    document.getElementById('score').textContent = String(score).padStart(3, '0');
+    document.getElementById('wave').textContent = String(wave).padStart(2, '0');
+    document.getElementById('healthFill').style.width = player.hp + '%';
+    document.getElementById('resumeGame').style.display = savedBattleAvailable ? 'block' : 'none';
+    refreshShop();
+    refreshStats();
+    refreshLoadout();
+}
+
+function loadGame() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem('alienBreach_playerSave_v1');
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data && (data.version === 1 || data.version === 2)) applySaveData(data);
+        }
+    } catch (error) {
+        console.warn('Alien Breach save could not be loaded:', error);
+    }
+}
+
+function setAccountStatus(message) {
+    const el = document.getElementById('accountStatus');
+    if (el) el.textContent = message;
+}
+
+function updateAccountUI() {
+    const signedIn = Boolean(currentUser);
+    document.getElementById('signInBtn').style.display = signedIn ? 'none' : 'inline-block';
+    document.getElementById('signUpBtn').style.display = signedIn ? 'none' : 'inline-block';
+    document.getElementById('signOutBtn').style.display = signedIn ? 'inline-block' : 'none';
+    if (signedIn) setAccountStatus('SIGNED IN: ' + (currentUser.email || 'PLAYER') + ' · CLOUD SAVES ENABLED');
+}
+
+async function loadCloudSave() {
+    if (!supabaseClient || !currentUser) return;
+    setAccountStatus('Loading your cloud save…');
+    try {
+        const { data, error } = await supabaseClient.from('player_saves')
+            .select('credits,inventory,loadout,stats,battle')
+            .eq('user_id', currentUser.id).maybeSingle();
+        if (error) throw error;
+        if (data) {
+            applySaveData({
+                version: 2,
+                profile: {
+                    credits: data.credits, inventory: data.inventory,
+                    loadout: data.loadout, stats: data.stats
+                },
+                battle: data.battle
+            });
+            localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveData()));
+            setAccountStatus('Cloud progress loaded ✓');
+        } else {
+            await pushCloudSave(buildSaveData());
+            setAccountStatus('Account ready. Your current progress was uploaded.');
+        }
+    } catch (error) {
+        console.error('Cloud load failed:', error);
+        setAccountStatus('Cloud load error: ' + (error.message || 'Check database setup.'));
+    }
+}
+
+async function initializeAccounts() {
+    if (!supabaseClient) {
+        setAccountStatus('Cloud accounts are not configured yet. Add your Supabase URL and anon key in the game code.');
+        return;
+    }
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) setAccountStatus(error.message);
+    currentUser = data?.session?.user || null;
+    updateAccountUI();
+    if (currentUser) await loadCloudSave();
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+        currentUser = session?.user || null;
+        updateAccountUI();
+        if (currentUser) setTimeout(() => loadCloudSave(), 0);
+    });
+}
+
+async function signInOrSignUp(createAccount) {
+    if (!supabaseClient) {
+        setAccountStatus('Set your Supabase project URL and anon key first.');
+        return;
+    }
+    const email = document.getElementById('accountEmail').value.trim();
+    const password = document.getElementById('accountPassword').value;
+    if (!email || password.length < 6) {
+        setAccountStatus('Enter a valid email and a password with at least 6 characters.');
+        return;
+    }
+    setAccountStatus(createAccount ? 'Creating account…' : 'Signing in…');
+    const result = createAccount
+        ? await supabaseClient.auth.signUp({ email, password })
+        : await supabaseClient.auth.signInWithPassword({ email, password });
+    if (result.error) {
+        setAccountStatus(result.error.message);
+        return;
+    }
+    if (createAccount && !result.data.session) {
+        setAccountStatus('Account created. Check your email to confirm it, then sign in.');
+    } else {
+        currentUser = result.data.user || result.data.session?.user || null;
+        updateAccountUI();
+        await loadCloudSave();
+    }
+}
+
+document.getElementById('signInBtn').onclick = () => signInOrSignUp(false);
+document.getElementById('signUpBtn').onclick = () => signInOrSignUp(true);
+document.getElementById('signOutBtn').onclick = async () => {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) setAccountStatus(error.message);
+    else { currentUser = null; updateAccountUI(); setAccountStatus('Signed out. This device still has its local save.'); }
+};
+
+function resumeSavedBattle() {
+    if (!savedBattleAvailable) return;
+    savedBattleAvailable = false;
+    playing = true;
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('shopScreen').classList.add('hidden');
+    document.getElementById('loadoutScreen').classList.add('hidden');
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('resumeGame').style.display = 'none';
+    document.getElementById('statusTitle').textContent = 'SAVED GAME RESTORED';
+    document.getElementById('statusText').textContent = 'YOUR PREVIOUS DEPLOYMENT HAS BEEN RESTORED';
+    document.getElementById('healthFill').style.width = player.hp + '%';
+    document.getElementById('ammo').textContent = ammo;
+    document.getElementById('score').textContent = String(score).padStart(3, '0');
+    document.getElementById('wave').textContent = String(wave).padStart(2, '0');
+    canvas.requestPointerLock?.();
+    saveGame();
+}
+
+setInterval(() => { if (playing) saveGame(); }, 2500);
+addEventListener('pagehide', saveGame);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveGame();
+});
+// -------------------------------------------------------------------------
+
 const FOV=Math.PI/2.7;
 // LABORATORY FURNITURE
 const labProps = [
@@ -669,7 +1000,7 @@ function shoot(){
     document.getElementById('ammo').textContent = ammo;
 
     fireCd=superGunEquipped ? .55 : .22;
-    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;document.getElementById('score').textContent=String(score).padStart(3,'0');if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
+    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;document.getElementById('score').textContent=String(score).padStart(3,'0');saveGame();if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
 function update(dt){if(!playing)return;fireCd=Math.max(0,fireCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
  let speed=(keys.Shift?3.6:2.4)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
  // PLAYER COLLISION WITH WALLS AND FURNITURE
@@ -695,6 +1026,7 @@ if(chest.active && Math.hypot(player.x-chest.x,player.y-chest.y)<0.8){
     document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
     document.getElementById('statusText').textContent =
         'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
+    saveGame();
 }
 
  // Wait 30 seconds after pickup, then place a new chest at another open spot.
@@ -718,11 +1050,26 @@ if(!blocked(a.x,ny,.3)){
 }}a.attack-=dt;if(a.attack<=0&&d<9){orbs.push({x:a.x,y:a.y,vx:vx/d*2.2,vy:vy/d*2.2,life:4});a.attack=2.3+Math.random()*1.2;}}
  for(let o of orbs){o.x+=o.vx*dt;o.y+=o.vy*dt;o.life-=dt;if(Math.hypot(o.x-player.x,o.y-player.y)<.38){if(shieldHits>0){shieldHits--;document.getElementById('statusTitle').textContent='SHIELD HIT';document.getElementById('statusText').textContent=shieldHits+' SHIELD CHARGES REMAIN';}else{player.hp=Math.max(0,player.hp-15);}o.life=0;damageFlash=1;}}
  orbs=orbs.filter(o=>o.life>0&&!wall(o.x,o.y));document.getElementById('healthFill').style.width=player.hp+'%';document.getElementById('threat').textContent=aliens.filter(a=>a.alive).length>6?'HIGH':aliens.filter(a=>a.alive).length>3?'MED':'LOW';
- if(player.hp<=0){playing=false;document.exitPointerLock?.();document.getElementById('overlay').style.display='flex';document.querySelector('.modal h1').innerHTML='OUTPOST <span>OVERRUN</span>';document.querySelector('.modal p').innerHTML=`You tagged ${score} alien scouts. The outpost needs you back.`;document.getElementById('start').textContent='RETURN TO MENU';document.getElementById('start').onclick=()=>{document.getElementById('overlay').style.display='none';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('start').onclick=startBattle;};}
+ if(player.hp<=0){
+     playing=false;
+     if(!runRecorded){
+         runRecorded=true;
+         stats.gamesPlayed++;
+         stats.totalKills += score;
+         stats.bestScore = Math.max(stats.bestScore, score);
+         stats.bestKills = Math.max(stats.bestKills, score);
+         stats.mostRounds = Math.max(stats.mostRounds, wave);
+         stats.bestWave = Math.max(stats.bestWave, wave);
+         stats.totalRounds += wave;
+         refreshStats();
+     }
+     saveGame();
+     document.exitPointerLock?.();document.getElementById('overlay').style.display='flex';document.querySelector('.modal h1').innerHTML='OUTPOST <span>OVERRUN</span>';document.querySelector('.modal p').innerHTML=`You tagged ${score} alien scouts. The outpost needs you back.`;document.getElementById('start').textContent='RETURN TO MENU';document.getElementById('start').onclick=()=>{document.getElementById('overlay').style.display='none';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('start').onclick=startBattle;};}
 }
 function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);drawWorld();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 function startBattle() {
+    runRecorded = false;
     battleMedkits = loadout.medkits;
     battleSpeed = loadout.speed;
 
@@ -758,6 +1105,9 @@ function startBattle() {
     spawnWave();
 
     playing = true;
+    savedBattleAvailable = false;
+    document.getElementById('resumeGame').style.display = 'none';
+    saveGame();
 
     document.getElementById('overlay').style.display = 'none';
     document.getElementById('mainMenu').classList.add('hidden');
@@ -768,6 +1118,7 @@ function startBattle() {
 }
 document.getElementById('start').onclick=startBattle;
 document.getElementById('playNow').onclick=startBattle;
+document.getElementById('resumeGame').onclick=resumeSavedBattle;
 document.getElementById('openShop').onclick=()=>{document.getElementById('mainMenu').classList.add('hidden');document.getElementById('shopScreen').classList.remove('hidden');};
 document.getElementById('backMenu').onclick=()=>{document.getElementById('shopScreen').classList.add('hidden');document.getElementById('mainMenu').classList.remove('hidden');};
 
@@ -776,6 +1127,7 @@ document.getElementById('openLoadout').onclick = () => {
     document.getElementById('shopScreen').classList.add('hidden');
     document.getElementById('loadoutScreen').classList.remove('hidden');
 
+    showLoadoutTab('guns');
     refreshLoadout();
 };
 
@@ -796,49 +1148,73 @@ const shopLabels = {
     medkit: 'MED-KIT',
     speed: 'SPEED BOOST'
 };
+function refreshStats() {
+    const values = {
+        statBestScore: stats.bestScore,
+        statBestKills: stats.bestKills,
+        statMostRounds: stats.mostRounds,
+        statBestWave: stats.bestWave,
+        statTotalKills: stats.totalKills,
+        statGamesPlayed: stats.gamesPlayed,
+        statTotalRounds: stats.totalRounds
+    };
+    for (const [id, value] of Object.entries(values)) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = Number(value || 0).toLocaleString();
+    }
+}
+
+function showLoadoutTab(tab) {
+    const guns = tab === 'guns';
+    document.getElementById('gunsView').classList.toggle('hidden', !guns);
+    document.getElementById('equipmentView').classList.toggle('hidden', guns);
+    document.getElementById('gunsTab').classList.toggle('active', guns);
+    document.getElementById('equipmentTab').classList.toggle('active', !guns);
+    refreshGunCollection();
+}
+
+function refreshGunCollection() {
+    const root = document.getElementById('ownedGunCollection');
+    if (!root) return;
+    const weapons = [
+        { id:'pulse', name:'PULSE BLASTER', icon:'◉', desc:'Your standard-issue energy weapon. Available to every player.', owned:true },
+        { id:'shotgun', name:'SHOTGUN', icon:'◈', desc:'A close-range weapon that fires multiple pellets.', owned:Boolean(inventory.shotgun) },
+        { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'A steady, rapid-fire weapon for sustained attacks.', owned:Boolean(inventory.rifle) }
+    ];
+    root.innerHTML = weapons.map(w => `
+      <article class="weapon-card ${w.owned ? 'owned' : ''}">
+        <div class="item-icon">${w.icon}</div>
+        <h3>${w.name}</h3>
+        <p>${w.owned ? w.desc : 'Not owned yet. Visit the Shop to unlock this weapon.'}</p>
+        <button type="button" data-equip="${w.id}" ${!w.owned ? 'disabled' : ''}>
+          ${!w.owned ? 'NOT OWNED' : loadout.weapon === w.id ? 'EQUIPPED ✓' : 'EQUIP GUN'}
+        </button>
+      </article>`).join('');
+    root.querySelectorAll('[data-equip]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            loadout.weapon = btn.dataset.equip;
+            document.getElementById('loadoutMessage').textContent = 'Selected ' + btn.dataset.equip.toUpperCase() + '. Press SAVE LOADOUT to keep it.';
+            refreshGunCollection();
+            saveGame();
+        });
+    });
+}
+
 function refreshLoadout() {
-    const weapons = document.getElementById('loadoutWeapons');
-
-    let html = `
-        <label>
-            <input type="radio" name="loadoutWeapon" value="pulse"
-                ${loadout.weapon === 'pulse' ? 'checked' : ''}>
-            Pulse Blaster (Default)
-        </label><br>
-    `;
-
-    if (inventory.shotgun) {
-        html += `
-            <label>
-                <input type="radio" name="loadoutWeapon" value="shotgun"
-                    ${loadout.weapon === 'shotgun' ? 'checked' : ''}>
-                Shotgun
-            </label><br>
-        `;
-    }
-
-    if (inventory.rifle) {
-        html += `
-            <label>
-                <input type="radio" name="loadoutWeapon" value="rifle"
-                    ${loadout.weapon === 'rifle' ? 'checked' : ''}>
-                Assault Rifle
-            </label><br>
-        `;
-    }
-
-    weapons.innerHTML = html;
-
+    document.getElementById('loadoutCredits').textContent = credits;
     document.getElementById('medkitOwned').textContent = inventory.medkit;
     document.getElementById('speedOwned').textContent = inventory.speed;
-
     document.getElementById('medkitBring').max = inventory.medkit;
     document.getElementById('speedBring').max = inventory.speed;
+    document.getElementById('medkitBring').value = Math.min(loadout.medkits, inventory.medkit);
+    document.getElementById('speedBring').value = Math.min(loadout.speed, inventory.speed);
+    refreshGunCollection();
+    refreshStats();
 }
+document.getElementById('gunsTab').onclick = () => showLoadoutTab('guns');
+document.getElementById('equipmentTab').onclick = () => showLoadoutTab('equipment');
 document.getElementById('saveLoadout').onclick = () => {
-    const selectedWeapon = document.querySelector(
-        'input[name="loadoutWeapon"]:checked'
-    );
+    const selectedWeapon = null;
 
     const medkits = Number(
         document.getElementById('medkitBring').value
@@ -847,10 +1223,6 @@ document.getElementById('saveLoadout').onclick = () => {
     const speed = Number(
         document.getElementById('speedBring').value
     );
-
-    if (selectedWeapon) {
-        loadout.weapon = selectedWeapon.value;
-    }
 
     if (
         !Number.isInteger(medkits) ||
@@ -870,6 +1242,7 @@ document.getElementById('saveLoadout').onclick = () => {
 
     document.getElementById('loadoutMessage').textContent =
         'Loadout saved successfully!';
+    saveGame();
 };
 function refreshShop() {
     document.getElementById('credits').textContent = credits;
@@ -921,10 +1294,14 @@ document.querySelectorAll('.buy-btn').forEach(btn => {
             'Purchased ' + shopLabels[item] + '!';
 
         refreshShop();
+        saveGame();
     });
 });
 
+loadGame();
 refreshShop();
+refreshStats();
+initializeAccounts();
 addEventListener('keydown',e=>{
  keys[e.code]=true;
  if (
@@ -944,6 +1321,7 @@ addEventListener('keydown',e=>{
 
     document.getElementById('statusText').textContent =
         'MED-KITS LEFT: ' + battleMedkits;
+    saveGame();
 }
  if(e.code==='KeyQ' && playing && inventory.supergun>0){superGunEquipped=!superGunEquipped;document.getElementById('statusTitle').textContent=superGunEquipped?'OVERCHARGE BLASTER':'PULSE BLASTER';document.getElementById('statusText').textContent=superGunEquipped?'POWER MODE · 5 CHARGES PER SHOT':'STANDARD MODE · 1 CHARGE PER SHOT';}
  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
