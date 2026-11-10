@@ -265,27 +265,44 @@
 <script>
 (() => {
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2);
+// Low-resolution offscreen buffer keeps the world-locked floor inexpensive to render.
+const floorCanvas=document.createElement('canvas');
+const floorCtx=floorCanvas.getContext('2d',{alpha:true});
+let floorFrameCounter = 1;
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,0.85);
 function resize(){W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
 addEventListener('resize',resize);resize();
 const map=[
-"1111111111111111",
-"1000000000000001",
-"1000100001000001",
-"1000100001000001",
-"1000000000000001",
-"1011000000011001",
-"1000000000000001",
-"1000010000100001",
-"1000010000100001",
-"1000000000000001",
-"1001100000011001",
-"1000000000000001",
-"1000000000000001",
-"1111111111111111"
+"11111111111111111111111111111111111",
+"10000000011111000000000111100000001",
+"10000000011111000000000111100000001",
+"10000000011111000000000111100000001",
+"10000000000000000000000000000000001",
+"10000000000000000000000000000000001",
+"10000000011111000000000111100000001",
+"10000000011111000000000111100000001",
+"11111111111111000000000111100000001",
+"11111111111111111100111111111111111",
+"11111111111111111100111111111111111",
+"11111111111111111100111111111111111",
+"11111111111111111100111111111111111",
+"11111111111110000000000111100000001",
+"10000000001110000000000111100000001",
+"10000000001110000000000111100000001",
+"10000000001110000000000111100000001",
+"10000000000000000000000000000000001",
+"10000000000000000000000000000000001",
+"10000000001110000000000111100000001",
+"10000000001110000000000111100000001",
+"10000000001110000000000111100000001",
+"10000000001110000000000111100000001",
+"11111111111111111001111111111111111",
+"11111111111111000000000111111111111",
+"11111111111111000000000111111111111",
+"11111111111111111111111111111111111"
 ];
 const MW=map[0].length,MH=map.length;
-const player={x:2.5,y:2.5,a:0,pitch:0,hp:100};
+const player={x:3.5,y:3.5,a:0,pitch:0,hp:100};
 let aliens=[],orbs=[],particles=[],score=0,wave=1,playing=false,keys={},last=0,fireCd=0,damageFlash=0,shotFlash=0;
 
 let ammo = 25;
@@ -311,12 +328,10 @@ let speedBoostTimer = 0;
 let shieldHits = 0;
 let superGunEquipped = false;
 
-let chest = {
-    x: 7.5,
-    y: 7.5,
-    active: true,
-    respawnTimer: 0
-};
+// Five supply chests are active at the start of each 90-second cycle.
+let chest = { x: 7.5, y: 7.5, active: false, respawnTimer: 0 }; // legacy save compatibility
+let chests = [];
+let chestCycleTimer = 90;
 // PLAYER SAVE + CLOUD ACCOUNT SYSTEM --------------------------------------
 // Create a Supabase project, run the SQL file supplied with this game, then
 // paste your project's Project URL and anon/public key below.
@@ -356,7 +371,7 @@ function buildSaveData() {
             ammo, score, wave,
             aliens: aliens.map(a => ({ ...a })),
             orbs: orbs.map(o => ({ ...o })),
-            chest: { ...chest },
+            chest: { ...chest }, chests: chests.map(c => ({...c})), chestCycleTimer,
             battleMedkits, battleSpeed, speedBoostTimer, shieldHits, superGunEquipped
         }
     };
@@ -439,7 +454,9 @@ function applySaveData(data) {
         wave = Math.max(1, Math.floor(Number(b.wave) || 1));
         aliens = Array.isArray(b.aliens) ? b.aliens : [];
         orbs = Array.isArray(b.orbs) ? b.orbs : [];
-        if (b.chest && Number.isFinite(Number(b.chest.x)) && Number.isFinite(Number(b.chest.y))) chest = { ...chest, ...b.chest };
+        if (Array.isArray(b.chests)) chests = b.chests.filter(c => Number.isFinite(Number(c.x)) && Number.isFinite(Number(c.y))).map(c => ({...c}));
+        else if (b.chest && Number.isFinite(Number(b.chest.x)) && Number.isFinite(Number(b.chest.y)) && b.chest.active) chests = [{x:Number(b.chest.x),y:Number(b.chest.y),active:true}];
+        chestCycleTimer = Number.isFinite(Number(b.chestCycleTimer)) ? Math.max(0,Number(b.chestCycleTimer)) : 90;
         battleMedkits = Math.max(0, Math.floor(Number(b.battleMedkits) || 0));
         battleSpeed = Math.max(0, Math.floor(Number(b.battleSpeed) || 0));
         speedBoostTimer = Math.max(0, Number(b.speedBoostTimer) || 0);
@@ -599,51 +616,87 @@ document.addEventListener('visibilitychange', () => {
 const FOV=Math.PI/2.7;
 // LABORATORY FURNITURE
 const labProps = [
-    {x:6.5,y:3.5,type:'computer',radius:.5},
-    {x:7.5,y:5.5,type:'table',radius:.5},
-    {x:5.5,y:6.5,type:'computer',radius:.5},
-    {x:8.5,y:8.5,type:'cabinet',radius:.5},
-    {x:12.5,y:9.5,type:'computer',radius:.5},
-    {x:7.5,y:11.5,type:'lamp',radius:.5},
-    {x:12.5,y:4.5,type:'cabinet',radius:.5}
+    // Starting room
+    {x:6.2,y:3.2,type:'computer',radius:.25},
+    {x:6.4,y:5.7,type:'table',radius:.25},
+    // Upper research lab
+    {x:16.5,y:3.3,type:'computer',radius:.25},
+    {x:20.0,y:6.2,type:'cabinet',radius:.25},
+    {x:15.8,y:6.4,type:'table',radius:.25},
+    // Upper storage room
+    {x:29.5,y:3.2,type:'cabinet',radius:.25},
+    {x:31.5,y:6.2,type:'computer',radius:.25},
+    // West office
+    {x:3.2,y:17.0,type:'computer',radius:.25},
+    {x:7.2,y:19.5,type:'table',radius:.25},
+    {x:5.5,y:15.8,type:'cabinet',radius:.25},
+    // Central combat area
+    {x:15.5,y:15.5,type:'table',radius:.25},
+    {x:20.0,y:19.5,type:'cabinet',radius:.25},
+    // East operations room
+    {x:29.5,y:16.2,type:'computer',radius:.25},
+    {x:31.5,y:19.5,type:'table',radius:.25},
+    // Lower maintenance room
+    {x:16.0,y:24.8,type:'cabinet',radius:.25},
+    {x:20.0,y:24.8,type:'computer',radius:.25}
 ];
 function wall(x,y){return !map[Math.floor(y)]||map[Math.floor(y)][Math.floor(x)]!=='0';}
 
-// Choose a random open floor tile for the next ammo chest.
+// Fixed chest spawn points are distributed across every room.
+const chestSpawnPoints = [
+    // Starting room
+    {x:2.5,y:2.5},{x:7.5,y:6.5},
+    // Upper research lab
+    {x:15.0,y:2.0},{x:21.0,y:7.0},
+    // Upper storage room
+    {x:28.5,y:2.5},{x:32.0,y:7.0},
+    // West office
+    {x:2.5,y:20.5},{x:8.0,y:15.5},
+    // Central combat area
+    {x:14.5,y:20.5},{x:21.0,y:14.5},
+    // East operations room
+    {x:28.5,y:20.5},{x:32.0,y:14.5},
+    // Lower maintenance room
+    {x:15.0,y:24.5},{x:21.0,y:24.5}
+];
+
 function spawnChest(){
-    const openSpots = [];
-    for(let y=1; y<MH-1; y++){
-        for(let x=1; x<MW-1; x++){
-           if(
-    map[y][x]==='0' &&
-    Math.hypot(x+0.5-player.x,y+0.5-player.y)>3 &&
-    !labProps.some(p=>Math.hypot(x+0.5-p.x,y+0.5-p.y)<1.1)
-){
-                openSpots.push({x:x+0.5,y:y+0.5});
-            }
-        }
+    // Shuffle candidate locations and choose five unique positions.
+    const available = chestSpawnPoints
+        .filter(p => !labProps.some(prop => Math.hypot(p.x-prop.x,p.y-prop.y)<.9))
+        .sort(() => Math.random()-.5);
+    chests = available.slice(0,5).map(p => ({x:p.x,y:p.y,active:true}));
+    chestCycleTimer = 90;
+}
+function randomOpenPosition(minDistance=4){
+    for(let tries=0;tries<500;tries++){
+        const tx=1+Math.floor(Math.random()*(MW-2));
+        const ty=1+Math.floor(Math.random()*(MH-2));
+        const x=tx+.5,y=ty+.5;
+        if(!wall(x,y) && !blocked(x,y,.3) && Math.hypot(x-player.x,y-player.y)>=minDistance) return {x,y};
     }
-
-    // Fallback: use any open floor tile if the player is near most of the room.
-    if(openSpots.length===0){
-        for(let y=1; y<MH-1; y++){
-            for(let x=1; x<MW-1; x++){
-                if(map[y][x]==='0') openSpots.push({x:x+0.5,y:y+0.5});
-            }
-        }
-    }
-
-    if(openSpots.length){
-        const spot=openSpots[Math.floor(Math.random()*openSpots.length)];
-        chest.x=spot.x;
-        chest.y=spot.y;
-        chest.active=true;
+    return {x:20.5,y:17.5};
+}
+function spawnWave(){
+    // Start with twice the original enemy count, then add more every sector.
+    const n = Math.ceil((3 + wave * 2) * 2 + (wave - 1) * 2);
+    // Each new sector adds health, movement speed, and more frequent attacks.
+    const alienHp = 2 + Math.floor((wave - 1) / 2);
+    const alienSpeed = Math.min(1.25, .35 + wave * .035);
+    for(let i=0;i<n;i++){
+        const pos=randomOpenPosition(5);
+        aliens.push({
+            x:pos.x,y:pos.y,
+            hp:alienHp,
+            speed:Math.min(1.25, alienSpeed + Math.random()*.13),
+            phase:Math.random()*7,
+            attack:Math.max(.75, 2.4 - wave*.055) + Math.random()*.45,
+            alive:true
+        });
     }
 }
-
-function spawnWave(){let n=3+wave*2;for(let i=0;i<n;i++){let x,y,tries=0;do{x=2+Math.random()*12;y=2+Math.random()*10;tries++;}while((blocked(x,y,.35)||Math.hypot(x-player.x,y-player.y)<4)&&tries<100);aliens.push({x,y,hp:2,speed:.35+Math.random()*.13,phase:Math.random()*7,attack:1+Math.random()*2,alive:true});}}
 // CHECK WALLS AND FURNITURE
-function blocked(x,y,r=.28){
+function blocked(x,y,r=.18){
     if(wall(x,y)) return true;
 
     for(const p of labProps){
@@ -655,142 +708,213 @@ function blocked(x,y,r=.28){
     return false;
 }
 
-// DRAW LABORATORY FURNITURE
+// DRAW LABORATORY FURNITURE AS WORLD-SPACE 3D BOXES.
+// Props are built from fixed world coordinates and projected from their
+// actual corners, so they have visible fronts, sides, tops, and ground contact.
 function drawLabProps(depth,horizon){
+    const focal = W / (2 * Math.tan(FOV / 2));
+    const eyeHeight = 0.52;
+    const cosA = Math.cos(player.a), sinA = Math.sin(player.a);
+    const project = (x,y,z) => {
+        const dx=x-player.x, dy=y-player.y;
+        const forward=dx*cosA+dy*sinA;
+        const side=-dx*sinA+dy*cosA;
+        if(forward<=0.08) return null;
+        return {x:W/2+(side*focal/forward), y:horizon+((eyeHeight-z)*focal/forward), d:forward};
+    };
+    const drawBox = (cx,cy,w,d,h,colors,z0=0) => {
+        const x0=cx-w/2,x1=cx+w/2,y0=cy-d/2,y1=cy+d/2,z1=z0+h;
+        const verts=[
+            project(x0,y0,z0),project(x1,y0,z0),project(x1,y1,z0),project(x0,y1,z0),
+            project(x0,y0,z1),project(x1,y0,z1),project(x1,y1,z1),project(x0,y1,z1)
+        ];
+        if(verts.some(v=>!v)) return;
+        if(verts.every(v=>v.x < -W*.25 || v.x > W*1.25)) return;
+        const faces=[
+            {ids:[4,5,6,7],c:colors.top},
+            {ids:[0,1,5,4],c:colors.front},
+            {ids:[1,2,6,5],c:colors.side},
+            {ids:[2,3,7,6],c:colors.back||colors.side},
+            {ids:[3,0,4,7],c:colors.side}
+        ];
+        // Draw the nearest visible vertical face and top; distant faces are
+        // naturally covered by later, nearer props and wall columns.
+        for(const f of faces){
+            const pts=f.ids.map(i=>verts[i]);
+            const avg=pts.reduce((n,p)=>n+p.d,0)/pts.length;
+            if(avg>42) continue;
+            const minX=Math.min(...pts.map(p=>p.x)),maxX=Math.max(...pts.map(p=>p.x));
+            if(maxX<0||minX>W) continue;
+            // Clip each furniture face against the wall-depth buffer so a wall
+            // always hides objects behind it, including partial overlaps.
+            ctx.save();
+            ctx.beginPath();
+            const firstCol=Math.max(0,Math.floor(minX/2));
+            const lastCol=Math.min(depth.length-1,Math.floor(maxX/2));
+            for(let col=firstCol;col<=lastCol;col++){
+                if(depth[col] >= avg-.12) ctx.rect(col*2,0,2,H);
+            }
+            ctx.clip();
+            ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+            for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+            ctx.closePath();ctx.fillStyle=f.c;ctx.fill();
+            ctx.strokeStyle='rgba(8,12,14,.55)';ctx.lineWidth=1;ctx.stroke();
+            ctx.restore();
+        }
+    };
 
-    const sortedProps=labProps
-        .map(p=>({...p,dist:Math.hypot(p.x-player.x,p.y-player.y)}))
+    const sorted=labProps.map(p=>({...p,dist:Math.hypot(p.x-player.x,p.y-player.y)}))
         .sort((a,b)=>b.dist-a.dist);
-
-    for(const p of sortedProps){
-
-        let dx=p.x-player.x;
-        let dy=p.y-player.y;
-        let ang=Math.atan2(dy,dx)-player.a;
-
-        while(ang>Math.PI) ang-=Math.PI*2;
-        while(ang< -Math.PI) ang+=Math.PI*2;
-
-        if(Math.abs(ang)>FOV*.7 || p.dist<.3) continue;
-
-        let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2);
-        let col=Math.floor(sx/2);
-
-        if(col<0 || col>=depth.length) continue;
-        if(p.dist>depth[col]+.15) continue;
-
-        let size=Math.min(H*1.1,H/(p.dist+.2)*.65);
-
-        ctx.save();
-        ctx.translate(sx,horizon+size*.43);
-        ctx.scale(size/100,size/100);
-
-        ctx.fillStyle='#0009';
-        ctx.beginPath();
-        ctx.ellipse(0,5,55,13,0,0,Math.PI*2);
-        ctx.fill();
-
-        // TABLE
-        ctx.fillStyle='#46565c';
-        ctx.fillRect(-48,-35,96,12);
-
-        ctx.fillStyle='#89999c';
-        ctx.fillRect(-48,-35,96,3);
-
-        ctx.fillStyle='#26343a';
-        ctx.fillRect(-43,-23,8,65);
-        ctx.fillRect(35,-23,8,65);
-
-        if(p.type==='computer'){
-
-            // BULKY CRT COMPUTER
-            ctx.fillStyle='#92948b';
-            ctx.fillRect(-30,-76,60,40);
-
-            ctx.fillStyle='#343e40';
-            ctx.fillRect(-25,-72,50,30);
-
-            ctx.fillStyle='#102b30';
-            ctx.fillRect(-21,-68,42,22);
-
-            ctx.fillStyle='#54ffad';
-            ctx.shadowColor='#42ff9d';
-            ctx.shadowBlur=12;
-
-            ctx.fillRect(-17,-63,28,2);
-            ctx.fillRect(-17,-57,34,2);
-            ctx.fillRect(-17,-51,20,2);
-
-            ctx.shadowBlur=0;
-
-            ctx.fillStyle='#202b30';
-            ctx.fillRect(-22,-33,44,7);
+    for(const p of sorted){
+        if(p.dist<.35||p.dist>18) continue;
+        const type=p.type;
+        // Desk/table is a real rectangular volume with four legs.
+        if(type==='table'||type==='computer'){
+            const w=type==='computer'?1.35:1.55, d=type==='computer'?.82:.95;
+            drawBox(p.x,p.y,w,d,.10,{top:'#899394',front:'#536166',side:'#344248'});
+            for(const ox of [-w*.40,w*.40]) for(const oy of [-d*.36,d*.36])
+                drawBox(p.x+ox,p.y+oy,.09,.09,.72,{top:'#657174',front:'#303b40',side:'#202a2f'});
+            if(type==='computer'){
+                // Bulky CRT monitor: body, dark glass, and keyboard sit on desk.
+                drawBox(p.x,p.y-.08,.72,.56,.62,{top:'#a5aaa1',front:'#747d79',side:'#515b59'},.82);
+                drawBox(p.x,p.y-.365,.55,.035,.39,{top:'#202a2c',front:'#102126',side:'#0b171b'},.91);
+                drawBox(p.x,p.y+.30,.48,.22,.055,{top:'#a4aaa1',front:'#707b78',side:'#4b5654'},.82);
+                const screen=project(p.x,p.y-.39,1.12);
+                if(screen&&screen.d>0){
+                    ctx.fillStyle='#5de7a4';ctx.globalAlpha=.8;
+                    ctx.fillRect(screen.x- Math.max(1,5/screen.d),screen.y,Math.max(2,10/screen.d),Math.max(1,2/screen.d));
+                    ctx.globalAlpha=1;
+                }
+            }
+        } else if(type==='cabinet'){
+            drawBox(p.x,p.y,.92,.72,1.72,{top:'#899495',front:'#566467',side:'#344247'});
+            drawBox(p.x,p.y-.371,.72,.025,1.35,{top:'#7e8989',front:'#657274',side:'#455255'},.12);
+        } else if(type==='lamp'){
+            drawBox(p.x,p.y,.22,.22,.08,{top:'#7d8580',front:'#444d4a',side:'#303a37'});
+            drawBox(p.x,p.y,.055,.055,1.45,{top:'#b8bdb2',front:'#7d8982',side:'#4d5b55'},.08);
+            drawBox(p.x,p.y,.48,.32,.10,{top:'#d5d1b7',front:'#77786a',side:'#4b514b'},1.48);
         }
-
-        if(p.type==='cabinet'){
-
-            ctx.fillStyle='#59686b';
-            ctx.fillRect(-35,-95,70,130);
-
-            ctx.fillStyle='#879496';
-            ctx.fillRect(-35,-95,70,5);
-
-            ctx.strokeStyle='#202d32';
-            ctx.lineWidth=3;
-            ctx.strokeRect(-29,-87,27,112);
-            ctx.strokeRect(3,-87,27,112);
-
-            ctx.fillStyle='#c0c7bf';
-            ctx.fillRect(-7,-42,4,18);
-            ctx.fillRect(3,-42,4,18);
-        }
-
-        if(p.type==='lamp'){
-
-            ctx.strokeStyle='#c5c7ba';
-            ctx.lineWidth=5;
-
-            ctx.beginPath();
-            ctx.moveTo(10,-36);
-            ctx.lineTo(17,-75);
-            ctx.lineTo(30,-85);
-            ctx.stroke();
-
-            ctx.fillStyle='#747f7d';
-            ctx.fillRect(15,-90,28,13);
-
-            ctx.fillStyle='#ffe49b';
-            ctx.shadowColor='#ffd36b';
-            ctx.shadowBlur=30;
-            ctx.beginPath();
-            ctx.arc(28,-75,5,0,Math.PI*2);
-            ctx.fill();
-
-            ctx.shadowBlur=0;
-        }
-
-        ctx.restore();
     }
 }
 
-// RAYCASTING
+// FAST GRID RAYCASTING
+// DDA walks from tile to tile instead of checking the map every 0.025 units.
+// It returns the same {d,x,y} shape used by walls, chests, and weapon aiming.
 function ray(angle){
-    let sn=Math.sin(angle),cs=Math.cos(angle);
+    const dirX=Math.cos(angle), dirY=Math.sin(angle);
+    let mapX=Math.floor(player.x), mapY=Math.floor(player.y);
+    const deltaX=dirX===0?Infinity:Math.abs(1/dirX);
+    const deltaY=dirY===0?Infinity:Math.abs(1/dirY);
+    const stepX=dirX<0?-1:1, stepY=dirY<0?-1:1;
+    let sideX=dirX===0?Infinity:(dirX<0?(player.x-mapX)*deltaX:(mapX+1-player.x)*deltaX);
+    let sideY=dirY===0?Infinity:(dirY<0?(player.y-mapY)*deltaY:(mapY+1-player.y)*deltaY);
 
-    for(let d=0;d<22;d+=.025){
-        let x=player.x+cs*d;
-        let y=player.y+sn*d;
-
-        if(wall(x,y)) return {d,x,y};
+    for(let steps=0;steps<128;steps++){
+        let distance;
+        if(sideX<sideY){distance=sideX;sideX+=deltaX;mapX+=stepX;}
+        else{distance=sideY;sideY+=deltaY;mapY+=stepY;}
+        if(distance>42) break;
+        if(!map[mapY] || map[mapY][mapX] !== '0'){
+            return {d:Math.max(0,distance),x:player.x+dirX*distance,y:player.y+dirY*distance};
+        }
     }
-
-    return {d:22,x:0,y:0};
+    return {d:42,x:player.x+dirX*42,y:player.y+dirY*42};
 }
 
 function drawWorld(){
  const horizon=H*.49+player.pitch;
  let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#07131c');sky.addColorStop(1,'#263b40');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
  let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#273b38');floor.addColorStop(1,'#080d12');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+
+// WORLD-LOCKED CERAMIC FLOOR TILES.
+// Render at half resolution with smoothing to reduce shimmer without heavy full-resolution pixel work.
+// Tile coordinates and crack patterns remain fixed in world space.
+{
+    // Rebuild the world-locked floor every other frame; reuse the exact same floor
+    // pixels between updates to avoid stalling the main game loop.
+    floorFrameCounter = 0;
+    if (floorFrameCounter === 0) {
+    const pixelStep = 3;
+    const lowW = Math.max(1, Math.ceil(W / pixelStep));
+    const lowH = Math.max(1, Math.ceil(H / pixelStep));
+
+    if (floorCanvas.width !== lowW || floorCanvas.height !== lowH) {
+        floorCanvas.width = lowW;
+        floorCanvas.height = lowH;
+    }
+
+    const image = floorCtx.createImageData(lowW, lowH);
+    const pixels = image.data;
+    const dirX = Math.cos(player.a);
+    const dirY = Math.sin(player.a);
+    const cameraPlane = Math.tan(FOV / 2);
+    const tileSize = 1.0;
+    const halfH = H * 0.5;
+
+    for (let py = 0; py < lowH; py++) {
+        const sy = py * pixelStep + pixelStep * 0.5;
+        if (sy <= horizon) continue;
+
+        const rowDistance = halfH / Math.max(1, sy - horizon);
+        const distanceLight = Math.max(0.42, 1 - rowDistance * 0.022);
+        const rowOffset = py * lowW * 4;
+
+        for (let px = 0; px < lowW; px++) {
+            const sx = px * pixelStep + pixelStep * 0.5;
+            const cameraX = (2 * sx / W - 1) * cameraPlane;
+            const rayDirX = dirX - dirY * cameraX;
+            const rayDirY = dirY + dirX * cameraX;
+
+            const worldX = player.x + rayDirX * rowDistance;
+            const worldY = player.y + rayDirY * rowDistance;
+            const tileX = Math.floor(worldX);
+            const tileY = Math.floor(worldY);
+            const localX = worldX - tileX;
+            const localY = worldY - tileY;
+
+            let hash = Math.imul(tileX + 374761393, 668265263) ^
+                       Math.imul(tileY + 1274126177, 2246822519);
+            hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+            hash = (hash ^ (hash >>> 16)) >>> 0;
+
+            const grout = Math.min(localX, 1 - localX, localY, 1 - localY) < 0.035;
+            let r, g, b;
+
+            if (grout) {
+                r = 43; g = 42; b = 39;
+            } else {
+                const shade = (139 + (hash % 17) - 8) * distanceLight;
+                r = shade; g = shade - 2; b = shade - 7;
+
+                const crackCenter = 0.22 + ((hash >>> 8) % 48) / 100;
+                const crackSlope = (((hash >>> 16) % 41) - 20) / 100;
+                const crackY = crackCenter + crackSlope * (localX - 0.5);
+                const crackA = (hash % 4 === 0) &&
+                    localX > 0.12 && localX < 0.88 &&
+                    Math.abs(localY - crackY) < 0.012;
+                const crackB = (hash % 7 === 0) &&
+                    localX > 0.48 && localX < 0.88 &&
+                    Math.abs(localY - (crackY + (localX - 0.48) * 0.42)) < 0.009;
+
+                if (crackA || crackB) {
+                    r *= 0.28; g *= 0.27; b *= 0.25;
+                }
+            }
+
+            const i = rowOffset + px * 4;
+            pixels[i] = Math.max(0, r | 0);
+            pixels[i + 1] = Math.max(0, g | 0);
+            pixels[i + 2] = Math.max(0, b | 0);
+            pixels[i + 3] = 255;
+        }
+    }
+
+    floorCtx.putImageData(image, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "low";
+    }
+    ctx.drawImage(floorCanvas, 0, 0, W, H);
+}
 // FLICKERING LABORATORY CEILING LIGHTS
 let time=performance.now()/1000;
 let flicker=.75+.2*Math.sin(time*3);
@@ -813,27 +937,34 @@ ctx.fillStyle=`rgba(255,0,0,${emergency*.055})`;
 ctx.fillRect(0,0,W,H);
 
  const depth=new Float32Array(Math.ceil(W/2));
- for(let sx=0;sx<W;sx+=2){let a=player.a+(sx/W-.5)*FOV,r=ray(a),corrected=r.d*Math.cos(a-player.a);depth[sx>>1]=corrected;let wallH=Math.min(H*1.5,H/(corrected+.08));let y=horizon-wallH/2;let shade=Math.max(.15,1-corrected/13);let side=(Math.floor(r.x*2)+Math.floor(r.y*2))%2;
-// DARK INDUSTRIAL METAL WALLS
-let metal=Math.floor(35+shade*48);
-
-ctx.fillStyle=`rgb(${metal},${metal+8},${metal+12})`;
-ctx.fillRect(sx,y,2,wallH);
-
-// METAL PANEL HIGHLIGHTS
-ctx.fillStyle=`rgba(180,210,215,${shade*.18})`;
-ctx.fillRect(sx,y,2,3);
-
-// LOWER WALL SHADOW
-ctx.fillStyle=`rgba(0,0,0,${.35+side*.12})`;
-ctx.fillRect(sx,y+wallH*.78,2,wallH*.22);
-
-// INDUSTRIAL WALL STRIPES
-if(Math.floor(r.x*3)%7===0){
-    ctx.fillStyle=`rgba(140,165,170,${shade*.15})`;
-    ctx.fillRect(sx,y+wallH*.12,2,wallH*.65); 
-    ctx.fillStyle=`rgba(0,0,0,${.18+side*.08})`;ctx.fillRect(sx,y+wallH*.75,2,wallH*.25);
- }
+ const focal=W/(2*Math.tan(FOV/2));
+ for(let sx=0;sx<W;sx+=2){
+    let a=player.a+(sx/W-.5)*FOV,r=ray(a),corrected=r.d*Math.cos(a-player.a);
+    depth[sx>>1]=corrected;
+    // Project a full-height opaque wall from floor level to ceiling level.
+    const wallH=Math.min(H*4,focal*1.8/(corrected+.08));
+    const y=horizon-focal*1.28/(corrected+.08);
+    let shade=Math.max(.15,1-corrected/13);
+    let side=(Math.floor(r.x*2)+Math.floor(r.y*2))%2;
+    const tileIndex=Math.floor((r.x+r.y)*1.15);
+    const stain=((tileIndex*17)%9)/9;
+    const tileBase=Math.floor(142+shade*62-stain*19);
+    ctx.fillStyle=`rgb(${tileBase},${tileBase-3},${tileBase-10})`;
+    ctx.fillRect(sx,y,2,wallH);
+    const tileHeight=wallH/5;
+    for(let row=1;row<5;row++){
+        const seamY=y+tileHeight*row;
+        ctx.fillStyle=`rgba(45,39,34,${.22+shade*.10})`;
+        ctx.fillRect(sx,seamY,2,Math.max(1,wallH*.006));
+    }
+    if(Math.abs(((r.x+r.y)*1.15)%1)<.10){
+        ctx.fillStyle='rgba(43,37,32,.42)';
+        ctx.fillRect(sx,y,2,wallH);
+    }
+    ctx.fillStyle=`rgba(65,48,38,${.06+stain*.13})`;
+    ctx.fillRect(sx,y+wallH*.48,2,wallH*.30);
+    ctx.fillStyle=`rgba(20,18,16,${.18+side*.10})`;
+    ctx.fillRect(sx,y+wallH*.82,2,wallH*.18);
  } // end wall-column raycasting loop
  // DRAW LABORATORY FURNITURE
 drawLabProps(depth,horizon);
@@ -842,9 +973,19 @@ drawLabProps(depth,horizon);
  for(const al of sorted){
   let dist=Math.hypot(al.dx,al.dy),ang=Math.atan2(al.dy,al.dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
   if(Math.abs(ang)>FOV*.72||dist<.2)continue;
+  const forward=al.dx*Math.cos(player.a)+al.dy*Math.sin(player.a);
   let sx=W/2+Math.tan(ang)/(Math.tan(FOV/2))*(W/2),size=Math.min(H*1.1,H/(dist+.15)*.82),base=horizon+size*.42;
-  let col=Math.floor(sx/2);if(col>=0&&col<depth.length&&dist>depth[col]+.15)continue;
-  ctx.save();ctx.translate(sx,base+Math.sin(performance.now()/280+al.phase)*size*.018);ctx.scale(size/120,size/120);
+  if(forward<=0)continue;
+  // Clip every sprite column against wall depth, not just its center pixel.
+  ctx.save();
+  ctx.beginPath();
+  const firstCol=Math.max(0,Math.floor((sx-size*.42)/2));
+  const lastCol=Math.min(depth.length-1,Math.floor((sx+size*.42)/2));
+  for(let col=firstCol;col<=lastCol;col++){
+      if(depth[col]>=forward-.12)ctx.rect(col*2,0,2,H);
+  }
+  ctx.clip();
+  ctx.translate(sx,base+Math.sin(performance.now()/280+al.phase)*size*.018);ctx.scale(size/120,size/120);
   // soft ground shadow
   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,3,42,9,0,0,Math.PI*2);ctx.fill();
   // legs
@@ -862,50 +1003,96 @@ drawLabProps(depth,horizon);
   ctx.fillStyle='#c9fff0';ctx.beginPath();ctx.arc(-13,-125,2.4,0,Math.PI*2);ctx.arc(13,-125,2.4,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='#b7ef8a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-8,-99);ctx.quadraticCurveTo(0,-94,8,-99);ctx.stroke();
   // bioluminescent chest
-  ctx.fillStyle='#b6ff80';ctx.shadowColor='#91ff7a';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(0,-62,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='#b6ff80';ctx.beginPath();ctx.arc(0,-62,6,0,Math.PI*2);ctx.fill();
   ctx.restore();
  }
- // AMMO CHEST
-if(chest.active){
-    let dx=chest.x-player.x;
-    let dy=chest.y-player.y;
-    let dist=Math.hypot(dx,dy);
-    let ang=Math.atan2(dy,dx)-player.a;
+ // AMMO CHESTS: solid supply crates with a raised lid, metal bands,
+// reinforced corners, and a prominent front latch.
+ for(const chestItem of chests){
+     if(!chestItem.active) continue;
+     const dx=chestItem.x-player.x,dy=chestItem.y-player.y;
+     const forward=dx*Math.cos(player.a)+dy*Math.sin(player.a);
+     const side=-dx*Math.sin(player.a)+dy*Math.cos(player.a);
+     if(forward<=.15||forward>24) continue;
+     const focal=W/(2*Math.tan(FOV/2));
+     const cx=W/2+side*focal/forward;
+     if(cx < -W*.3 || cx > W*1.3) continue;
+     const distance=Math.hypot(dx,dy);
+     const wallHit=ray(Math.atan2(dy,dx));
+     if(wallHit.d < distance-.08) continue;
 
-    while(ang>Math.PI) ang-=Math.PI*2;
-    while(ang< -Math.PI) ang+=Math.PI*2;
+     ctx.save();
+     ctx.beginPath();
+     const chestRadius=focal*.62/forward;
+     const chestFirst=Math.max(0,Math.floor((cx-chestRadius)/2));
+     const chestLast=Math.min(depth.length-1,Math.floor((cx+chestRadius)/2));
+     for(let col=chestFirst;col<=chestLast;col++){
+         if(depth[col]>=forward-.42)ctx.rect(col*2,0,2,H);
+     }
+     ctx.clip();
 
-    if(Math.abs(ang)<FOV*.65 && dist>.2 && ray(player.a+ang).d>dist-.5){
-        let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2);
-        let size=Math.min(100,H/(dist+.2)*.5);
-        let sy=horizon+size*.35;
+     const project=(x,y,z)=>{
+         const rx=x-player.x,ry=y-player.y;
+         const f=rx*Math.cos(player.a)+ry*Math.sin(player.a);
+         const q=-rx*Math.sin(player.a)+ry*Math.cos(player.a);
+         if(f<=.08) return null;
+         return {x:W/2+q*focal/f,y:horizon+((.52-z)*focal/f),d:f};
+     };
+     const drawChestBox=(x,y,w,d,z0,z1,palette)=>{
+         const x0=x-w/2,x1=x+w/2,y0=y-d/2,y1=y+d/2;
+         const verts=[
+             project(x0,y0,z0),project(x1,y0,z0),project(x1,y1,z0),project(x0,y1,z0),
+             project(x0,y0,z1),project(x1,y0,z1),project(x1,y1,z1),project(x0,y1,z1)
+         ];
+         if(verts.some(v=>!v))return;
+         const faces=[
+             {ids:[4,5,6,7],color:palette.top},
+             {ids:[0,1,5,4],color:palette.front},
+             {ids:[1,2,6,5],color:palette.side},
+             {ids:[2,3,7,6],color:palette.back},
+             {ids:[3,0,4,7],color:palette.side}
+         ].map(face=>({...face,pts:face.ids.map(i=>verts[i])}))
+          .sort((a,b)=>b.pts.reduce((sum,p)=>sum+p.d,0)-a.pts.reduce((sum,p)=>sum+p.d,0));
+         for(const face of faces){
+             const pts=face.pts;
+             const avg=pts.reduce((sum,p)=>sum+p.d,0)/pts.length;
+             const minX=Math.min(...pts.map(p=>p.x)),maxX=Math.max(...pts.map(p=>p.x));
+             if(maxX<0||minX>W)continue;
+             ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+             for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+             ctx.closePath();ctx.fillStyle=face.color;ctx.fill();
+             ctx.strokeStyle='#241a12';ctx.lineWidth=1.5;ctx.stroke();
+         }
+     };
 
-        ctx.save();
-        ctx.translate(sx,sy);
-
-        // Chest glow
-        ctx.shadowColor='#42ffb0';
-        ctx.shadowBlur=20;
-
-        // Chest body
-        ctx.fillStyle='#70451f';
-        ctx.fillRect(-size*.4,-size*.25,size*.8,size*.5);
-
-        // Chest lid
-        ctx.fillStyle='#a87535';
-        ctx.fillRect(-size*.43,-size*.4,size*.86,size*.18);
-
-        // Metal trim
-        ctx.fillStyle='#d4b45d';
-        ctx.fillRect(-size*.4,-size*.05,size*.8,size*.07);
-
-        // Lock
-        ctx.fillStyle='#5ffff0';
-        ctx.fillRect(-size*.08,-size*.12,size*.16,size*.2);
-
-        ctx.restore();
-    }
-}
+     // Heavy wooden body and an overhanging, separately raised lid.
+     drawChestBox(chestItem.x,chestItem.y,.72,.58,0,.39,
+         {top:'#b77c39',front:'#79502b',side:'#56351f',back:'#674323'});
+     // Dark rim separates the lid from the storage body.
+     drawChestBox(chestItem.x,chestItem.y,.76,.62,.37,.44,
+         {top:'#4b3522',front:'#3e2a1b',side:'#302116',back:'#382719'});
+     drawChestBox(chestItem.x,chestItem.y-.015,.80,.66,.43,.61,
+         {top:'#d39a50',front:'#96602d',side:'#67401f',back:'#7c4c25'});
+     // Reinforced metal bands across the lid and down the crate face.
+     for(const ox of [-.25,.25]){
+         drawChestBox(chestItem.x+ox,chestItem.y,.055,.675,.435,.625,
+             {top:'#c4c9c2',front:'#78827e',side:'#4e5a57',back:'#68716d'});
+     }
+     // Front-facing latch and locking plate.
+     drawChestBox(chestItem.x,chestItem.y-.339,.16,.035,.20,.39,
+         {top:'#d5d8c9',front:'#9da99e',side:'#59645e',back:'#7a857d'});
+     drawChestBox(chestItem.x,chestItem.y-.361,.075,.025,.245,.345,
+         {top:'#f0d18a',front:'#e0b85c',side:'#96733b',back:'#b18a48'});
+     const badge=project(chestItem.x,chestItem.y-.374,.30);
+     if(badge){
+         ctx.save();
+         ctx.fillStyle='#fff0b5';ctx.shadowColor='#ffd36b';ctx.shadowBlur=9;
+         ctx.font=`bold ${Math.max(7,Math.min(15,100/forward))}px Arial`;
+         ctx.textAlign='center';ctx.fillText('SUPPLY',badge.x,badge.y);
+         ctx.restore();
+     }
+     ctx.restore();
+ }
  // projectiles
  for(const o of orbs){let dx=o.x-player.x,dy=o.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;if(Math.abs(ang)<FOV*.65&&dist>.1){let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2),sz=Math.max(3,22/dist);ctx.fillStyle='#ff5e5e';ctx.shadowColor='#ff3030';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(sx,horizon+sz,sz,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}}
 // DETAILED SCI-FI BLASTER
@@ -913,7 +1100,23 @@ ctx.save();
 
 let bob = Math.sin(performance.now()/120)*3;
 
-ctx.translate(W*.73,H*.88+bob+shotFlash*9);
+ctx.translate(W*.84,H*.94+bob+shotFlash*9);
+ctx.rotate(-2.28);
+ctx.scale(1.55,1.55);
+
+// Forearm and hand silhouette, positioned behind the existing blaster design.
+ctx.fillStyle='#202a31';
+ctx.beginPath();
+ctx.moveTo(-48,28);ctx.lineTo(-82,88);ctx.lineTo(-55,116);
+ctx.lineTo(-8,65);ctx.lineTo(-10,34);ctx.closePath();ctx.fill();
+ctx.fillStyle='#b87962';
+ctx.beginPath();
+ctx.moveTo(-34,22);ctx.lineTo(-61,73);ctx.lineTo(-38,92);
+ctx.lineTo(1,49);ctx.lineTo(-2,20);ctx.closePath();ctx.fill();
+ctx.fillStyle='#d49378';
+ctx.beginPath();
+ctx.moveTo(-24,20);ctx.lineTo(-44,59);ctx.lineTo(-30,69);
+ctx.lineTo(-3,39);ctx.closePath();ctx.fill();
 
 // Main gun body
 ctx.fillStyle='#10191e';
@@ -1000,7 +1203,7 @@ function shoot(){
     document.getElementById('ammo').textContent = ammo;
 
     fireCd=superGunEquipped ? .55 : .22;
-    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;document.getElementById('score').textContent=String(score).padStart(3,'0');saveGame();if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
+    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;refreshShop();refreshLoadout();document.getElementById('score').textContent=String(score).padStart(3,'0');saveGame();if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
 function update(dt){if(!playing)return;fireCd=Math.max(0,fireCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
  let speed=(keys.Shift?3.6:2.4)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
  // PLAYER COLLISION WITH WALLS AND FURNITURE
@@ -1011,34 +1214,26 @@ if(!blocked(player.x+dx,player.y)){
 if(!blocked(player.x,player.y+dy)){
     player.y+=dy;
 }
- // PICK UP AMMO CHEST
-if(chest.active && Math.hypot(player.x-chest.x,player.y-chest.y)<0.8){
-
-    let ammoFound = Math.floor(Math.random()*21)+15;
-
-    ammo += ammoFound;
-
-    document.getElementById('ammo').textContent = ammo;
-
-    chest.active = false;
-    chest.respawnTimer = 30;
-
-    document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
-    document.getElementById('statusText').textContent =
-        'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
-    saveGame();
+ // PICK UP AMMO CHESTS
+for(const chestItem of chests){
+    if(chestItem.active && Math.hypot(player.x-chestItem.x,player.y-chestItem.y)<0.8){
+        let ammoFound = Math.floor(Math.random()*21)+15;
+        ammo += ammoFound;
+        document.getElementById('ammo').textContent = ammo;
+        chestItem.active = false;
+        document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
+        document.getElementById('statusText').textContent = 'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
+        saveGame();
+    }
 }
 
- // Wait 30 seconds after pickup, then place a new chest at another open spot.
- if(!chest.active && chest.respawnTimer > 0){
-     chest.respawnTimer -= dt;
-     if(chest.respawnTimer <= 0){
-         chest.respawnTimer = 0;
-         spawnChest();
-         document.getElementById('statusTitle').textContent = 'SUPPLY CACHE DEPLOYED';
-         document.getElementById('statusText').textContent = 'A SUPPLY CHEST HAS APPEARED';
-     }
- }
+// Every 90 seconds, replace the five supply chests at five new random room locations.
+chestCycleTimer -= dt;
+if(chestCycleTimer <= 0){
+    spawnChest();
+    document.getElementById('statusTitle').textContent = 'SUPPLY CACHES DEPLOYED';
+    document.getElementById('statusText').textContent = 'FIVE SUPPLY CHESTS HAVE BEEN REPOSITIONED';
+}
 
  for(let a of aliens){if(!a.alive)continue;let vx=player.x-a.x,vy=player.y-a.y,d=Math.hypot(vx,vy);if(d>1.15){let nx=a.x+vx/d*a.speed*dt,ny=a.y+vy/d*a.speed*dt;// ALIENS AVOID LABORATORY FURNITURE
 if(!blocked(nx,a.y,.3)){
@@ -1047,7 +1242,7 @@ if(!blocked(nx,a.y,.3)){
 
 if(!blocked(a.x,ny,.3)){
     a.y=ny;
-}}a.attack-=dt;if(a.attack<=0&&d<9){orbs.push({x:a.x,y:a.y,vx:vx/d*2.2,vy:vy/d*2.2,life:4});a.attack=2.3+Math.random()*1.2;}}
+}}a.attack-=dt;if(a.attack<=0&&d<9){const orbSpeed=Math.min(4,2.2+wave*.08);orbs.push({x:a.x,y:a.y,vx:vx/d*orbSpeed,vy:vy/d*orbSpeed,life:4});a.attack=Math.max(.75,2.3-wave*.055)+Math.random()*.45;}}
  for(let o of orbs){o.x+=o.vx*dt;o.y+=o.vy*dt;o.life-=dt;if(Math.hypot(o.x-player.x,o.y-player.y)<.38){if(shieldHits>0){shieldHits--;document.getElementById('statusTitle').textContent='SHIELD HIT';document.getElementById('statusText').textContent=shieldHits+' SHIELD CHARGES REMAIN';}else{player.hp=Math.max(0,player.hp-15);}o.life=0;damageFlash=1;}}
  orbs=orbs.filter(o=>o.life>0&&!wall(o.x,o.y));document.getElementById('healthFill').style.width=player.hp+'%';document.getElementById('threat').textContent=aliens.filter(a=>a.alive).length>6?'HIGH':aliens.filter(a=>a.alive).length>3?'MED':'LOW';
  if(player.hp<=0){
@@ -1083,11 +1278,13 @@ function startBattle() {
 
     chest.respawnTimer = 0;
     chest.active = false;
+    chests = [];
+    chestCycleTimer = 90;
 
     document.getElementById('ammo').textContent = ammo;
 
-    player.x = 2.5;
-    player.y = 2.5;
+    player.x = 3.5;
+    player.y = 3.5;
 
     spawnChest();
 
@@ -1294,6 +1491,7 @@ document.querySelectorAll('.buy-btn').forEach(btn => {
             'Purchased ' + shopLabels[item] + '!';
 
         refreshShop();
+        refreshLoadout();
         saveGame();
     });
 });
