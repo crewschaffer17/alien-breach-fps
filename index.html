@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta name ="google-site-verification"
+        content="EYSWuHRzc1nmow-Ue6Gvyz9p23tayUxcIK22Eicll-sas"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alien Breach FPS - Free Browser Game</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#05090d; font-family:Arial,Helvetica,sans-serif; }
+  canvas { display:block; width:100vw; height:100vh; cursor:crosshair; }
+  #hud { position:fixed; inset:0; pointer-events:none; color:#e8f5f2; text-shadow:0 2px 8px #000; }
+  .top { position:absolute; top:18px; left:22px; right:22px; display:flex; justify-content:space-between; gap:12px; }
+  .panel { background:linear-gradient(135deg,rgba(5,17,22,.82),rgba(5,10,15,.55)); border:1px solid rgba(111,230,190,.35); border-radius:10px; padding:10px 15px; box-shadow:0 8px 30px #0007; }
+  .label { color:#8ca9a5; font-size:10px; letter-spacing:2px; font-weight:bold; }
+  .value { font-size:22px; font-weight:800; margin-top:3px; }
+  #centerMsg { position:absolute; top:15%; left:50%; transform:translateX(-50%); text-align:center; width:min(90%,620px); }
+  #centerMsg h1 { margin:0; font-size:clamp(28px,5vw,58px); letter-spacing:5px; color:#d9fff0; text-shadow:0 0 25px #50ffb2a8,0 3px 6px #000; }
+  #centerMsg p { color:#b5d0ca; letter-spacing:2px; font-size:12px; }
+  #bottom { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:12px; align-items:end; }
+  .bar { width:160px; height:9px; border-radius:8px; background:#1c3030; overflow:hidden; margin-top:7px; }
+  .fill { height:100%; width:100%; background:linear-gradient(90deg,#29c77d,#a4ffbd); transition:width .15s; }
+  #ammo { font-size:25px; font-weight:800; }
+  #hint { position:absolute; bottom:20px; right:22px; color:#9bb5b0; font-size:11px; line-height:1.7; text-align:right; }
+  #overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:radial-gradient(ellipse at center,rgba(8,25,29,.55),rgba(0,0,0,.92)); color:white; z-index:5; }
+  .modal { width:min(92vw,520px); padding:34px; text-align:center; border:1px solid #4e9f81; border-radius:16px; background:linear-gradient(145deg,#10221f,#080e14); box-shadow:0 0 70px #1be28b20; }
+  .modal h1 { margin:0 0 8px; font-size:clamp(30px,6vw,52px); letter-spacing:5px; }
+  .modal h1 span { color:#63f5ad; }
+  .modal p { color:#a9c3bc; line-height:1.6; }
+  button { pointer-events:auto; margin-top:16px; border:0; border-radius:7px; padding:14px 28px; background:linear-gradient(90deg,#1cba78,#79f3a9); color:#04130d; font-weight:900; letter-spacing:2px; cursor:pointer; font-size:14px; }
+  button:hover { filter:brightness(1.12); transform:translateY(-1px); }
+  #damage { position:fixed; inset:0; pointer-events:none; opacity:0; background:radial-gradient(ellipse,transparent 48%,rgba(255,35,35,.55)); transition:opacity .12s; }
+  @media(max-width:600px){ .top{left:9px;right:9px;top:9px}.panel{padding:7px 9px}.value{font-size:17px}#hint{display:none}#bottom{bottom:12px}.bar{width:100px} }
+
+  .screen{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;color:#eaf8f2;background:radial-gradient(ellipse at 50% 45%,#18302d 0%,#081116 48%,#020508 100%);}
+  .screen.hidden{display:none!important}
+  .screen:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(130,255,210,.025) 4px),linear-gradient(115deg,transparent 45%,rgba(75,255,180,.07));}
+  .menu-wrap,.shop-wrap{position:relative;width:min(1100px,94vw);z-index:1}
+  .eyebrow{color:#69e9ae;font-size:11px;letter-spacing:5px;font-weight:bold;text-transform:uppercase}
+  .menu-title{text-align:center;font-size:clamp(42px,8vw,82px);letter-spacing:7px;margin:10px 0 4px;text-shadow:0 0 28px #36e99a66}
+  .menu-title span{color:#68f2ad}
+  .menu-sub{text-align:center;color:#a9c4bb;letter-spacing:3px;font-size:12px;margin:0 0 42px}
+ .menu-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .menu-card{min-height:245px;border:1px solid #477a68;border-radius:14px;background:linear-gradient(145deg,rgba(20,48,42,.96),rgba(5,13,18,.96));padding:30px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 15px 50px #0008}
+  .menu-card h2{font-size:clamp(27px,4vw,42px);letter-spacing:3px;margin:8px 0}
+  .menu-card p{color:#a9c4bb;line-height:1.5;max-width:390px}
+  .menu-card.play{border-color:#4ee6a0;box-shadow:0 0 34px #32e99a20}
+  .menu-btn,.buy-btn,.back-btn{border:1px solid #65edac;background:linear-gradient(90deg,#159d68,#6cf0a9);color:#03130c;border-radius:6px;padding:15px 22px;font-weight:900;letter-spacing:2px;cursor:pointer;margin:12px 0 0}
+  .menu-btn.secondary,.back-btn{background:#142b2b;color:#d7f9e9;border-color:#4b8c78}
+  .shop-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:22px}
+  .shop-head h1{font-size:clamp(30px,5vw,48px);letter-spacing:4px;margin:4px 0}
+  .credits{border:1px solid #a78b42;color:#ffe28a;background:#241f12;padding:12px 18px;border-radius:8px;font-weight:bold;white-space:nowrap}
+  .shop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .shop-item{background:linear-gradient(145deg,#172b2c,#091116);border:1px solid #365d56;border-radius:10px;padding:17px;min-height:220px;display:flex;flex-direction:column}
+  .item-icon{font-size:38px;margin:4px 0 12px}
+  .shop-item h3{margin:0 0 8px;letter-spacing:1px;color:#dfffee}
+  .shop-item p{color:#9eb8b0;font-size:13px;line-height:1.45;flex:1}
+  .item-cost{color:#ffdf83;font-weight:bold;font-size:13px}
+  .buy-btn{width:100%;padding:11px 8px;font-size:11px;margin-top:12px}
+  .buy-btn:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(1)}
+  .shop-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:20px;color:#9eb8b0;font-size:13px}
+  #shopMessage{color:#75f0ae;min-height:18px}
+  @media(max-width:760px){.shop-grid{grid-template-columns:repeat(2,1fr)}.menu-actions{grid-template-columns:1fr}.menu-card{min-height:180px}.menu-sub{margin-bottom:20px}}
+  @media(max-width:430px){.shop-grid{grid-template-columns:1fr 1fr;gap:8px}.shop-item{padding:11px;min-height:230px}.shop-item p{font-size:12px}.shop-head{align-items:flex-start;flex-direction:column}}
+
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div class="top">
+    <div class="panel"><div class="label">SECTOR</div><div class="value" id="wave">01</div></div>
+    <div class="panel"><div class="label">ALIENS TAGGED</div><div class="value" id="score">000</div></div>
+    <div class="panel"><div class="label">THREAT LEVEL</div><div class="value" id="threat">LOW</div></div>
+  </div>
+  <div id="centerMsg"><h1 id="statusTitle">BREACH IN PROGRESS</h1><p id="statusText">HOSTILES DETECTED · HOLD THE LINE</p></div>
+  <div id="bottom">
+    <div class="panel"><div class="label">SUIT INTEGRITY</div><div class="bar"><div class="fill" id="healthFill"></div></div></div>
+<div class="panel"><div class="label">PULSE CHARGES</div><div id="ammo">25</div></div>
+  </div>
+  <div id="hint">W A S D — MOVE<br>MOUSE — LOOK AROUND<br>CLICK — PULSE BLAST<br>E — USE MED-KIT · Q — SWITCH GUN</div>
+</div>
+<div id="damage"></div>
+<div id="mainMenu" class="screen">
+  <div class="menu-wrap">
+    <div class="eyebrow" style="text-align:center">CLASSIFIED // RESEARCH DIVISION</div>
+    <h1 class="menu-title">ALIEN <span>BREACH</span></h1>
+    <p class="menu-sub">AREA 51 · OUTPOST DEFENSE PROGRAM</p>
+    <div class="menu-actions">
+  <section class="menu-card play">
+    <div>
+      <div class="eyebrow">READY FOR DEPLOYMENT</div>
+      <h2>PLAY NOW</h2>
+      <p>Deploy to Area 51 and defend the research outpost from incoming alien threats.</p>
+    </div>
+    <button class="menu-btn" id="playNow">ENTER AREA 51 →</button>
+  </section>
+
+  <section class="menu-card">
+    <div>
+      <div class="eyebrow">QUARTERMASTER</div>
+      <h2>SHOP</h2>
+      <p>Purchase weapons, health kits, and powerups.</p>
+    </div>
+    <button class="menu-btn secondary" id="openShop">OPEN SHOP →</button>
+  </section>
+
+  <section class="menu-card">
+    <div>
+      <div class="eyebrow">DEPLOYMENT EQUIPMENT</div>
+      <h2>LOADOUT</h2>
+      <p>Choose which weapons and supplies you want to bring into battle.</p>
+    </div>
+    <button class="menu-btn secondary" id="openLoadout">OPEN LOADOUT →</button>
+  </section>
+</div>
+    <p style="text-align:center;color:#66877d;font-size:10px;letter-spacing:2px;margin-top:28px">FICTIONAL SCI-FI ARCADE GAME</p>
+  </div>
+</div>
+<div id="shopScreen" class="screen hidden">
+  <div class="shop-wrap">
+    <div class="shop-head"><div><div class="eyebrow">AREA 51 QUARTERMASTER</div><h1>FIELD <span style="color:#68f2ad">SUPPLIES</span></h1></div><div class="credits">CREDITS: <span id="credits">500</span></div></div>
+<div class="shop-grid">
+
+  <article class="shop-item">
+    <div class="item-icon">◈</div>
+    <h3>SHOTGUN</h3>
+    <p>Fires 4 pellets at once, spreading across a wider range.</p>
+    <div class="item-cost">7500 CREDITS</div>
+    <button class="buy-btn" data-item="shotgun">BUY SHOTGUN</button>
+  </article>
+
+  <article class="shop-item">
+    <div class="item-icon">▰</div>
+    <h3>ASSAULT RIFLE</h3>
+    <p>Fires one shot every 0.5 seconds for steady damage.</p>
+    <div class="item-cost">6000 CREDITS</div>
+    <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
+  </article>
+
+  <article class="shop-item">
+    <div class="item-icon">✚</div>
+    <h3>MED-KIT</h3>
+    <p>Restores 35 suit integrity. Use it during battle.</p>
+    <div class="item-cost">350 CREDITS</div>
+    <button class="buy-btn" data-item="medkit">BUY MED-KIT</button>
+  </article>
+
+  <article class="shop-item">
+    <div class="item-icon">ϟ</div>
+    <h3>SPEED BOOST</h3>
+    <p>Temporarily increases your movement speed.</p>
+    <div class="item-cost">750 CREDITS</div>
+    <button class="buy-btn" data-item="speed">BUY SPEED BOOST</button>
+  </article>
+
+</div>
+    <div class="shop-footer"><div><div id="shopMessage">Purchases are placed into your loadout.</div><div>Credits are earned by eliminating alien scouts.</div></div><button class="back-btn" id="backMenu">← BACK TO MENU</button></div>
+  </div>
+</div>
+<div id="loadoutScreen" class="screen hidden">
+  <div class="shop-wrap">
+
+    <div class="shop-head">
+      <div>
+        <div class="eyebrow">AREA 51 DEPLOYMENT</div>
+        <h1>YOUR <span style="color:#68f2ad">LOADOUT</span></h1>
+      </div>
+    </div>
+
+    <div class="shop-grid">
+
+      <article class="shop-item">
+        <h3>OWNED WEAPONS</h3>
+        <div id="loadoutWeapons">
+          Loading weapons...
+        </div>
+      </article>
+
+      <article class="shop-item">
+        <h3>HEALTH KITS</h3>
+        <p>Owned: <span id="medkitOwned">0</span></p>
+        <label>Bring into battle:</label>
+        <input id="medkitBring" type="number" min="0" value="0">
+      </article>
+
+      <article class="shop-item">
+        <h3>POWERUPS</h3>
+        <p>Owned: <span id="speedOwned">0</span></p>
+        <label>Bring into battle:</label>
+        <input id="speedBring" type="number" min="0" value="0">
+      </article>
+
+    </div>
+
+    <div class="shop-footer">
+      <div id="loadoutMessage">Choose your equipment before deployment.</div>
+      <button class="back-btn" id="saveLoadout">SAVE LOADOUT</button>
+      <button class="back-btn" id="backLoadout">← BACK TO MENU</button>
+    </div>
+
+  </div>
+</div>
+<div id="overlay" style="display:none">
+  <div class="modal">
+    <h1>ALIEN <span>BREACH</span></h1>
+    <p>A hostile lifeform has entered the research outpost. Navigate the arena, dodge incoming plasma orbs, and tag the alien scouts with your pulse blaster.</p>
+    <p><b>WASD</b> move · <b>Mouse</b> look · <b>Click</b> fire · <b>Shift</b> sprint · <b>Esc</b> release mouse</p>
+    <button id="start">ENTER THE LAB</button>
+    <p style="font-size:10px;letter-spacing:1px">FICTIONAL SCI-FI ARCADE GAME · NON-GRAPHIC</p>
+  </div>
+</div>
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2);
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+addEventListener('resize',resize);resize();
+const map=[
+"1111111111111111",
+"1000000000000001",
+"1000100001000001",
+"1000100001000001",
+"1000000000000001",
+"1011000000011001",
+"1000000000000001",
+"1000010000100001",
+"1000010000100001",
+"1000000000000001",
+"1001100000011001",
+"1000000000000001",
+"1000000000000001",
+"1111111111111111"
+];
+const MW=map[0].length,MH=map.length;
+const player={x:2.5,y:2.5,a:0,pitch:0,hp:100};
+let aliens=[],orbs=[],particles=[],score=0,wave=1,playing=false,keys={},last=0,fireCd=0,damageFlash=0,shotFlash=0;
+
+let ammo = 25;
+let credits = 0;
+
+let inventory = {
+    shotgun: false,
+    rifle: false,
+    medkit: 0,
+    speed: 0
+};
+
+let loadout = {
+    weapon: 'pulse',
+    medkits: 0,
+    speed: 0
+};
+
+let battleMedkits = 0;
+let battleSpeed = 0;
+let speedBoostTimer = 0;
+
+let shieldHits = 0;
+let superGunEquipped = false;
+
+let chest = {
+    x: 7.5,
+    y: 7.5,
+    active: true,
+    respawnTimer: 0
+};
+const FOV=Math.PI/2.7;
+// LABORATORY FURNITURE
+const labProps = [
+    {x:6.5,y:3.5,type:'computer',radius:.5},
+    {x:7.5,y:5.5,type:'table',radius:.5},
+    {x:5.5,y:6.5,type:'computer',radius:.5},
+    {x:8.5,y:8.5,type:'cabinet',radius:.5},
+    {x:12.5,y:9.5,type:'computer',radius:.5},
+    {x:7.5,y:11.5,type:'lamp',radius:.5},
+    {x:12.5,y:4.5,type:'cabinet',radius:.5}
+];
+function wall(x,y){return !map[Math.floor(y)]||map[Math.floor(y)][Math.floor(x)]!=='0';}
+
+// Choose a random open floor tile for the next ammo chest.
+function spawnChest(){
+    const openSpots = [];
+    for(let y=1; y<MH-1; y++){
+        for(let x=1; x<MW-1; x++){
+           if(
+    map[y][x]==='0' &&
+    Math.hypot(x+0.5-player.x,y+0.5-player.y)>3 &&
+    !labProps.some(p=>Math.hypot(x+0.5-p.x,y+0.5-p.y)<1.1)
+){
+                openSpots.push({x:x+0.5,y:y+0.5});
+            }
+        }
+    }
+
+    // Fallback: use any open floor tile if the player is near most of the room.
+    if(openSpots.length===0){
+        for(let y=1; y<MH-1; y++){
+            for(let x=1; x<MW-1; x++){
+                if(map[y][x]==='0') openSpots.push({x:x+0.5,y:y+0.5});
+            }
+        }
+    }
+
+    if(openSpots.length){
+        const spot=openSpots[Math.floor(Math.random()*openSpots.length)];
+        chest.x=spot.x;
+        chest.y=spot.y;
+        chest.active=true;
+    }
+}
+
+function spawnWave(){let n=3+wave*2;for(let i=0;i<n;i++){let x,y,tries=0;do{x=2+Math.random()*12;y=2+Math.random()*10;tries++;}while((blocked(x,y,.35)||Math.hypot(x-player.x,y-player.y)<4)&&tries<100);aliens.push({x,y,hp:2,speed:.35+Math.random()*.13,phase:Math.random()*7,attack:1+Math.random()*2,alive:true});}}
+// CHECK WALLS AND FURNITURE
+function blocked(x,y,r=.28){
+    if(wall(x,y)) return true;
+
+    for(const p of labProps){
+        if(Math.hypot(x-p.x,y-p.y)<p.radius+r){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// DRAW LABORATORY FURNITURE
+function drawLabProps(depth,horizon){
+
+    const sortedProps=labProps
+        .map(p=>({...p,dist:Math.hypot(p.x-player.x,p.y-player.y)}))
+        .sort((a,b)=>b.dist-a.dist);
+
+    for(const p of sortedProps){
+
+        let dx=p.x-player.x;
+        let dy=p.y-player.y;
+        let ang=Math.atan2(dy,dx)-player.a;
+
+        while(ang>Math.PI) ang-=Math.PI*2;
+        while(ang< -Math.PI) ang+=Math.PI*2;
+
+        if(Math.abs(ang)>FOV*.7 || p.dist<.3) continue;
+
+        let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2);
+        let col=Math.floor(sx/2);
+
+        if(col<0 || col>=depth.length) continue;
+        if(p.dist>depth[col]+.15) continue;
+
+        let size=Math.min(H*1.1,H/(p.dist+.2)*.65);
+
+        ctx.save();
+        ctx.translate(sx,horizon+size*.43);
+        ctx.scale(size/100,size/100);
+
+        ctx.fillStyle='#0009';
+        ctx.beginPath();
+        ctx.ellipse(0,5,55,13,0,0,Math.PI*2);
+        ctx.fill();
+
+        // TABLE
+        ctx.fillStyle='#46565c';
+        ctx.fillRect(-48,-35,96,12);
+
+        ctx.fillStyle='#89999c';
+        ctx.fillRect(-48,-35,96,3);
+
+        ctx.fillStyle='#26343a';
+        ctx.fillRect(-43,-23,8,65);
+        ctx.fillRect(35,-23,8,65);
+
+        if(p.type==='computer'){
+
+            // BULKY CRT COMPUTER
+            ctx.fillStyle='#92948b';
+            ctx.fillRect(-30,-76,60,40);
+
+            ctx.fillStyle='#343e40';
+            ctx.fillRect(-25,-72,50,30);
+
+            ctx.fillStyle='#102b30';
+            ctx.fillRect(-21,-68,42,22);
+
+            ctx.fillStyle='#54ffad';
+            ctx.shadowColor='#42ff9d';
+            ctx.shadowBlur=12;
+
+            ctx.fillRect(-17,-63,28,2);
+            ctx.fillRect(-17,-57,34,2);
+            ctx.fillRect(-17,-51,20,2);
+
+            ctx.shadowBlur=0;
+
+            ctx.fillStyle='#202b30';
+            ctx.fillRect(-22,-33,44,7);
+        }
+
+        if(p.type==='cabinet'){
+
+            ctx.fillStyle='#59686b';
+            ctx.fillRect(-35,-95,70,130);
+
+            ctx.fillStyle='#879496';
+            ctx.fillRect(-35,-95,70,5);
+
+            ctx.strokeStyle='#202d32';
+            ctx.lineWidth=3;
+            ctx.strokeRect(-29,-87,27,112);
+            ctx.strokeRect(3,-87,27,112);
+
+            ctx.fillStyle='#c0c7bf';
+            ctx.fillRect(-7,-42,4,18);
+            ctx.fillRect(3,-42,4,18);
+        }
+
+        if(p.type==='lamp'){
+
+            ctx.strokeStyle='#c5c7ba';
+            ctx.lineWidth=5;
+
+            ctx.beginPath();
+            ctx.moveTo(10,-36);
+            ctx.lineTo(17,-75);
+            ctx.lineTo(30,-85);
+            ctx.stroke();
+
+            ctx.fillStyle='#747f7d';
+            ctx.fillRect(15,-90,28,13);
+
+            ctx.fillStyle='#ffe49b';
+            ctx.shadowColor='#ffd36b';
+            ctx.shadowBlur=30;
+            ctx.beginPath();
+            ctx.arc(28,-75,5,0,Math.PI*2);
+            ctx.fill();
+
+            ctx.shadowBlur=0;
+        }
+
+        ctx.restore();
+    }
+}
+
+// RAYCASTING
+function ray(angle){
+    let sn=Math.sin(angle),cs=Math.cos(angle);
+
+    for(let d=0;d<22;d+=.025){
+        let x=player.x+cs*d;
+        let y=player.y+sn*d;
+
+        if(wall(x,y)) return {d,x,y};
+    }
+
+    return {d:22,x:0,y:0};
+}
+
+function drawWorld(){
+ const horizon=H*.49+player.pitch;
+ let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#07131c');sky.addColorStop(1,'#263b40');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
+ let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#273b38');floor.addColorStop(1,'#080d12');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+// FLICKERING LABORATORY CEILING LIGHTS
+let time=performance.now()/1000;
+let flicker=.75+.2*Math.sin(time*3);
+if(Math.sin(time*11)>.96) flicker=.15;
+
+for(let i=0;i<6;i++){
+    let x=(i*W/5+W*.08+player.a*35)%W;
+    ctx.fillStyle='#283b40';
+    ctx.fillRect(x,horizon*.12,75,12);
+    ctx.fillStyle=`rgba(180,255,230,${flicker*.8})`;
+    ctx.shadowColor='#aaffdf';
+    ctx.shadowBlur=18*flicker;
+    ctx.fillRect(x+5,horizon*.12+4,65,4);
+    ctx.shadowBlur=0;
+}
+
+// SUBTLE RED EMERGENCY LIGHT
+let emergency=.5+.5*Math.sin(time*2);
+ctx.fillStyle=`rgba(255,0,0,${emergency*.055})`;
+ctx.fillRect(0,0,W,H);
+
+ const depth=new Float32Array(Math.ceil(W/2));
+ for(let sx=0;sx<W;sx+=2){let a=player.a+(sx/W-.5)*FOV,r=ray(a),corrected=r.d*Math.cos(a-player.a);depth[sx>>1]=corrected;let wallH=Math.min(H*1.5,H/(corrected+.08));let y=horizon-wallH/2;let shade=Math.max(.15,1-corrected/13);let side=(Math.floor(r.x*2)+Math.floor(r.y*2))%2;
+// DARK INDUSTRIAL METAL WALLS
+let metal=Math.floor(35+shade*48);
+
+ctx.fillStyle=`rgb(${metal},${metal+8},${metal+12})`;
+ctx.fillRect(sx,y,2,wallH);
+
+// METAL PANEL HIGHLIGHTS
+ctx.fillStyle=`rgba(180,210,215,${shade*.18})`;
+ctx.fillRect(sx,y,2,3);
+
+// LOWER WALL SHADOW
+ctx.fillStyle=`rgba(0,0,0,${.35+side*.12})`;
+ctx.fillRect(sx,y+wallH*.78,2,wallH*.22);
+
+// INDUSTRIAL WALL STRIPES
+if(Math.floor(r.x*3)%7===0){
+    ctx.fillStyle=`rgba(140,165,170,${shade*.15})`;
+    ctx.fillRect(sx,y+wallH*.12,2,wallH*.65); 
+    ctx.fillStyle=`rgba(0,0,0,${.18+side*.08})`;ctx.fillRect(sx,y+wallH*.75,2,wallH*.25);
+ }
+ } // end wall-column raycasting loop
+ // DRAW LABORATORY FURNITURE
+drawLabProps(depth,horizon);
+ // alien sprites, farthest first
+ let sorted=aliens.filter(a=>a.alive).map(a=>({...a,dx:a.x-player.x,dy:a.y-player.y})).sort((a,b)=>(b.dx*b.dx+b.dy*b.dy)-(a.dx*a.dx+a.dy*a.dy));
+ for(const al of sorted){
+  let dist=Math.hypot(al.dx,al.dy),ang=Math.atan2(al.dy,al.dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
+  if(Math.abs(ang)>FOV*.72||dist<.2)continue;
+  let sx=W/2+Math.tan(ang)/(Math.tan(FOV/2))*(W/2),size=Math.min(H*1.1,H/(dist+.15)*.82),base=horizon+size*.42;
+  let col=Math.floor(sx/2);if(col>=0&&col<depth.length&&dist>depth[col]+.15)continue;
+  ctx.save();ctx.translate(sx,base+Math.sin(performance.now()/280+al.phase)*size*.018);ctx.scale(size/120,size/120);
+  // soft ground shadow
+  ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,3,42,9,0,0,Math.PI*2);ctx.fill();
+  // legs
+  ctx.fillStyle='#315c3e';ctx.beginPath();ctx.roundRect(-25,-34,18,43,8);ctx.roundRect(8,-34,18,43,8);ctx.fill();
+  // torso
+  let body=ctx.createLinearGradient(-35,-95,35,-25);body.addColorStop(0,'#a0e879');body.addColorStop(.45,'#4f9d53');body.addColorStop(1,'#183f36');
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,-62,37,43,0,0,Math.PI*2);ctx.fill();
+  // shoulders and arms
+  ctx.fillStyle='#4b9854';ctx.beginPath();ctx.ellipse(-34,-76,13,25,-.35,0,Math.PI*2);ctx.ellipse(34,-76,13,25,.35,0,Math.PI*2);ctx.fill();
+  // head
+  let head=ctx.createLinearGradient(-30,-145,30,-92);head.addColorStop(0,'#c4ff8d');head.addColorStop(.5,'#79c95d');head.addColorStop(1,'#286446');
+  ctx.fillStyle=head;ctx.beginPath();ctx.ellipse(0,-119,31,37,0,0,Math.PI*2);ctx.fill();
+  // eyes
+  ctx.fillStyle='#102a24';ctx.beginPath();ctx.ellipse(-13,-124,9,6,-.15,0,Math.PI*2);ctx.ellipse(13,-124,9,6,.15,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#c9fff0';ctx.beginPath();ctx.arc(-13,-125,2.4,0,Math.PI*2);ctx.arc(13,-125,2.4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#b7ef8a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-8,-99);ctx.quadraticCurveTo(0,-94,8,-99);ctx.stroke();
+  // bioluminescent chest
+  ctx.fillStyle='#b6ff80';ctx.shadowColor='#91ff7a';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(0,-62,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.restore();
+ }
+ // AMMO CHEST
+if(chest.active){
+    let dx=chest.x-player.x;
+    let dy=chest.y-player.y;
+    let dist=Math.hypot(dx,dy);
+    let ang=Math.atan2(dy,dx)-player.a;
+
+    while(ang>Math.PI) ang-=Math.PI*2;
+    while(ang< -Math.PI) ang+=Math.PI*2;
+
+    if(Math.abs(ang)<FOV*.65 && dist>.2 && ray(player.a+ang).d>dist-.5){
+        let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2);
+        let size=Math.min(100,H/(dist+.2)*.5);
+        let sy=horizon+size*.35;
+
+        ctx.save();
+        ctx.translate(sx,sy);
+
+        // Chest glow
+        ctx.shadowColor='#42ffb0';
+        ctx.shadowBlur=20;
+
+        // Chest body
+        ctx.fillStyle='#70451f';
+        ctx.fillRect(-size*.4,-size*.25,size*.8,size*.5);
+
+        // Chest lid
+        ctx.fillStyle='#a87535';
+        ctx.fillRect(-size*.43,-size*.4,size*.86,size*.18);
+
+        // Metal trim
+        ctx.fillStyle='#d4b45d';
+        ctx.fillRect(-size*.4,-size*.05,size*.8,size*.07);
+
+        // Lock
+        ctx.fillStyle='#5ffff0';
+        ctx.fillRect(-size*.08,-size*.12,size*.16,size*.2);
+
+        ctx.restore();
+    }
+}
+ // projectiles
+ for(const o of orbs){let dx=o.x-player.x,dy=o.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;if(Math.abs(ang)<FOV*.65&&dist>.1){let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2),sz=Math.max(3,22/dist);ctx.fillStyle='#ff5e5e';ctx.shadowColor='#ff3030';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(sx,horizon+sz,sz,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}}
+// DETAILED SCI-FI BLASTER
+ctx.save();
+
+let bob = Math.sin(performance.now()/120)*3;
+
+ctx.translate(W*.73,H*.88+bob+shotFlash*9);
+
+// Main gun body
+ctx.fillStyle='#10191e';
+ctx.beginPath();
+ctx.moveTo(-65,25);
+ctx.lineTo(-48,-38);
+ctx.lineTo(-20,-55);
+ctx.lineTo(48,-48);
+ctx.lineTo(75,-25);
+ctx.lineTo(82,25);
+ctx.lineTo(35,42);
+ctx.lineTo(-45,35);
+ctx.closePath();
+ctx.fill();
+
+// Barrel
+ctx.fillStyle='#263b43';
+ctx.fillRect(-8,-65,65,24);
+
+ctx.fillStyle='#101b22';
+ctx.fillRect(35,-62,35,17);
+
+// Barrel opening
+ctx.fillStyle='#05090d';
+ctx.fillRect(66,-60,9,14);
+
+// Top sight
+ctx.fillStyle='#526b72';
+ctx.fillRect(5,-76,25,10);
+
+// Main side panel
+ctx.fillStyle='#405b62';
+ctx.beginPath();
+ctx.moveTo(-35,-37);
+ctx.lineTo(20,-48);
+ctx.lineTo(48,-25);
+ctx.lineTo(30,5);
+ctx.lineTo(-38,0);
+ctx.closePath();
+ctx.fill();
+
+// Glowing energy core
+ctx.fillStyle='#64f5bd';
+ctx.shadowColor='#4dffbb';
+ctx.shadowBlur=shotFlash>0?35:15;
+ctx.fillRect(-8,-29,35,9);
+ctx.shadowBlur=0;
+
+// Grip
+ctx.fillStyle='#17262d';
+ctx.beginPath();
+ctx.moveTo(-42,5);
+ctx.lineTo(-12,8);
+ctx.lineTo(-18,65);
+ctx.lineTo(-48,58);
+ctx.closePath();
+ctx.fill();
+
+// Grip texture
+ctx.strokeStyle='#52666b';
+ctx.lineWidth=3;
+for(let i=0;i<4;i++){
+    ctx.beginPath();
+    ctx.moveTo(-43,18+i*9);
+    ctx.lineTo(-20,21+i*9);
+    ctx.stroke();
+}
+
+// Small warning light
+ctx.fillStyle='#ff554d';
+ctx.beginPath();
+ctx.arc(42,-10,4,0,Math.PI*2);
+ctx.fill();
+
+ctx.restore();
+ ctx.strokeStyle='#d9fff0';ctx.lineWidth=2;ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(W/2-12,H/2);ctx.lineTo(W/2-4,H/2);ctx.moveTo(W/2+4,H/2);ctx.lineTo(W/2+12,H/2);ctx.moveTo(W/2,H/2-12);ctx.lineTo(W/2,H/2-4);ctx.moveTo(W/2,H/2+4);ctx.lineTo(W/2,H/2+12);ctx.stroke();ctx.globalAlpha=1;
+ if(shotFlash>0){ctx.fillStyle=`rgba(100,255,190,${shotFlash*.12})`;ctx.fillRect(0,0,W,H);}
+}
+function shoot(){
+    if(!playing || fireCd>0) return;
+    const shotCost = superGunEquipped ? 5 : 1;
+    if(ammo < shotCost) return;
+    ammo -= shotCost;
+    document.getElementById('ammo').textContent = ammo;
+
+    fireCd=superGunEquipped ? .55 : .22;
+    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;document.getElementById('score').textContent=String(score).padStart(3,'0');if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
+function update(dt){if(!playing)return;fireCd=Math.max(0,fireCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
+ let speed=(keys.Shift?3.6:2.4)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
+ // PLAYER COLLISION WITH WALLS AND FURNITURE
+if(!blocked(player.x+dx,player.y)){
+    player.x+=dx;
+}
+
+if(!blocked(player.x,player.y+dy)){
+    player.y+=dy;
+}
+ // PICK UP AMMO CHEST
+if(chest.active && Math.hypot(player.x-chest.x,player.y-chest.y)<0.8){
+
+    let ammoFound = Math.floor(Math.random()*21)+15;
+
+    ammo += ammoFound;
+
+    document.getElementById('ammo').textContent = ammo;
+
+    chest.active = false;
+    chest.respawnTimer = 30;
+
+    document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
+    document.getElementById('statusText').textContent =
+        'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
+}
+
+ // Wait 30 seconds after pickup, then place a new chest at another open spot.
+ if(!chest.active && chest.respawnTimer > 0){
+     chest.respawnTimer -= dt;
+     if(chest.respawnTimer <= 0){
+         chest.respawnTimer = 0;
+         spawnChest();
+         document.getElementById('statusTitle').textContent = 'SUPPLY CACHE DEPLOYED';
+         document.getElementById('statusText').textContent = 'A SUPPLY CHEST HAS APPEARED';
+     }
+ }
+
+ for(let a of aliens){if(!a.alive)continue;let vx=player.x-a.x,vy=player.y-a.y,d=Math.hypot(vx,vy);if(d>1.15){let nx=a.x+vx/d*a.speed*dt,ny=a.y+vy/d*a.speed*dt;// ALIENS AVOID LABORATORY FURNITURE
+if(!blocked(nx,a.y,.3)){
+    a.x=nx;
+}
+
+if(!blocked(a.x,ny,.3)){
+    a.y=ny;
+}}a.attack-=dt;if(a.attack<=0&&d<9){orbs.push({x:a.x,y:a.y,vx:vx/d*2.2,vy:vy/d*2.2,life:4});a.attack=2.3+Math.random()*1.2;}}
+ for(let o of orbs){o.x+=o.vx*dt;o.y+=o.vy*dt;o.life-=dt;if(Math.hypot(o.x-player.x,o.y-player.y)<.38){if(shieldHits>0){shieldHits--;document.getElementById('statusTitle').textContent='SHIELD HIT';document.getElementById('statusText').textContent=shieldHits+' SHIELD CHARGES REMAIN';}else{player.hp=Math.max(0,player.hp-15);}o.life=0;damageFlash=1;}}
+ orbs=orbs.filter(o=>o.life>0&&!wall(o.x,o.y));document.getElementById('healthFill').style.width=player.hp+'%';document.getElementById('threat').textContent=aliens.filter(a=>a.alive).length>6?'HIGH':aliens.filter(a=>a.alive).length>3?'MED':'LOW';
+ if(player.hp<=0){playing=false;document.exitPointerLock?.();document.getElementById('overlay').style.display='flex';document.querySelector('.modal h1').innerHTML='OUTPOST <span>OVERRUN</span>';document.querySelector('.modal p').innerHTML=`You tagged ${score} alien scouts. The outpost needs you back.`;document.getElementById('start').textContent='RETURN TO MENU';document.getElementById('start').onclick=()=>{document.getElementById('overlay').style.display='none';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('start').onclick=startBattle;};}
+}
+function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);drawWorld();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+function startBattle() {
+    battleMedkits = loadout.medkits;
+    battleSpeed = loadout.speed;
+
+    inventory.medkit -= battleMedkits;
+    inventory.speed -= battleSpeed;
+
+    ammo = 25;
+
+    shieldHits = 0;
+    superGunEquipped = false;
+
+    chest.respawnTimer = 0;
+    chest.active = false;
+
+    document.getElementById('ammo').textContent = ammo;
+
+    player.x = 2.5;
+    player.y = 2.5;
+
+    spawnChest();
+
+    player.a = 0;
+    player.pitch = 0;
+    player.hp = 100;
+
+    score = 0;
+    wave = 1;
+    aliens = [];
+    orbs = [];
+
+    document.getElementById('healthFill').style.width = '100%';
+
+    spawnWave();
+
+    playing = true;
+
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('shopScreen').classList.add('hidden');
+    document.getElementById('loadoutScreen').classList.add('hidden');
+
+    canvas.requestPointerLock?.();
+}
+document.getElementById('start').onclick=startBattle;
+document.getElementById('playNow').onclick=startBattle;
+document.getElementById('openShop').onclick=()=>{document.getElementById('mainMenu').classList.add('hidden');document.getElementById('shopScreen').classList.remove('hidden');};
+document.getElementById('backMenu').onclick=()=>{document.getElementById('shopScreen').classList.add('hidden');document.getElementById('mainMenu').classList.remove('hidden');};
+
+document.getElementById('openLoadout').onclick = () => {
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('shopScreen').classList.add('hidden');
+    document.getElementById('loadoutScreen').classList.remove('hidden');
+
+    refreshLoadout();
+};
+
+document.getElementById('backLoadout').onclick = () => {
+    document.getElementById('loadoutScreen').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('hidden');
+};
+const shopPrices = {
+    shotgun: 7500,
+    rifle: 6000,
+    medkit: 350,
+    speed: 750
+};
+
+const shopLabels = {
+    shotgun: 'SHOTGUN',
+    rifle: 'ASSAULT RIFLE',
+    medkit: 'MED-KIT',
+    speed: 'SPEED BOOST'
+};
+function refreshLoadout() {
+    const weapons = document.getElementById('loadoutWeapons');
+
+    let html = `
+        <label>
+            <input type="radio" name="loadoutWeapon" value="pulse"
+                ${loadout.weapon === 'pulse' ? 'checked' : ''}>
+            Pulse Blaster (Default)
+        </label><br>
+    `;
+
+    if (inventory.shotgun) {
+        html += `
+            <label>
+                <input type="radio" name="loadoutWeapon" value="shotgun"
+                    ${loadout.weapon === 'shotgun' ? 'checked' : ''}>
+                Shotgun
+            </label><br>
+        `;
+    }
+
+    if (inventory.rifle) {
+        html += `
+            <label>
+                <input type="radio" name="loadoutWeapon" value="rifle"
+                    ${loadout.weapon === 'rifle' ? 'checked' : ''}>
+                Assault Rifle
+            </label><br>
+        `;
+    }
+
+    weapons.innerHTML = html;
+
+    document.getElementById('medkitOwned').textContent = inventory.medkit;
+    document.getElementById('speedOwned').textContent = inventory.speed;
+
+    document.getElementById('medkitBring').max = inventory.medkit;
+    document.getElementById('speedBring').max = inventory.speed;
+}
+document.getElementById('saveLoadout').onclick = () => {
+    const selectedWeapon = document.querySelector(
+        'input[name="loadoutWeapon"]:checked'
+    );
+
+    const medkits = Number(
+        document.getElementById('medkitBring').value
+    );
+
+    const speed = Number(
+        document.getElementById('speedBring').value
+    );
+
+    if (selectedWeapon) {
+        loadout.weapon = selectedWeapon.value;
+    }
+
+    if (
+        !Number.isInteger(medkits) ||
+        !Number.isInteger(speed) ||
+        medkits < 0 ||
+        speed < 0 ||
+        medkits > inventory.medkit ||
+        speed > inventory.speed
+    ) {
+        document.getElementById('loadoutMessage').textContent =
+            'You cannot bring more items than you own.';
+        return;
+    }
+
+    loadout.medkits = medkits;
+    loadout.speed = speed;
+
+    document.getElementById('loadoutMessage').textContent =
+        'Loadout saved successfully!';
+};
+function refreshShop() {
+    document.getElementById('credits').textContent = credits;
+
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+        const item = btn.dataset.item;
+        const price = shopPrices[item];
+
+        if (price === undefined) return;
+
+        const alreadyOwned =
+            (item === 'shotgun' || item === 'rifle') && inventory[item];
+
+        btn.disabled = credits < price || alreadyOwned;
+
+        if (alreadyOwned) {
+            btn.textContent = 'ALREADY OWNED';
+        } else if (credits < price) {
+            btn.textContent = 'NOT ENOUGH CREDITS';
+        } else {
+            btn.textContent = 'BUY ' + shopLabels[item] + ' · ' + price;
+        }
+    });
+}
+
+document.querySelectorAll('.buy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const item = btn.dataset.item;
+        const price = shopPrices[item];
+
+        if (price === undefined || credits < price) return;
+
+        if (
+            (item === 'shotgun' || item === 'rifle') &&
+            inventory[item]
+        ) {
+            return;
+        }
+
+        credits -= price;
+
+        if (item === 'shotgun' || item === 'rifle') {
+            inventory[item] = true;
+        } else {
+            inventory[item]++;
+        }
+
+        document.getElementById('shopMessage').textContent =
+            'Purchased ' + shopLabels[item] + '!';
+
+        refreshShop();
+    });
+});
+
+refreshShop();
+addEventListener('keydown',e=>{
+ keys[e.code]=true;
+ if (
+    e.code === 'KeyE' &&
+    playing &&
+    battleMedkits > 0 &&
+    player.hp < 100
+) {
+    player.hp = Math.min(100, player.hp + 35);
+
+    battleMedkits--;
+
+    document.getElementById('healthFill').style.width =
+        player.hp + '%';
+
+    document.getElementById('statusTitle').textContent = 'MED-KIT USED';
+
+    document.getElementById('statusText').textContent =
+        'MED-KITS LEFT: ' + battleMedkits;
+}
+ if(e.code==='KeyQ' && playing && inventory.supergun>0){superGunEquipped=!superGunEquipped;document.getElementById('statusTitle').textContent=superGunEquipped?'OVERCHARGE BLASTER':'PULSE BLASTER';document.getElementById('statusText').textContent=superGunEquipped?'POWER MODE · 5 CHARGES PER SHOT':'STANDARD MODE · 1 CHARGE PER SHOT';}
+ if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+// Camera: pointer-lock mouse movement, with click-and-drag fallback.
+let draggingCamera=false, previousMouseX=0, previousMouseY=0;
+addEventListener('mousemove',e=>{
+    if(!playing) return;
+
+    if(document.pointerLockElement===canvas){
+        player.a += e.movementX * 0.0025;
+        player.pitch = Math.max(-150, Math.min(150,
+            player.pitch - e.movementY * 0.8
+        ));
+    } else if(draggingCamera){
+        player.a += (e.clientX-previousMouseX) * 0.0025;
+        player.pitch = Math.max(-150, Math.min(150,
+            player.pitch - (e.clientY-previousMouseY) * 0.8
+        ));
+        previousMouseX=e.clientX;
+        previousMouseY=e.clientY;
+    }
+});
+
+addEventListener('mousedown',e=>{
+    if(!playing) return;
+    if(document.pointerLockElement!==canvas){
+        draggingCamera=true;
+        previousMouseX=e.clientX;
+        previousMouseY=e.clientY;
+        if(canvas.requestPointerLock) canvas.requestPointerLock();
+    }
+    shoot();
+});
+addEventListener('mouseup',()=>{draggingCamera=false;});
+canvas.addEventListener('touchstart',e=>{
+    if(!playing || !e.touches.length) return;
+    draggingCamera=true;
+    previousMouseX=e.touches[0].clientX;
+    previousMouseY=e.touches[0].clientY;
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+    if(!playing || !draggingCamera || !e.touches.length) return;
+    const touch=e.touches[0];
+    player.a += (touch.clientX-previousMouseX) * 0.0025;
+    player.pitch = Math.max(-150, Math.min(150,
+        player.pitch - (touch.clientY-previousMouseY) * 0.8
+    ));
+    previousMouseX=touch.clientX;
+    previousMouseY=touch.clientY;
+},{passive:true});
+canvas.addEventListener('touchend',()=>{draggingCamera=false;});
+addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('pointerlockchange',()=>{if(playing&&document.pointerLockElement!==canvas){/* game remains active; click canvas to recapture */}});
+})();
+</script>
+</body>
+</html>
