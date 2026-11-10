@@ -267,9 +267,10 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 // Low-resolution offscreen buffer keeps the world-locked floor inexpensive to render.
 const floorCanvas=document.createElement('canvas');
-const floorCtx=floorCanvas.getContext('2d',{alpha:true});
-let floorFrameCounter = 1;
-let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,0.85);
+const floorCtx=floorCanvas.getContext('2d',{alpha:true, willReadFrequently:false});
+let floorImageData=null;
+let lastFloorWidth=0,lastFloorHeight=0;
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,1);
 function resize(){W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
 addEventListener('resize',resize);resize();
 const map=[
@@ -699,10 +700,11 @@ function spawnWave(){
 function blocked(x,y,r=.18){
     if(wall(x,y)) return true;
 
+    const rrBase = r;
     for(const p of labProps){
-        if(Math.hypot(x-p.x,y-p.y)<p.radius+r){
-            return true;
-        }
+        const rr = p.radius + rrBase;
+        const dx = x - p.x, dy = y - p.y;
+        if(dx*dx + dy*dy < rr*rr) return true;
     }
 
     return false;
@@ -826,14 +828,11 @@ function drawWorld(){
  let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#07131c');sky.addColorStop(1,'#263b40');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
  let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#273b38');floor.addColorStop(1,'#080d12');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
 
-// WORLD-LOCKED CERAMIC FLOOR TILES.
-// Render at half resolution with smoothing to reduce shimmer without heavy full-resolution pixel work.
-// Tile coordinates and crack patterns remain fixed in world space.
+// WORLD-LOCKED CERAMIC FLOOR TILES — clipped to walkable map cells.
+// Render to a compact reusable buffer to avoid allocating and shading hundreds
+// of thousands of pixels on every frame. The original tile colors and geometry
+// are retained; browser smoothing scales the buffer cleanly to the screen.
 {
-    // Rebuild the world-locked floor every other frame; reuse the exact same floor
-    // pixels between updates to avoid stalling the main game loop.
-    floorFrameCounter = 0;
-    if (floorFrameCounter === 0) {
     const pixelStep = 3;
     const lowW = Math.max(1, Math.ceil(W / pixelStep));
     const lowH = Math.max(1, Math.ceil(H / pixelStep));
@@ -841,78 +840,61 @@ function drawWorld(){
     if (floorCanvas.width !== lowW || floorCanvas.height !== lowH) {
         floorCanvas.width = lowW;
         floorCanvas.height = lowH;
+        floorImageData = floorCtx.createImageData(lowW, lowH);
+        lastFloorWidth = lowW;
+        lastFloorHeight = lowH;
+    } else if (!floorImageData || lastFloorWidth !== lowW || lastFloorHeight !== lowH) {
+        floorImageData = floorCtx.createImageData(lowW, lowH);
+        lastFloorWidth = lowW;
+        lastFloorHeight = lowH;
     }
 
-    const image = floorCtx.createImageData(lowW, lowH);
-    const pixels = image.data;
+    const pixels = floorImageData.data;
+    pixels.fill(0); // clear pixels above the horizon and outside the map
     const dirX = Math.cos(player.a);
     const dirY = Math.sin(player.a);
     const cameraPlane = Math.tan(FOV / 2);
-    const tileSize = 1.0;
     const halfH = H * 0.5;
+    const horizonStart = Math.max(0, Math.floor(horizon / pixelStep));
 
-    for (let py = 0; py < lowH; py++) {
+    for (let py = horizonStart; py < lowH; py++) {
         const sy = py * pixelStep + pixelStep * 0.5;
-        if (sy <= horizon) continue;
-
         const rowDistance = halfH / Math.max(1, sy - horizon);
         const distanceLight = Math.max(0.42, 1 - rowDistance * 0.022);
         const rowOffset = py * lowW * 4;
+        const rowScale = (2 * pixelStep / W) * cameraPlane;
+        const rowBase = (2 * (pixelStep * 0.5) / W - 1) * cameraPlane;
 
         for (let px = 0; px < lowW; px++) {
-            const sx = px * pixelStep + pixelStep * 0.5;
-            const cameraX = (2 * sx / W - 1) * cameraPlane;
-            const rayDirX = dirX - dirY * cameraX;
-            const rayDirY = dirY + dirX * cameraX;
-
-            const worldX = player.x + rayDirX * rowDistance;
-            const worldY = player.y + rayDirY * rowDistance;
+            const cameraX = rowBase + px * rowScale;
+            const worldX = player.x + (dirX - dirY * cameraX) * rowDistance;
+            const worldY = player.y + (dirY + dirX * cameraX) * rowDistance;
             const tileX = Math.floor(worldX);
             const tileY = Math.floor(worldY);
+            if (tileY < 0 || tileY >= MH || tileX < 0 || tileX >= MW) continue;
+            const mapRow = map[tileY];
+            if (!mapRow || mapRow[tileX] !== '0') continue;
+
             const localX = worldX - tileX;
             const localY = worldY - tileY;
-
-            let hash = Math.imul(tileX + 374761393, 668265263) ^
-                       Math.imul(tileY + 1274126177, 2246822519);
-            hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
-            hash = (hash ^ (hash >>> 16)) >>> 0;
-
-            const grout = Math.min(localX, 1 - localX, localY, 1 - localY) < 0.035;
-            let r, g, b;
-
-            if (grout) {
-                r = 43; g = 42; b = 39;
-            } else {
-                const shade = (139 + (hash % 17) - 8) * distanceLight;
-                r = shade; g = shade - 2; b = shade - 7;
-
-                const crackCenter = 0.22 + ((hash >>> 8) % 48) / 100;
-                const crackSlope = (((hash >>> 16) % 41) - 20) / 100;
-                const crackY = crackCenter + crackSlope * (localX - 0.5);
-                const crackA = (hash % 4 === 0) &&
-                    localX > 0.12 && localX < 0.88 &&
-                    Math.abs(localY - crackY) < 0.012;
-                const crackB = (hash % 7 === 0) &&
-                    localX > 0.48 && localX < 0.88 &&
-                    Math.abs(localY - (crackY + (localX - 0.48) * 0.42)) < 0.009;
-
-                if (crackA || crackB) {
-                    r *= 0.28; g *= 0.27; b *= 0.25;
-                }
-            }
-
+            const grout = localX < 0.035 || localX > 0.965 || localY < 0.035 || localY > 0.965;
             const i = rowOffset + px * 4;
-            pixels[i] = Math.max(0, r | 0);
-            pixels[i + 1] = Math.max(0, g | 0);
-            pixels[i + 2] = Math.max(0, b | 0);
+            if (grout) {
+                pixels[i] = 43; pixels[i + 1] = 42; pixels[i + 2] = 39;
+            } else {
+                const variation = ((tileX + tileY) & 1) ? 4 : 0;
+                const shade = (139 + variation) * distanceLight;
+                pixels[i] = shade | 0;
+                pixels[i + 1] = Math.max(0, (shade - 2) | 0);
+                pixels[i + 2] = Math.max(0, (shade - 7) | 0);
+            }
             pixels[i + 3] = 255;
         }
     }
 
-    floorCtx.putImageData(image, 0, 0);
+    floorCtx.putImageData(floorImageData, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "low";
-    }
+    ctx.imageSmoothingQuality = 'low';
     ctx.drawImage(floorCanvas, 0, 0, W, H);
 }
 // FLICKERING LABORATORY CEILING LIGHTS
@@ -968,12 +950,18 @@ ctx.fillRect(0,0,W,H);
  } // end wall-column raycasting loop
  // DRAW LABORATORY FURNITURE
 drawLabProps(depth,horizon);
- // alien sprites, farthest first
- let sorted=aliens.filter(a=>a.alive).map(a=>({...a,dx:a.x-player.x,dy:a.y-player.y})).sort((a,b)=>(b.dx*b.dx+b.dy*b.dy)-(a.dx*a.dx+a.dy*a.dy));
+ // Alien sprites: sort the existing objects by squared distance (no per-frame clones).
+ const sorted=aliens.filter(a=>a.alive).sort((a,b)=>{
+     const adx=a.x-player.x, ady=a.y-player.y;
+     const bdx=b.x-player.x, bdy=b.y-player.y;
+     return (bdx*bdx+bdy*bdy)-(adx*adx+ady*ady);
+ });
+ const alienAnimTime=performance.now()/280;
  for(const al of sorted){
-  let dist=Math.hypot(al.dx,al.dy),ang=Math.atan2(al.dy,al.dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
+  const dx=al.x-player.x,dy=al.y-player.y;
+  let dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
   if(Math.abs(ang)>FOV*.72||dist<.2)continue;
-  const forward=al.dx*Math.cos(player.a)+al.dy*Math.sin(player.a);
+  const forward=dx*Math.cos(player.a)+dy*Math.sin(player.a);
   let sx=W/2+Math.tan(ang)/(Math.tan(FOV/2))*(W/2),size=Math.min(H*1.1,H/(dist+.15)*.82),base=horizon+size*.42;
   if(forward<=0)continue;
   // Clip every sprite column against wall depth, not just its center pixel.
@@ -985,7 +973,7 @@ drawLabProps(depth,horizon);
       if(depth[col]>=forward-.12)ctx.rect(col*2,0,2,H);
   }
   ctx.clip();
-  ctx.translate(sx,base+Math.sin(performance.now()/280+al.phase)*size*.018);ctx.scale(size/120,size/120);
+  ctx.translate(sx,base+Math.sin(alienAnimTime+al.phase)*size*.018);ctx.scale(size/120,size/120);
   // soft ground shadow
   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,3,42,9,0,0,Math.PI*2);ctx.fill();
   // legs
@@ -1261,7 +1249,7 @@ if(!blocked(a.x,ny,.3)){
      saveGame();
      document.exitPointerLock?.();document.getElementById('overlay').style.display='flex';document.querySelector('.modal h1').innerHTML='OUTPOST <span>OVERRUN</span>';document.querySelector('.modal p').innerHTML=`You tagged ${score} alien scouts. The outpost needs you back.`;document.getElementById('start').textContent='RETURN TO MENU';document.getElementById('start').onclick=()=>{document.getElementById('overlay').style.display='none';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('start').onclick=startBattle;};}
 }
-function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);drawWorld();requestAnimationFrame(loop);}
+function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);if(playing && document.visibilityState==='visible') drawWorld();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 function startBattle() {
     runRecorded = false;
