@@ -162,7 +162,7 @@
     <div class="item-icon">◈</div>
     <h3>SHOTGUN</h3>
     <p>Fires 4 pellets at once, spreading across a wider range.</p>
-    <div class="item-cost">7500 CREDITS</div>
+    <div class="item-cost">4000 CREDITS</div>
     <button class="buy-btn" data-item="shotgun">BUY SHOTGUN</button>
   </article>
 
@@ -170,7 +170,7 @@
     <div class="item-icon">▰</div>
     <h3>ASSAULT RIFLE</h3>
     <p>Fires one shot every 0.5 seconds for steady damage.</p>
-    <div class="item-cost">6000 CREDITS</div>
+    <div class="item-cost">3500 CREDITS</div>
     <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
   </article>
 
@@ -313,7 +313,8 @@ let inventory = {
     shotgun: false,
     rifle: false,
     medkit: 0,
-    speed: 0
+    speed: 0,
+    supergun: 0
 };
 
 let loadout = {
@@ -327,7 +328,7 @@ let battleSpeed = 0;
 let speedBoostTimer = 0;
 
 let shieldHits = 0;
-let superGunEquipped = false;
+let superGunEquipped = loadout.weapon === 'laser' && inventory.supergun > 0;
 
 // Five supply chests are active at the start of each 90-second cycle.
 let chest = { x: 7.5, y: 7.5, active: false, respawnTimer: 0 }; // legacy save compatibility
@@ -430,9 +431,10 @@ function applySaveData(data) {
     inventory.shotgun = Boolean(inv.shotgun);
     inventory.rifle = Boolean(inv.rifle);
     inventory.medkit = Math.max(0, Math.floor(Number(inv.medkit) || 0));
+            inventory.supergun = Math.max(0, Math.floor(Number(inv.supergun) || 0));
     inventory.speed = Math.max(0, Math.floor(Number(inv.speed) || 0));
 
-    loadout.weapon = ['pulse', 'shotgun', 'rifle'].includes(savedLoadout.weapon) ? savedLoadout.weapon : 'pulse';
+    loadout.weapon = ['pulse', 'shotgun', 'rifle', 'laser'].includes(savedLoadout.weapon) && (savedLoadout.weapon !== 'laser' || inventory.supergun > 0) ? savedLoadout.weapon : 'pulse';
     if (loadout.weapon === 'shotgun' && !inventory.shotgun) loadout.weapon = 'pulse';
     if (loadout.weapon === 'rifle' && !inventory.rifle) loadout.weapon = 'pulse';
     loadout.medkits = Math.min(inventory.medkit, Math.max(0, Math.floor(Number(savedLoadout.medkits) || 0)));
@@ -1185,13 +1187,71 @@ ctx.restore();
 }
 function shoot(){
     if(!playing || fireCd>0) return;
-    const shotCost = superGunEquipped ? 5 : 1;
+    const laserActive = superGunEquipped && inventory.supergun > 0;
+    const shotCost = laserActive ? 5 : 1;
     if(ammo < shotCost) return;
     ammo -= shotCost;
     document.getElementById('ammo').textContent = ammo;
 
-    fireCd=superGunEquipped ? .55 : .22;
-    shotFlash=.8;let target=null,best=.11;for(let a of aliens){if(!a.alive)continue;let dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;let aim=Math.abs(ang);if(aim<best&&dist<12&&ray(player.a).d>dist-.3){best=aim;target=a;}}if(target){target.hp-=superGunEquipped?2:1;if(target.hp<=0){target.alive=false;score++;credits+=20;document.getElementById('credits').textContent=credits;refreshShop();refreshLoadout();document.getElementById('score').textContent=String(score).padStart(3,'0');saveGame();if(aliens.every(a=>!a.alive)){wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();document.getElementById('statusTitle').textContent='SECTOR CLEARED';document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);}}}}
+    fireCd = laserActive ? .55 : .22;
+    shotFlash = .8;
+
+    let targets = [];
+    let best = .11;
+    const centerRay = ray(player.a);
+
+    for(let a of aliens){
+        if(!a.alive) continue;
+        let dx=a.x-player.x, dy=a.y-player.y, dist=Math.hypot(dx,dy);
+        let ang=Math.atan2(dy,dx)-player.a;
+        while(ang>Math.PI) ang-=Math.PI*2;
+        while(ang< -Math.PI) ang+=Math.PI*2;
+        let aim=Math.abs(ang);
+
+        if(aim < .11 && dist < 12 && centerRay.d > dist-.3){
+            if(laserActive){
+                targets.push(a);
+            } else if(aim < best){
+                best = aim;
+                targets = [a];
+            }
+        }
+    }
+
+    let kills = 0;
+    for(const target of targets){
+        target.hp = laserActive ? 0 : target.hp - 1;
+        if(target.hp <= 0){
+            target.alive = false;
+            score++;
+            credits += 20;
+            kills++;
+        }
+    }
+
+    if(kills > 0){
+        document.getElementById('credits').textContent = credits;
+        refreshShop();
+        refreshLoadout();
+        document.getElementById('score').textContent = String(score).padStart(3,'0');
+        saveGame();
+
+        if(aliens.every(a=>!a.alive)){
+            wave++;
+            document.getElementById('wave').textContent = String(wave).padStart(2,'0');
+            spawnWave();
+            document.getElementById('statusTitle').textContent='SECTOR CLEARED';
+            document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';
+            setTimeout(()=>{
+                if(playing){
+                    document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';
+                    document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';
+                }
+            },1800);
+        }
+    }
+}
+
 function update(dt){if(!playing)return;fireCd=Math.max(0,fireCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
  let speed=(keys.Shift?3.6:2.4)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
  // PLAYER COLLISION WITH WALLS AND FURNITURE
@@ -1202,15 +1262,31 @@ if(!blocked(player.x+dx,player.y)){
 if(!blocked(player.x,player.y+dy)){
     player.y+=dy;
 }
- // PICK UP AMMO CHESTS
+ // PICK UP CHESTS: 1/20 laser, 1/7 medkit, otherwise ammo
 for(const chestItem of chests){
     if(chestItem.active && Math.hypot(player.x-chestItem.x,player.y-chestItem.y)<0.8){
-        let ammoFound = Math.floor(Math.random()*21)+15;
-        ammo += ammoFound;
-        document.getElementById('ammo').textContent = ammo;
+        const roll = Math.random();
+
+        if(roll < 1/20){
+            inventory.supergun = Math.max(1, inventory.supergun);
+            loadout.weapon = 'laser';
+            superGunEquipped = true;
+            document.getElementById('statusTitle').textContent = 'LEGENDARY LASER FOUND!';
+            document.getElementById('statusText').textContent = 'PIERCING BEAM UNLOCKED · EQUIPPED';
+        } else if(roll < 1/20 + 1/7){
+            battleMedkits++;
+            document.getElementById('statusTitle').textContent = 'MED-KIT FOUND!';
+            document.getElementById('statusText').textContent = 'MED-KIT ADDED · PRESS E TO USE';
+        } else {
+            let ammoFound = Math.floor(Math.random()*21)+15;
+            ammo += ammoFound;
+            document.getElementById('ammo').textContent = ammo;
+            document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
+            document.getElementById('statusText').textContent = 'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
+        }
+
         chestItem.active = false;
-        document.getElementById('statusTitle').textContent = 'AMMO FOUND!';
-        document.getElementById('statusText').textContent = 'YOU FOUND ' + ammoFound + ' PULSE CHARGES';
+        refreshLoadout();
         saveGame();
     }
 }
@@ -1321,8 +1397,8 @@ document.getElementById('backLoadout').onclick = () => {
     document.getElementById('mainMenu').classList.remove('hidden');
 };
 const shopPrices = {
-    shotgun: 7500,
-    rifle: 6000,
+    shotgun: 4000,
+    rifle: 3500,
     medkit: 350,
     speed: 750
 };
@@ -1362,10 +1438,11 @@ function refreshGunCollection() {
     const root = document.getElementById('ownedGunCollection');
     if (!root) return;
     const weapons = [
-        { id:'pulse', name:'PULSE BLASTER', icon:'◉', desc:'Your standard-issue energy weapon. Available to every player.', owned:true },
-        { id:'shotgun', name:'SHOTGUN', icon:'◈', desc:'A close-range weapon that fires multiple pellets.', owned:Boolean(inventory.shotgun) },
-        { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'A steady, rapid-fire weapon for sustained attacks.', owned:Boolean(inventory.rifle) }
-    ];
+    { id:'pulse', name:'PULSE BLASTER', icon:'◉', desc:'Your standard-issue energy weapon. Available to every player.', owned:true },
+    { id:'shotgun', name:'SHOTGUN', icon:'◈', desc:'A close-range weapon that fires multiple pellets.', owned:Boolean(inventory.shotgun) },
+    { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'A steady, rapid-fire weapon for sustained attacks.', owned:Boolean(inventory.rifle) },
+    { id:'laser', name:'LEGENDARY LASER', icon:'✦', desc:'A piercing beam that can eliminate every alien in its path.', owned:inventory.supergun > 0 }
+];
     root.innerHTML = weapons.map(w => `
       <article class="weapon-card ${w.owned ? 'owned' : ''}">
         <div class="item-icon">${w.icon}</div>
@@ -1509,7 +1586,7 @@ addEventListener('keydown',e=>{
         'MED-KITS LEFT: ' + battleMedkits;
     saveGame();
 }
- if(e.code==='KeyQ' && playing && inventory.supergun>0){superGunEquipped=!superGunEquipped;document.getElementById('statusTitle').textContent=superGunEquipped?'OVERCHARGE BLASTER':'PULSE BLASTER';document.getElementById('statusText').textContent=superGunEquipped?'POWER MODE · 5 CHARGES PER SHOT':'STANDARD MODE · 1 CHARGE PER SHOT';}
+ if(e.code==='KeyQ' && playing && inventory.supergun>0){superGunEquipped=!superGunEquipped;document.getElementById('statusTitle').textContent=superGunEquipped?'LEGENDARY LASER':'PULSE BLASTER';document.getElementById('statusText').textContent=superGunEquipped?'PIERCING BEAM · 5 CHARGES PER SHOT':'STANDARD MODE · 1 CHARGE PER SHOT';}
  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
 });
 addEventListener('keyup',e=>keys[e.code]=false);
