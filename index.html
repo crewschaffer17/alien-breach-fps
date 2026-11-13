@@ -89,6 +89,30 @@
   .loadout-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:15px}
   .loadout-bottom button{margin:0}
   @media(max-width:760px){.loadout-layout{grid-template-columns:1fr}.stats-panel{order:2}.loadout-main{order:1}}
+  .inventory-screen{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,5,8,.82);backdrop-filter:blur(5px);pointer-events:auto}
+  .inventory-screen.hidden{display:none!important}
+  .inventory-panel{width:min(900px,96vw);max-height:90vh;overflow:auto;border:1px solid #65edac;border-radius:14px;background:linear-gradient(145deg,#102622,#071116);padding:22px;box-shadow:0 20px 80px #000c;color:#f4fff9;font-family:'Trebuchet MS',Arial,sans-serif;text-shadow:0 0 7px rgba(88,255,174,.16)}
+  .inventory-panel *{font-family:'Trebuchet MS',Arial,sans-serif}
+  .inventory-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;color:#f4fff9}
+  .inventory-head h2{margin:0;letter-spacing:3px;color:#eafff5;text-shadow:0 0 10px #42f5a477}
+  .inventory-head .eyebrow,.inventory-head .label{color:#9affc9}
+  .inventory-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+  .inventory-slot{min-width:0;border:1px solid #365d56;border-radius:9px;background:linear-gradient(160deg,#10201f,#081216);padding:12px;display:flex;flex-direction:column;gap:9px;color:#f4fff9}
+  .inventory-slot.active{border-color:#75f0ae;box-shadow:0 0 18px #38e99a55, inset 0 0 14px #38e99a12}
+  .inventory-slot .slot-number{font-size:11px;color:#9affc9;letter-spacing:2px;font-weight:bold;text-shadow:0 0 8px #39e99588}
+  .inventory-slot .slot-name{font-weight:900;font-size:13px;min-height:32px;overflow-wrap:anywhere;color:#fff}
+  .inventory-slot .slot-count{font-size:12px;color:#c3ddd2;min-height:18px}
+  .inventory-slot button,.inventory-slot select{width:100%;margin:0;padding:9px 5px;font-size:10px;letter-spacing:.6px}
+  .inventory-slot select{background:#071116;color:#fff;border:1px solid #65b995;border-radius:6px}
+  .inventory-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;color:#d5eee3;font-size:12px}
+  .deployment-inventory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+  .deployment-slot{background:linear-gradient(160deg,#10201f,#081216);border:1px solid #477a68;border-radius:8px;padding:12px;min-width:0;color:#f4fff9}
+  .deployment-slot label{display:block;color:#9affc9;font-size:11px;font-weight:bold;margin-bottom:8px;text-shadow:0 0 7px #39e99566}
+  .deployment-slot select{width:100%;padding:9px;background:#071116;color:#fff;border:1px solid #65b995;border-radius:6px}
+  #inventoryView{color:#f4fff9}
+  #inventoryView>p{color:#d5eee3!important}
+  #inventoryView .eyebrow{color:#9affc9}
+  @media(max-width:760px){.inventory-slots,.deployment-inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-panel{padding:14px}}
 
 </style>
 </head>
@@ -105,9 +129,16 @@
     <div class="panel"><div class="label">SUIT INTEGRITY</div><div class="bar"><div class="fill" id="healthFill"></div></div></div>
 <div class="panel"><div class="label">PULSE CHARGES</div><div id="ammo">25</div></div>
   </div>
-  <div id="hint">W A S D — MOVE<br>MOUSE — LOOK AROUND<br>CLICK — PULSE BLAST<br>E — USE MED-KIT · Q — SWITCH GUN</div>
+  <div id="hint">W A S D — MOVE<br>MOUSE — LOOK AROUND<br>HOLD — AUTO FIRE<br>E — INVENTORY · Q — CYCLE ITEM</div>
 </div>
 <div id="damage"></div>
+<div id="battleInventory" class="inventory-screen hidden" aria-label="Battle inventory">
+  <div class="inventory-panel">
+    <div class="inventory-head"><div><div class="eyebrow">FIELD EQUIPMENT</div><h2>INVENTORY</h2></div><div class="label">PRESS E TO CLOSE</div></div>
+    <div id="battleInventorySlots" class="inventory-slots"></div>
+    <div class="inventory-footer"><span id="inventoryMessage">Select an item to equip or use it.</span><span>Q — CYCLE NEXT ITEM</span></div>
+  </div>
+</div>
 <div id="mainMenu" class="screen">
   <div class="menu-wrap">
     <div class="eyebrow" style="text-align:center">CLASSIFIED // RESEARCH DIVISION</div>
@@ -161,7 +192,7 @@
   <article class="shop-item">
     <div class="item-icon">◈</div>
     <h3>SHOTGUN</h3>
-    <p>Fires 4 pellets at once, spreading across a wider range.</p>
+    <p>Click once to fire 4 forward-spreading pellets.</p>
     <div class="item-cost">4000 CREDITS</div>
     <button class="buy-btn" data-item="shotgun">BUY SHOTGUN</button>
   </article>
@@ -169,7 +200,7 @@
   <article class="shop-item">
     <div class="item-icon">▰</div>
     <h3>ASSAULT RIFLE</h3>
-    <p>Fires one shot every 0.5 seconds for steady damage.</p>
+    <p>Hold to fire one shot every 0.6 seconds.</p>
     <div class="item-cost">3500 CREDITS</div>
     <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
   </article>
@@ -208,11 +239,18 @@
         <div class="loadout-tabs">
           <button id="gunsTab" class="active" type="button">GUNS</button>
           <button id="equipmentTab" class="back-btn" type="button">EQUIPMENT</button>
+          <button id="inventoryTab" class="back-btn" type="button">INVENTORY</button>
         </div>
         <div id="gunsView" class="loadout-view">
           <div class="eyebrow">WEAPON COLLECTION</div>
           <h2 style="margin:8px 0 16px">YOUR GUNS</h2>
           <div id="ownedGunCollection" class="weapon-grid"></div>
+        </div>
+        <div id="inventoryView" class="loadout-view hidden">
+          <div class="eyebrow">FIVE-SLOT FIELD INVENTORY</div>
+          <h2 style="margin:8px 0 16px">SET YOUR INVENTORY</h2>
+          <p style="color:#9eb8b0;font-size:12px;line-height:1.5">Slots 1 and 2 are weapon slots. Slot 3 is flexible. Slots 4 and 5 automatically carry your deployed med-kits and speed boosts.</p>
+          <div id="deploymentInventorySlots" class="deployment-inventory-grid"></div>
         </div>
         <div id="equipmentView" class="loadout-view hidden">
           <div class="eyebrow">DEPLOYMENT SUPPLIES</div>
@@ -304,7 +342,7 @@ const map=[
 ];
 const MW=map[0].length,MH=map.length;
 const player={x:3.5,y:3.5,a:0,pitch:0,hp:100};
-let aliens=[],orbs=[],particles=[],score=0,wave=1,playing=false,keys={},last=0,fireCd=0,damageFlash=0,shotFlash=0;
+let aliens=[],orbs=[],particles=[],bullets=[],score=0,wave=1,playing=false,keys={},last=0,fireCd=0,damageFlash=0,shotFlash=0;
 
 let ammo = 25;
 let credits = 0;
@@ -320,9 +358,13 @@ let inventory = {
 let loadout = {
     weapon: 'pulse',
     medkits: 0,
-    speed: 0
+    speed: 0,
+    inventorySlots: ['pulse', '', '']
 };
 
+let battleInventorySlots = ['pulse', '', '', 'medkit', 'speed'];
+let activeInventoryIndex = 0;
+let inventoryOpen = false;
 let battleMedkits = 0;
 let battleSpeed = 0;
 let speedBoostTimer = 0;
@@ -439,6 +481,16 @@ function applySaveData(data) {
     if (loadout.weapon === 'rifle' && !inventory.rifle) loadout.weapon = 'pulse';
     loadout.medkits = Math.min(inventory.medkit, Math.max(0, Math.floor(Number(savedLoadout.medkits) || 0)));
     loadout.speed = Math.min(inventory.speed, Math.max(0, Math.floor(Number(savedLoadout.speed) || 0)));
+    const savedSlots = Array.isArray(savedLoadout.inventorySlots) ? savedLoadout.inventorySlots : [loadout.weapon, '', ''];
+    loadout.inventorySlots = [0,1,2].map(i => {
+        const choice = savedSlots[i] || '';
+        const allowed = ['pulse','shotgun','rifle','laser','medkit','speed'];
+        if (!allowed.includes(choice)) return '';
+        if (['shotgun','rifle'].includes(choice) && !inventory[choice]) return '';
+        if (choice === 'laser' && !inventory.supergun) return '';
+        return choice;
+    });
+    if (!loadout.inventorySlots[0]) loadout.inventorySlots[0] = loadout.weapon || 'pulse';
 
     const savedStats = profile.stats || {};
     for (const key of Object.keys(stats)) {
@@ -593,6 +645,10 @@ document.getElementById('signOutBtn').onclick = async () => {
 function resumeSavedBattle() {
     if (!savedBattleAvailable) return;
     savedBattleAvailable = false;
+    battleInventorySlots = [loadout.inventorySlots?.[0] || loadout.weapon || 'pulse', loadout.inventorySlots?.[1] || '', loadout.inventorySlots?.[2] || '', 'medkit', 'speed'];
+    activeInventoryIndex = Math.max(0, battleInventorySlots.indexOf(loadout.weapon));
+    inventoryOpen = false;
+    document.getElementById('battleInventory').classList.add('hidden');
     playing = true;
     document.getElementById('mainMenu').classList.add('hidden');
     document.getElementById('shopScreen').classList.add('hidden');
@@ -804,25 +860,25 @@ function drawLabProps(depth,horizon){
 // FAST GRID RAYCASTING
 // DDA walks from tile to tile instead of checking the map every 0.025 units.
 // It returns the same {d,x,y} shape used by walls, chests, and weapon aiming.
-function ray(angle){
+function ray(angle, originX=player.x, originY=player.y){
     const dirX=Math.cos(angle), dirY=Math.sin(angle);
-    let mapX=Math.floor(player.x), mapY=Math.floor(player.y);
+    let mapX=Math.floor(originX), mapY=Math.floor(originY);
     const deltaX=dirX===0?Infinity:Math.abs(1/dirX);
     const deltaY=dirY===0?Infinity:Math.abs(1/dirY);
     const stepX=dirX<0?-1:1, stepY=dirY<0?-1:1;
-    let sideX=dirX===0?Infinity:(dirX<0?(player.x-mapX)*deltaX:(mapX+1-player.x)*deltaX);
-    let sideY=dirY===0?Infinity:(dirY<0?(player.y-mapY)*deltaY:(mapY+1-player.y)*deltaY);
+    let sideX=dirX===0?Infinity:(dirX<0?(originX-mapX)*deltaX:(mapX+1-originX)*deltaX);
+    let sideY=dirY===0?Infinity:(dirY<0?(originY-mapY)*deltaY:(mapY+1-originY)*deltaY);
 
     for(let steps=0;steps<128;steps++){
         let distance;
         if(sideX<sideY){distance=sideX;sideX+=deltaX;mapX+=stepX;}
         else{distance=sideY;sideY+=deltaY;mapY+=stepY;}
-        if(distance>42) break;
+        if(distance>80) break;
         if(!map[mapY] || map[mapY][mapX] !== '0'){
-            return {d:Math.max(0,distance),x:player.x+dirX*distance,y:player.y+dirY*distance};
+            return {d:Math.max(0,distance),x:originX+dirX*distance,y:originY+dirY*distance};
         }
     }
-    return {d:42,x:player.x+dirX*42,y:player.y+dirY*42};
+    return {d:80,x:originX+dirX*80,y:originY+dirY*80};
 }
 
 function drawWorld(){
@@ -1085,175 +1141,201 @@ drawLabProps(depth,horizon);
  }
  // projectiles
  for(const o of orbs){let dx=o.x-player.x,dy=o.y-player.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;if(Math.abs(ang)<FOV*.65&&dist>.1){let sx=W/2+Math.tan(ang)/Math.tan(FOV/2)*(W/2),sz=Math.max(3,22/dist);ctx.fillStyle='#ff5e5e';ctx.shadowColor='#ff3030';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(sx,horizon+sz,sz,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}}
-// DETAILED SCI-FI BLASTER
-ctx.save();
+// VISIBLE PLAYER SHOTS — world-projected tracers, clipped by the wall depth buffer.
+ for(const b of bullets){
+     const startDist=Math.max(.28,b.travel);
+     const endDist=Math.min(b.range,b.travel+b.visualLength);
+     if(endDist<=startDist) continue;
+     const focal=W/(2*Math.tan(FOV/2));
+     const projectShot=(distance)=>{
+         const wx=b.x+Math.cos(b.angle)*distance;
+         const wy=b.y+Math.sin(b.angle)*distance;
+         const rx=wx-player.x,ry=wy-player.y;
+         const forward=rx*Math.cos(player.a)+ry*Math.sin(player.a);
+         const side=-rx*Math.sin(player.a)+ry*Math.cos(player.a);
+         if(forward<=.12) return null;
+         return {x:W/2+side*focal/forward,y:horizon+focal*.035/forward,d:forward};
+     };
+     const p1=projectShot(startDist),p2=projectShot(endDist);
+     if(!p1||!p2) continue;
+     const midX=(p1.x+p2.x)/2;
+     const col=Math.max(0,Math.min(depth.length-1,Math.floor(midX/2)));
+     const wallDepth=depth[col];
+     if(wallDepth<=p1.d+.04) continue;
+     // Stop the tracer at the wall instead of allowing it to show through it.
+     let visibleEnd=p2;
+     if(wallDepth<p2.d-.04){
+         const t=Math.max(0,Math.min(1,(wallDepth-p1.d)/(p2.d-p1.d)));
+         visibleEnd={x:p1.x+(p2.x-p1.x)*t,y:p1.y+(p2.y-p1.y)*t,d:wallDepth};
+     }
+     ctx.save();ctx.lineCap='round';
+     const perspective=Math.max(.65,Math.min(5,focal/Math.max(.5,(p1.d+visibleEnd.d)*.5)*.035));
+     if(b.type==='laser'){
+         ctx.strokeStyle='rgba(255,35,45,.96)';ctx.shadowColor='#ff1828';ctx.shadowBlur=18;
+         ctx.lineWidth=Math.max(2.5,4.5*perspective);
+         ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(visibleEnd.x,visibleEnd.y);ctx.stroke();
+         ctx.strokeStyle='rgba(255,190,190,.95)';ctx.shadowBlur=7;ctx.lineWidth=Math.max(1,1.5*perspective);
+         ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(visibleEnd.x,visibleEnd.y);ctx.stroke();
+     } else {
+         const thickness=(b.type==='shotgun'?5.2:b.type==='rifle'?2.5:1.6)*perspective;
+         ctx.strokeStyle=b.type==='shotgun'?'#e7d6a2':b.type==='rifle'?'#ffd18a':'#b9fff0';
+         ctx.shadowColor=b.type==='shotgun'?'#ffbd65':b.type==='rifle'?'#ff9d43':'#65ffd0';
+         ctx.shadowBlur=b.type==='shotgun'?9:6;ctx.lineWidth=Math.max(1.2,thickness);
+         ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+         ctx.fillStyle=b.type==='shotgun'?'#fff0c7':b.type==='rifle'?'#fff0c9':'#e5fff7';
+         ctx.beginPath();ctx.arc(p2.x,p2.y,Math.max(1.2,thickness*.72),0,Math.PI*2);ctx.fill();
+     }
+     ctx.restore();
+ }
+// FIRST-PERSON WEAPON MODELS — each weapon has a distinct silhouette.
+ ctx.save();
+ const equipped = superGunEquipped && inventory.supergun > 0 ? 'laser' : (loadout.weapon === 'laser' ? 'pulse' : loadout.weapon);
+ const bob = Math.sin(performance.now()/120)*2.5;
+ ctx.translate(W*.84,H*.94+bob+shotFlash*7);
+ ctx.rotate(-2.28);
+ ctx.scale(1.45,1.45);
+ // Shared arm and glove.
+ ctx.fillStyle='#17232a';
+ ctx.beginPath();ctx.moveTo(-48,28);ctx.lineTo(-82,88);ctx.lineTo(-55,116);ctx.lineTo(-8,65);ctx.lineTo(-10,34);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#a96f5d';
+ ctx.beginPath();ctx.moveTo(-34,22);ctx.lineTo(-61,73);ctx.lineTo(-38,92);ctx.lineTo(1,49);ctx.lineTo(-2,20);ctx.closePath();ctx.fill();
 
-let bob = Math.sin(performance.now()/120)*3;
-
-ctx.translate(W*.84,H*.94+bob+shotFlash*9);
-ctx.rotate(-2.28);
-ctx.scale(1.55,1.55);
-
-// Forearm and hand silhouette, positioned behind the existing blaster design.
-ctx.fillStyle='#202a31';
-ctx.beginPath();
-ctx.moveTo(-48,28);ctx.lineTo(-82,88);ctx.lineTo(-55,116);
-ctx.lineTo(-8,65);ctx.lineTo(-10,34);ctx.closePath();ctx.fill();
-ctx.fillStyle='#b87962';
-ctx.beginPath();
-ctx.moveTo(-34,22);ctx.lineTo(-61,73);ctx.lineTo(-38,92);
-ctx.lineTo(1,49);ctx.lineTo(-2,20);ctx.closePath();ctx.fill();
-ctx.fillStyle='#d49378';
-ctx.beginPath();
-ctx.moveTo(-24,20);ctx.lineTo(-44,59);ctx.lineTo(-30,69);
-ctx.lineTo(-3,39);ctx.closePath();ctx.fill();
-
-// Main gun body
-ctx.fillStyle='#10191e';
-ctx.beginPath();
-ctx.moveTo(-65,25);
-ctx.lineTo(-48,-38);
-ctx.lineTo(-20,-55);
-ctx.lineTo(48,-48);
-ctx.lineTo(75,-25);
-ctx.lineTo(82,25);
-ctx.lineTo(35,42);
-ctx.lineTo(-45,35);
-ctx.closePath();
-ctx.fill();
-
-// Barrel
-ctx.fillStyle='#263b43';
-ctx.fillRect(-8,-65,65,24);
-
-ctx.fillStyle='#101b22';
-ctx.fillRect(35,-62,35,17);
-
-// Barrel opening
-ctx.fillStyle='#05090d';
-ctx.fillRect(66,-60,9,14);
-
-// Top sight
-ctx.fillStyle='#526b72';
-ctx.fillRect(5,-76,25,10);
-
-// Main side panel
-ctx.fillStyle='#405b62';
-ctx.beginPath();
-ctx.moveTo(-35,-37);
-ctx.lineTo(20,-48);
-ctx.lineTo(48,-25);
-ctx.lineTo(30,5);
-ctx.lineTo(-38,0);
-ctx.closePath();
-ctx.fill();
-
-// Glowing energy core
-ctx.fillStyle='#64f5bd';
-ctx.shadowColor='#4dffbb';
-ctx.shadowBlur=shotFlash>0?35:15;
-ctx.fillRect(-8,-29,35,9);
-ctx.shadowBlur=0;
-
-// Grip
-ctx.fillStyle='#17262d';
-ctx.beginPath();
-ctx.moveTo(-42,5);
-ctx.lineTo(-12,8);
-ctx.lineTo(-18,65);
-ctx.lineTo(-48,58);
-ctx.closePath();
-ctx.fill();
-
-// Grip texture
-ctx.strokeStyle='#52666b';
-ctx.lineWidth=3;
-for(let i=0;i<4;i++){
-    ctx.beginPath();
-    ctx.moveTo(-43,18+i*9);
-    ctx.lineTo(-20,21+i*9);
-    ctx.stroke();
-}
-
-// Small warning light
-ctx.fillStyle='#ff554d';
-ctx.beginPath();
-ctx.arc(42,-10,4,0,Math.PI*2);
-ctx.fill();
-
-ctx.restore();
+ if(equipped === 'shotgun'){
+     // Short, thick pump-action shotgun with two visible muzzle tubes.
+     ctx.fillStyle='#151b20';ctx.fillRect(-66,-34,116,54);
+     ctx.fillStyle='#303b40';ctx.fillRect(-12,-57,66,31);
+     ctx.fillStyle='#202a2f';ctx.fillRect(35,-61,28,24);
+     ctx.fillStyle='#05090d';
+     ctx.beginPath();ctx.ellipse(64,-49,7,12,0,0,Math.PI*2);ctx.fill();
+     ctx.beginPath();ctx.ellipse(48,-49,6,10,0,0,Math.PI*2);ctx.fill();
+     ctx.fillStyle='#59666a';ctx.fillRect(-4,-67,53,8);
+     ctx.fillStyle='#6a4931';ctx.fillRect(-60,-27,38,37);
+     ctx.fillStyle='#8a6747';ctx.fillRect(-57,-22,32,5);
+     ctx.fillStyle='#22292c';ctx.fillRect(-28,14,27,54);
+     ctx.fillStyle='#b58b57';ctx.fillRect(-8,-18,23,7);
+     if(shotFlash>0){ctx.fillStyle='#e3a75d';ctx.shadowColor='#ffb45c';ctx.shadowBlur=24;ctx.fillRect(62,-57,14,17);ctx.shadowBlur=0;}
+ } else if(equipped === 'rifle'){
+     // Long assault rifle with stock, barrel, magazine and top sight.
+     ctx.fillStyle='#20292e';ctx.fillRect(-92,-24,45,35);
+     ctx.fillStyle='#303b40';ctx.fillRect(-58,-39,116,48);
+     ctx.fillStyle='#26363c';ctx.fillRect(18,-53,91,20);
+     ctx.fillStyle='#111a1f';ctx.fillRect(91,-51,17,16);
+     ctx.fillStyle='#080d10';ctx.fillRect(105,-49,8,12);
+     ctx.fillStyle='#47575a';ctx.fillRect(-12,-58,42,8);
+     ctx.fillStyle='#151d21';ctx.fillRect(-18,8,24,61);
+     ctx.fillStyle='#35464a';ctx.fillRect(-14,15,16,42);
+     ctx.fillStyle='#64716e';ctx.fillRect(-49,-31,45,25);
+     ctx.fillStyle='#11191d';ctx.fillRect(2,-32,30,8);
+     ctx.fillStyle='#8fa79b';ctx.fillRect(33,-31,13,5);
+     if(shotFlash>0){ctx.fillStyle='#e5a35a';ctx.shadowColor='#ffad55';ctx.shadowBlur=22;ctx.fillRect(109,-52,13,19);ctx.shadowBlur=0;}
+ } else if(equipped === 'laser'){
+     // Futuristic energy rifle with long emitter, glowing chamber and capacitors.
+     ctx.fillStyle='#101b25';ctx.fillRect(-66,-31,118,48);
+     ctx.fillStyle='#243d50';ctx.fillRect(-10,-58,112,25);
+     ctx.fillStyle='#152b3b';ctx.fillRect(88,-55,26,20);
+     ctx.fillStyle='#050b12';ctx.fillRect(108,-52,10,14);
+     ctx.fillStyle='#385a70';ctx.fillRect(-42,-48,56,16);
+     ctx.fillStyle='#1c3445';ctx.fillRect(-23,17,28,53);
+     ctx.fillStyle='#58dfff';ctx.shadowColor='#36dfff';ctx.shadowBlur=shotFlash>0?38:18;
+     ctx.fillRect(-2,-42,73,8);ctx.fillRect(35,-58,13,9);
+     ctx.fillStyle='#b6f8ff';ctx.fillRect(105,-50,7,10);ctx.shadowBlur=0;
+     ctx.fillStyle='#9fb5c4';ctx.fillRect(-58,-18,23,8);
+ } else {
+     // Standard pulse/SMG: compact receiver, short barrel and small magazine.
+     ctx.fillStyle='#111c22';ctx.fillRect(-62,-30,105,47);
+     ctx.fillStyle='#263e46';ctx.fillRect(-4,-52,66,22);
+     ctx.fillStyle='#0a1217';ctx.fillRect(56,-49,15,16);
+     ctx.fillStyle='#536b70';ctx.fillRect(-25,-58,35,8);
+     ctx.fillStyle='#1b2c33';ctx.fillRect(-25,12,25,49);
+     ctx.fillStyle='#405c63';ctx.fillRect(-52,-23,39,24);
+     ctx.fillStyle='#64f5bd';ctx.shadowColor='#4dffbb';ctx.shadowBlur=shotFlash>0?32:15;
+     ctx.fillRect(-4,-31,37,8);
+     ctx.fillStyle='#d8fff0';ctx.fillRect(61,-46,6,10);ctx.shadowBlur=0;
+ }
+ ctx.restore();
  ctx.strokeStyle='#d9fff0';ctx.lineWidth=2;ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(W/2-12,H/2);ctx.lineTo(W/2-4,H/2);ctx.moveTo(W/2+4,H/2);ctx.lineTo(W/2+12,H/2);ctx.moveTo(W/2,H/2-12);ctx.lineTo(W/2,H/2-4);ctx.moveTo(W/2,H/2+4);ctx.lineTo(W/2,H/2+12);ctx.stroke();ctx.globalAlpha=1;
  if(shotFlash>0){ctx.fillStyle=`rgba(100,255,190,${shotFlash*.12})`;ctx.fillRect(0,0,W,H);}
 }
 function shoot(){
-    if(!playing || fireCd>0) return;
-    const laserActive = superGunEquipped && inventory.supergun > 0;
-    const shotCost = laserActive ? 5 : 1;
-    if(ammo < shotCost) return;
-    ammo -= shotCost;
-    document.getElementById('ammo').textContent = ammo;
-
-    fireCd = laserActive ? .55 : .22;
-    shotFlash = .8;
-
-    let targets = [];
-    let best = .11;
-    const centerRay = ray(player.a);
-
-    for(let a of aliens){
-        if(!a.alive) continue;
-        let dx=a.x-player.x, dy=a.y-player.y, dist=Math.hypot(dx,dy);
-        let ang=Math.atan2(dy,dx)-player.a;
-        while(ang>Math.PI) ang-=Math.PI*2;
-        while(ang< -Math.PI) ang+=Math.PI*2;
-        let aim=Math.abs(ang);
-
-        if(aim < .11 && dist < 12 && centerRay.d > dist-.3){
-            if(laserActive){
-                targets.push(a);
-            } else if(aim < best){
-                best = aim;
-                targets = [a];
-            }
-        }
-    }
-
-    let kills = 0;
-    for(const target of targets){
-        target.hp = laserActive ? 0 : target.hp - 1;
-        if(target.hp <= 0){
-            target.alive = false;
-            score++;
-            credits += 20;
-            kills++;
-        }
-    }
-
-    if(kills > 0){
-        document.getElementById('credits').textContent = credits;
-        refreshShop();
-        refreshLoadout();
-        document.getElementById('score').textContent = String(score).padStart(3,'0');
-        saveGame();
-
-        if(aliens.every(a=>!a.alive)){
-            wave++;
-            document.getElementById('wave').textContent = String(wave).padStart(2,'0');
-            spawnWave();
-            document.getElementById('statusTitle').textContent='SECTOR CLEARED';
-            document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';
-            setTimeout(()=>{
-                if(playing){
-                    document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';
-                    document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';
-                }
-            },1800);
-        }
-    }
+     if(!playing || fireCd>0) return;
+     const equipped = superGunEquipped && inventory.supergun > 0 ? 'laser' : (loadout.weapon === 'laser' ? 'pulse' : loadout.weapon);
+     const laserActive = equipped === 'laser' && inventory.supergun > 0;
+     const shotgunActive = equipped === 'shotgun' && inventory.shotgun;
+     const rifleActive = equipped === 'rifle' && inventory.rifle;
+     const shotCost = laserActive ? 5 : 1;
+     if(ammo < shotCost) return;
+     ammo -= shotCost;
+     document.getElementById('ammo').textContent = ammo;
+     // SMG range remains 12 units. Rifle reaches 1.3x; laser reaches 5x.
+     const weaponRange = laserActive ? 60 : rifleActive ? 15.6 : 12;
+     fireCd = shotgunActive ? .72 : rifleActive ? .6 : laserActive ? .18 : .3;
+     shotFlash = .8;
+     // Four shotgun pellets leave the muzzle in a compact 2x2 square,
+     // then angle outward as they travel. Other weapons use one centered shot.
+     const sideX=-Math.sin(player.a), sideY=Math.cos(player.a);
+     const forwardX=Math.cos(player.a), forwardY=Math.sin(player.a);
+     const pelletSpecs = shotgunActive ? [
+         {side:-.045,forward:0,spread:-.075},
+         {side:.045,forward:0,spread:.075},
+         {side:-.045,forward:.045,spread:-.045},
+         {side:.045,forward:.045,spread:.045}
+     ] : [{side:0,forward:0,spread:0}];
+     const hits = new Map();
+     const centerRay = ray(player.a);
+     for(const pellet of pelletSpecs){
+         const originX=player.x+sideX*pellet.side+forwardX*pellet.forward;
+         const originY=player.y+sideY*pellet.side+forwardY*pellet.forward;
+         bullets.push({x:originX,y:originY,angle:player.a+pellet.spread,travel:0,range:weaponRange,
+             speed:laserActive?90:rifleActive?34:shotgunActive?28:28,
+             visualLength:laserActive?Math.min(weaponRange,9):shotgunActive?.42:rifleActive?.72:.34,
+             type:laserActive?'laser':shotgunActive?'shotgun':rifleActive?'rifle':'smg'});
+     }
+     if(laserActive){
+         for(const a of aliens){
+             if(!a.alive) continue;
+             const dx=a.x-player.x,dy=a.y-player.y,dist=Math.hypot(dx,dy);
+             let ang=Math.atan2(dy,dx)-player.a;
+             while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
+             if(Math.abs(ang)<.11&&dist<weaponRange&&centerRay.d>dist-.3)hits.set(a,4);
+         }
+     } else {
+         for(const pellet of pelletSpecs){
+             const originX=player.x+sideX*pellet.side+forwardX*pellet.forward;
+             const originY=player.y+sideY*pellet.side+forwardY*pellet.forward;
+             const shotAngle=player.a+pellet.spread,shotRay=ray(shotAngle,originX,originY);
+             let closest=null,closestDist=Infinity;
+             for(const a of aliens){
+                 if(!a.alive)continue;
+                 const dx=a.x-originX,dy=a.y-originY,dist=Math.hypot(dx,dy);
+                 if(dist>weaponRange||dist>=closestDist||shotRay.d<=dist-.3)continue;
+                 let ang=Math.atan2(dy,dx)-shotAngle;
+                 while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
+                 const hitWidth=shotgunActive?.045:.11;
+                 if(Math.abs(ang)<hitWidth){closest=a;closestDist=dist;}
+             }
+             if(closest)hits.set(closest,(hits.get(closest)||0)+1);
+         }
+     }
+     let kills=0;
+     for(const [target,pelletCount] of hits){
+         target.hp=laserActive?0:target.hp-pelletCount;
+         if(target.hp<=0){target.alive=false;score++;credits+=20;kills++;}
+     }
+     if(kills>0){
+         document.getElementById('credits').textContent=credits;
+         refreshShop();refreshLoadout();
+         document.getElementById('score').textContent=String(score).padStart(3,'0');
+         saveGame();
+         if(aliens.every(a=>!a.alive)){
+             wave++;document.getElementById('wave').textContent=String(wave).padStart(2,'0');spawnWave();
+             document.getElementById('statusTitle').textContent='SECTOR CLEARED';
+             document.getElementById('statusText').textContent='NEW CONTACTS ENTERING THE OUTPOST';
+             setTimeout(()=>{if(playing){document.getElementById('statusTitle').textContent='BREACH IN PROGRESS';document.getElementById('statusText').textContent='HOSTILES DETECTED · HOLD THE LINE';}},1800);
+         }
+     }
 }
-
-function update(dt){if(!playing)return;fireCd=Math.max(0,fireCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
- let speed=(keys.Shift?3.6:2.4)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
+function update(dt){if(!playing || inventoryOpen)return;fireCd=Math.max(0,fireCd-dt);for(const b of bullets)b.travel+=b.speed*dt;bullets=bullets.filter(b=>b.travel<b.range);if(mouseDown && !(loadout.weapon === 'shotgun' && !(superGunEquipped && inventory.supergun > 0))) shoot();shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*2.5);document.getElementById('damage').style.opacity=damageFlash;
+ speedBoostTimer=Math.max(0,speedBoostTimer-dt);let speed=(keys.Shift?3.6:2.4)*(speedBoostTimer>0?1.5:1)*dt,dx=0,dy=0;if(keys.KeyW){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed;}if(keys.KeyS){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed;}if(keys.KeyA){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed;}if(keys.KeyD){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed;}
  // PLAYER COLLISION WITH WALLS AND FURNITURE
 if(!blocked(player.x+dx,player.y)){
     player.x+=dx;
@@ -1276,7 +1358,7 @@ for(const chestItem of chests){
         } else if(roll < 1/20 + 1/7){
             battleMedkits++;
             document.getElementById('statusTitle').textContent = 'MED-KIT FOUND!';
-            document.getElementById('statusText').textContent = 'MED-KIT ADDED · PRESS E TO USE';
+            document.getElementById('statusText').textContent = 'MED-KIT ADDED · OPEN INVENTORY WITH E';
         } else {
             let ammoFound = Math.floor(Math.random()*21)+15;
             ammo += ammoFound;
@@ -1331,6 +1413,18 @@ function startBattle() {
     runRecorded = false;
     battleMedkits = loadout.medkits;
     battleSpeed = loadout.speed;
+    speedBoostTimer = 0;
+    battleInventorySlots = [
+        loadout.inventorySlots?.[0] || loadout.weapon || 'pulse',
+        loadout.inventorySlots?.[1] || '',
+        loadout.inventorySlots?.[2] || '',
+        'medkit', 'speed'
+    ];
+    if (!isOwnedWeapon(battleInventorySlots[0])) battleInventorySlots[0] = 'pulse';
+    activeInventoryIndex = 0;
+    inventoryOpen = false;
+    document.getElementById('battleInventory').classList.add('hidden');
+    equipBattleWeapon(battleInventorySlots[0]);
 
     inventory.medkit -= battleMedkits;
     inventory.speed -= battleSpeed;
@@ -1338,7 +1432,6 @@ function startBattle() {
     ammo = 25;
 
     shieldHits = 0;
-    superGunEquipped = false;
 
     chest.respawnTimer = 0;
     chest.active = false;
@@ -1427,20 +1520,61 @@ function refreshStats() {
 
 function showLoadoutTab(tab) {
     const guns = tab === 'guns';
+    const equipment = tab === 'equipment';
     document.getElementById('gunsView').classList.toggle('hidden', !guns);
-    document.getElementById('equipmentView').classList.toggle('hidden', guns);
+    document.getElementById('equipmentView').classList.toggle('hidden', !equipment);
+    document.getElementById('inventoryView').classList.toggle('hidden', tab !== 'inventory');
     document.getElementById('gunsTab').classList.toggle('active', guns);
-    document.getElementById('equipmentTab').classList.toggle('active', !guns);
+    document.getElementById('equipmentTab').classList.toggle('active', equipment);
+    document.getElementById('inventoryTab').classList.toggle('active', tab === 'inventory');
     refreshGunCollection();
+    if (tab === 'inventory') refreshDeploymentInventory();
+}
+
+function ownedInventoryChoices(slotIndex) {
+    const choices = [{value:'',label:'EMPTY SLOT'}, {value:'pulse',label:'PULSE SMG'}];
+    if (inventory.shotgun) choices.push({value:'shotgun',label:'SHOTGUN'});
+    if (inventory.rifle) choices.push({value:'rifle',label:'ASSAULT RIFLE'});
+    if (inventory.supergun > 0) choices.push({value:'laser',label:'LEGENDARY LASER'});
+    if (slotIndex === 2) {
+        if (loadout.medkits > 0) choices.push({value:'medkit',label:'MED-KIT'});
+        if (loadout.speed > 0) choices.push({value:'speed',label:'SPEED POTION'});
+    }
+    return choices;
+}
+
+function refreshDeploymentInventory() {
+    const root = document.getElementById('deploymentInventorySlots');
+    if (!root) return;
+    const labels = ['SLOT 1 · WEAPON','SLOT 2 · WEAPON','SLOT 3 · FLEXIBLE','SLOT 4 · MED-KITS','SLOT 5 · SPEED'];
+    root.innerHTML = labels.map((label, i) => {
+        if (i >= 3) {
+            const amount = i === 3 ? loadout.medkits : loadout.speed;
+            const item = i === 3 ? 'MED-KITS' : 'SPEED POTIONS';
+            return `<div class="deployment-slot"><label>${label}</label><div style="font-weight:900">${item}</div><div style="color:#9eb8b0;font-size:12px;margin-top:7px">Bring: ${amount}</div><div style="color:#66877d;font-size:10px;margin-top:5px">Set amount in EQUIPMENT</div></div>`;
+        }
+        const options = ownedInventoryChoices(i);
+        const selected = loadout.inventorySlots[i] || (i === 0 ? loadout.weapon : '');
+        return `<div class="deployment-slot"><label>${label}</label><select data-deployment-slot="${i}">${options.map(o => `<option value="${o.value}" ${o.value===selected?'selected':''}>${o.label}</option>`).join('')}</select></div>`;
+    }).join('');
+    root.querySelectorAll('[data-deployment-slot]').forEach(select => {
+        select.addEventListener('change', () => {
+            const index = Number(select.dataset.deploymentSlot);
+            loadout.inventorySlots[index] = select.value;
+            if (index === 0 && select.value && ['pulse','shotgun','rifle','laser'].includes(select.value)) loadout.weapon = select.value;
+            document.getElementById('loadoutMessage').textContent = 'Inventory slot updated. Press SAVE LOADOUT to keep it.';
+            saveGame();
+        });
+    });
 }
 
 function refreshGunCollection() {
     const root = document.getElementById('ownedGunCollection');
     if (!root) return;
     const weapons = [
-    { id:'pulse', name:'PULSE BLASTER', icon:'◉', desc:'Your standard-issue energy weapon. Available to every player.', owned:true },
+    { id:'pulse', name:'PULSE SMG', icon:'◉', desc:'Compact automatic weapon. Hold the mouse button; fires every 0.3 seconds.', owned:true },
     { id:'shotgun', name:'SHOTGUN', icon:'◈', desc:'A close-range weapon that fires multiple pellets.', owned:Boolean(inventory.shotgun) },
-    { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'A steady, rapid-fire weapon for sustained attacks.', owned:Boolean(inventory.rifle) },
+    { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'Long-barrel automatic rifle. Hold the mouse button; fires every 0.6 seconds.', owned:Boolean(inventory.rifle) },
     { id:'laser', name:'LEGENDARY LASER', icon:'✦', desc:'A piercing beam that can eliminate every alien in its path.', owned:inventory.supergun > 0 }
 ];
     root.innerHTML = weapons.map(w => `
@@ -1455,7 +1589,9 @@ function refreshGunCollection() {
     root.querySelectorAll('[data-equip]').forEach(btn => {
         btn.addEventListener('click', () => {
             loadout.weapon = btn.dataset.equip;
-            document.getElementById('loadoutMessage').textContent = 'Selected ' + btn.dataset.equip.toUpperCase() + '. Press SAVE LOADOUT to keep it.';
+            if (!Array.isArray(loadout.inventorySlots)) loadout.inventorySlots = ['pulse','',''];
+            loadout.inventorySlots[0] = btn.dataset.equip;
+            document.getElementById('loadoutMessage').textContent = 'Selected ' + btn.dataset.equip.toUpperCase() + ' for inventory slot 1. Press SAVE LOADOUT to keep it.';
             refreshGunCollection();
             saveGame();
         });
@@ -1471,10 +1607,12 @@ function refreshLoadout() {
     document.getElementById('medkitBring').value = Math.min(loadout.medkits, inventory.medkit);
     document.getElementById('speedBring').value = Math.min(loadout.speed, inventory.speed);
     refreshGunCollection();
+    refreshDeploymentInventory();
     refreshStats();
 }
 document.getElementById('gunsTab').onclick = () => showLoadoutTab('guns');
 document.getElementById('equipmentTab').onclick = () => showLoadoutTab('equipment');
+document.getElementById('inventoryTab').onclick = () => showLoadoutTab('inventory');
 document.getElementById('saveLoadout').onclick = () => {
     const selectedWeapon = null;
 
@@ -1501,11 +1639,127 @@ document.getElementById('saveLoadout').onclick = () => {
 
     loadout.medkits = medkits;
     loadout.speed = speed;
+    if (!Array.isArray(loadout.inventorySlots)) loadout.inventorySlots = ['pulse','',''];
+    loadout.inventorySlots = loadout.inventorySlots.slice(0,3);
+    while (loadout.inventorySlots.length < 3) loadout.inventorySlots.push('');
+    if (!loadout.inventorySlots[0]) loadout.inventorySlots[0] = loadout.weapon || 'pulse';
+    if (['pulse','shotgun','rifle','laser'].includes(loadout.inventorySlots[0])) loadout.weapon = loadout.inventorySlots[0];
 
     document.getElementById('loadoutMessage').textContent =
         'Loadout saved successfully!';
+    refreshDeploymentInventory();
     saveGame();
 };
+function isOwnedWeapon(id) {
+    return id === 'pulse' || (id === 'shotgun' && inventory.shotgun) ||
+        (id === 'rifle' && inventory.rifle) || (id === 'laser' && inventory.supergun > 0);
+}
+
+function equipBattleWeapon(id) {
+    if (!isOwnedWeapon(id)) return false;
+    loadout.weapon = id;
+    superGunEquipped = id === 'laser' && inventory.supergun > 0;
+    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER'};
+    document.getElementById('statusTitle').textContent = names[id] + ' EQUIPPED';
+    document.getElementById('statusText').textContent = 'WEAPON READY';
+    return true;
+}
+
+function refreshBattleInventory() {
+    const root = document.getElementById('battleInventorySlots');
+    if (!root) return;
+    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER',medkit:'MED-KIT',speed:'SPEED POTION'};
+    root.innerHTML = battleInventorySlots.map((item, i) => {
+        let count = '';
+        if (i === 3) count = `${battleMedkits} available`;
+        else if (i === 4) count = `${battleSpeed} available`;
+        else if (item === 'medkit') count = `${battleMedkits} available`;
+        else if (item === 'speed') count = `${battleSpeed} available`;
+        else count = item ? (item === 'laser' ? '5 charges per shot' : 'Weapon') : 'Empty slot';
+        const title = item ? names[item] : 'EMPTY';
+        const canUse = Boolean(item) && ((['pulse','shotgun','rifle','laser'].includes(item) && isOwnedWeapon(item)) || (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0) || (i===3 && battleMedkits>0) || (i===4 && battleSpeed>0));
+        return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
+    }).join('');
+    root.querySelectorAll('[data-use-slot]').forEach(btn => btn.addEventListener('click', () => useInventorySlot(Number(btn.dataset.useSlot))));
+}
+
+function openBattleInventory() {
+    if (!playing || inventoryOpen) return;
+    inventoryOpen = true;
+    mouseDown = false;
+    document.exitPointerLock?.();
+    document.getElementById('battleInventory').classList.remove('hidden');
+    refreshBattleInventory();
+}
+
+function closeBattleInventory() {
+    if (!inventoryOpen) return;
+    inventoryOpen = false;
+    document.getElementById('battleInventory').classList.add('hidden');
+    if (playing) canvas.requestPointerLock?.();
+}
+
+function useInventorySlot(index) {
+    if (!playing || index < 0 || index > 4) return;
+    activeInventoryIndex = index;
+    let item = battleInventorySlots[index];
+    if (index === 3) item = 'medkit';
+    if (index === 4) item = 'speed';
+    let used = false;
+    if (['pulse','shotgun','rifle','laser'].includes(item)) {
+        used = equipBattleWeapon(item);
+    } else if (item === 'medkit') {
+        if (battleMedkits > 0 && player.hp < 100) {
+            player.hp = Math.min(100, player.hp + 35);
+            battleMedkits--;
+            document.getElementById('healthFill').style.width = player.hp + '%';
+            document.getElementById('statusTitle').textContent = 'MED-KIT USED';
+            document.getElementById('statusText').textContent = `MED-KITS LEFT: ${battleMedkits}`;
+            used = true;
+        } else {
+            document.getElementById('inventoryMessage').textContent = battleMedkits <= 0 ? 'No med-kits available.' : 'Suit integrity is already full.';
+        }
+    } else if (item === 'speed') {
+        if (battleSpeed > 0) {
+            battleSpeed--;
+            speedBoostTimer = Math.max(speedBoostTimer, 10);
+            document.getElementById('statusTitle').textContent = 'SPEED BOOST ACTIVE';
+            document.getElementById('statusText').textContent = 'MOVEMENT SPEED INCREASED';
+            used = true;
+        } else {
+            document.getElementById('inventoryMessage').textContent = 'No speed potions available.';
+        }
+    }
+    if (used) {
+        document.getElementById('inventoryMessage').textContent = item === 'medkit' ? 'Med-kit used.' : item === 'speed' ? 'Speed potion activated.' : (item.toUpperCase() + ' equipped.');
+        saveGame();
+    }
+    refreshBattleInventory();
+}
+
+function cycleBattleInventory() {
+    if (!playing || inventoryOpen) return;
+    // Q scans every slot in order: weapons, flexible slot, med-kits, then speed potions.
+    // Consumables activate immediately; an unavailable med-kit is not consumed at full health.
+    for (let step=1; step<=5; step++) {
+        const index = (activeInventoryIndex + step) % 5;
+        let item = battleInventorySlots[index];
+        if (index === 3) item = 'medkit';
+        if (index === 4) item = 'speed';
+        const available = (['pulse','shotgun','rifle','laser'].includes(item) && isOwnedWeapon(item)) ||
+            (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0);
+        if (!available) continue;
+        activeInventoryIndex = index;
+        useInventorySlot(index);
+        const slotName = item === 'medkit' ? 'MED-KIT' : item === 'speed' ? 'SPEED POTION' : item.toUpperCase();
+        document.getElementById('statusText').textContent = item === 'medkit' && player.hp >= 100
+            ? 'MED-KIT SELECTED · HEALTH IS ALREADY FULL'
+            : slotName + (['medkit','speed'].includes(item) ? ' USED' : ' EQUIPPED');
+        return;
+    }
+    document.getElementById('statusText').textContent = 'NO OTHER INVENTORY ITEMS AVAILABLE';
+}
+
 function refreshShop() {
     document.getElementById('credits').textContent = credits;
 
@@ -1567,31 +1821,23 @@ refreshStats();
 initializeAccounts();
 addEventListener('keydown',e=>{
  keys[e.code]=true;
- if (
-    e.code === 'KeyE' &&
-    playing &&
-    battleMedkits > 0 &&
-    player.hp < 100
-) {
-    player.hp = Math.min(100, player.hp + 35);
-
-    battleMedkits--;
-
-    document.getElementById('healthFill').style.width =
-        player.hp + '%';
-
-    document.getElementById('statusTitle').textContent = 'MED-KIT USED';
-
-    document.getElementById('statusText').textContent =
-        'MED-KITS LEFT: ' + battleMedkits;
-    saveGame();
-}
- if(e.code==='KeyQ' && playing && inventory.supergun>0){superGunEquipped=!superGunEquipped;document.getElementById('statusTitle').textContent=superGunEquipped?'LEGENDARY LASER':'PULSE BLASTER';document.getElementById('statusText').textContent=superGunEquipped?'PIERCING BEAM · 5 CHARGES PER SHOT':'STANDARD MODE · 1 CHARGE PER SHOT';}
+ if (e.code === 'KeyE' && playing && !e.repeat) {
+     if (inventoryOpen) closeBattleInventory();
+     else openBattleInventory();
+     e.preventDefault();
+     return;
+ }
+ if (e.code === 'KeyQ' && playing && !e.repeat) {
+     cycleBattleInventory();
+     e.preventDefault();
+     return;
+ }
  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
 });
 addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('blur',()=>{mouseDown=false;});
 // Camera: pointer-lock mouse movement, with click-and-drag fallback.
-let draggingCamera=false, previousMouseX=0, previousMouseY=0;
+let draggingCamera=false, previousMouseX=0, previousMouseY=0, mouseDown=false;
 addEventListener('mousemove',e=>{
     if(!playing) return;
 
@@ -1611,7 +1857,8 @@ addEventListener('mousemove',e=>{
 });
 
 addEventListener('mousedown',e=>{
-    if(!playing) return;
+    if(!playing || e.button !== 0) return;
+    mouseDown=true;
     if(document.pointerLockElement!==canvas){
         draggingCamera=true;
         previousMouseX=e.clientX;
@@ -1620,7 +1867,8 @@ addEventListener('mousedown',e=>{
     }
     shoot();
 });
-addEventListener('mouseup',()=>{draggingCamera=false;});
+addEventListener('mouseup',()=>{draggingCamera=false;mouseDown=false;});
+ addEventListener('blur',()=>{mouseDown=false;draggingCamera=false;});
 canvas.addEventListener('touchstart',e=>{
     if(!playing || !e.touches.length) return;
     draggingCamera=true;
