@@ -3,6 +3,11 @@
 <head>
   <meta name="google-site-verification" content="EYSWuHRzc1nmowUe6Gvyz9p23tayUxvlK22Eicllsas" />
   <title>Alien Breach FPS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#05090d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2679,6 +2684,13 @@ addEventListener('blur',()=>{resetMove();mouseDown=false;movingId=firingId=looki
 addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('pointerlockchange',()=>{if(playing&&document.pointerLockElement!==canvas){/* game remains active; click canvas to recapture */}});
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(error => console.warn('PWA install support unavailable:', error));
+  });
+}
 </script>
 </body>
 </html>
