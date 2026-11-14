@@ -1345,10 +1345,13 @@ function spawnWave(){
     const alienSpeed = Math.min(1.25, .35 + wave * .035);
     for(let i=0;i<n;i++){
         const pos=randomOpenPosition(5);
+        const crawler=wave>=2 && Math.random()<Math.min(.32,.10+wave*.018);
         aliens.push({
+            kind:crawler?'crawler':'stalker',
+            surface:crawler?(Math.random()<.55?'ceiling':'wall'):'floor',
             x:pos.x,y:pos.y,
             hp:alienHp,
-            speed:Math.min(1.25, alienSpeed + Math.random()*.13),
+            speed:Math.min(1.35, alienSpeed + Math.random()*.13 + (crawler?.16:0)),
             phase:Math.random()*7,
             attack:Math.max(.75, 2.4 - wave*.055) + Math.random()*.45,
             alive:true
@@ -1638,25 +1641,41 @@ drawLabProps(depth,horizon);
       if(depth[col]>=forward-.12)ctx.rect(col*2,0,2,H);
   }
   ctx.clip();
-  ctx.translate(sx,base+Math.sin(alienAnimTime+al.phase)*size*.018);ctx.scale(size/120,size/120);
-  // soft ground shadow
-  ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,3,42,9,0,0,Math.PI*2);ctx.fill();
-  // legs
-  ctx.fillStyle='#315c3e';ctx.beginPath();ctx.roundRect(-25,-34,18,43,8);ctx.roundRect(8,-34,18,43,8);ctx.fill();
-  // torso
-  let body=ctx.createLinearGradient(-35,-95,35,-25);body.addColorStop(0,'#a0e879');body.addColorStop(.45,'#4f9d53');body.addColorStop(1,'#183f36');
-  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(0,-62,37,43,0,0,Math.PI*2);ctx.fill();
-  // shoulders and arms
-  ctx.fillStyle='#4b9854';ctx.beginPath();ctx.ellipse(-34,-76,13,25,-.35,0,Math.PI*2);ctx.ellipse(34,-76,13,25,.35,0,Math.PI*2);ctx.fill();
-  // head
-  let head=ctx.createLinearGradient(-30,-145,30,-92);head.addColorStop(0,'#c4ff8d');head.addColorStop(.5,'#79c95d');head.addColorStop(1,'#286446');
-  ctx.fillStyle=head;ctx.beginPath();ctx.ellipse(0,-119,31,37,0,0,Math.PI*2);ctx.fill();
-  // eyes
-  ctx.fillStyle='#102a24';ctx.beginPath();ctx.ellipse(-13,-124,9,6,-.15,0,Math.PI*2);ctx.ellipse(13,-124,9,6,.15,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#c9fff0';ctx.beginPath();ctx.arc(-13,-125,2.4,0,Math.PI*2);ctx.arc(13,-125,2.4,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#b7ef8a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-8,-99);ctx.quadraticCurveTo(0,-94,8,-99);ctx.stroke();
-  // bioluminescent chest
-  ctx.fillStyle='#b6ff80';ctx.beginPath();ctx.arc(0,-62,6,0,Math.PI*2);ctx.fill();
+  ctx.translate(sx,al.kind==='crawler'?(horizon-size*.24+Math.sin(alienAnimTime+al.phase)*size*.025):base+Math.sin(alienAnimTime+al.phase)*size*.018);ctx.scale(size/120,size/120);
+  const crawler=al.kind==='crawler';
+  const t=alienAnimTime*.8+al.phase;
+  if(crawler){
+   // Ceiling and wall stalkers cling to upper surfaces and move with a low, spiderlike silhouette.
+   ctx.translate(0,al.surface==='ceiling'?-112:-55);
+   if(al.surface==='wall')ctx.rotate(Math.sin(t*.16)*.25);
+   ctx.strokeStyle='#263e3b';ctx.lineWidth=8;ctx.lineCap='round';
+   for(let side of [-1,1])for(let k=0;k<3;k++){
+    const y=-18+k*17,reach=side*(47+k*7),bend=side*(30+Math.sin(t+k*1.7)*8);
+    ctx.beginPath();ctx.moveTo(side*19,y);ctx.lineTo(bend,y-17);ctx.lineTo(reach,y-28);ctx.stroke();
+    ctx.strokeStyle='#b5c8ad';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(reach,y-28);ctx.lineTo(reach+side*9,y-38);ctx.stroke();
+    ctx.strokeStyle='#263e3b';ctx.lineWidth=8;
+   }
+   ctx.fillStyle='#243c38';ctx.beginPath();ctx.ellipse(0,-8,29,43,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#607c68';ctx.beginPath();ctx.ellipse(0,-29,24,22,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#050d12';ctx.beginPath();ctx.ellipse(0,-32,17,10,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#ff4348';for(let ex of [-10,10]){ctx.beginPath();ctx.ellipse(ex,-34,4,3,0,0,Math.PI*2);ctx.fill();}
+   ctx.strokeStyle='#d1dfb6';ctx.lineWidth=2;for(let j=-2;j<=2;j++){ctx.beginPath();ctx.moveTo(j*5,-24);ctx.lineTo(j*6,-16+Math.abs(j)*2);ctx.stroke();}
+  }else{
+   // Original alien redesign: gaunt limbs, hunched armored torso, elongated skull,
+   // glowing eyes, exposed ribs, and needle teeth. All vector-based for mobile speed.
+   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,2,38,7,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#243c36';ctx.lineWidth=14;ctx.lineCap='round';
+   ctx.beginPath();ctx.moveTo(-17,-52);ctx.lineTo(-24,-20);ctx.lineTo(-30,0);ctx.moveTo(17,-52);ctx.lineTo(25,-18);ctx.lineTo(29,0);ctx.stroke();
+   ctx.strokeStyle='#506f5b';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(-25,-83);ctx.lineTo(-44,-57);ctx.lineTo(-48,-27);ctx.moveTo(25,-83);ctx.lineTo(44,-55);ctx.lineTo(49,-25);ctx.stroke();
+   ctx.fillStyle='#2d5145';ctx.beginPath();ctx.moveTo(-34,-86);ctx.quadraticCurveTo(0,-108,34,-86);ctx.lineTo(23,-46);ctx.lineTo(0,-39);ctx.lineTo(-23,-46);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='#8aa18a';ctx.lineWidth=3;
+   for(let rib=0;rib<4;rib++){let y=-78+rib*9;ctx.beginPath();ctx.moveTo(-22+rib*2,y);ctx.quadraticCurveTo(0,y+10,22-rib*2,y);ctx.stroke();}
+   ctx.fillStyle='#526d59';ctx.beginPath();ctx.ellipse(0,-116,27,36,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#101c20';ctx.beginPath();ctx.ellipse(0,-102,19,14,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#ff5153';for(let ex of [-12,12]){ctx.beginPath();ctx.ellipse(ex,-122,7,4,0,0,Math.PI*2);ctx.fill();}
+   ctx.strokeStyle='#d7dbb9';ctx.lineWidth=2;for(let j=-3;j<=3;j++){ctx.beginPath();ctx.moveTo(j*4,-100);ctx.lineTo(j*3.6,-91+(j%2)*3);ctx.stroke();}
+   ctx.fillStyle='#a5c2a2';ctx.beginPath();ctx.moveTo(-15,-142);ctx.lineTo(-23,-160);ctx.lineTo(-7,-148);ctx.moveTo(15,-142);ctx.lineTo(23,-160);ctx.lineTo(7,-148);ctx.fill();
+  }
   ctx.restore();
  }
  // AMMO CHESTS: solid supply crates with a raised lid, metal bands,
