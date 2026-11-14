@@ -1496,7 +1496,7 @@ function drawWorld(){
  let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#25333b');sky.addColorStop(1,'#50666d');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
  let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#506467');floor.addColorStop(1,'#1b292d');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
 
-// WORLD-LOCKED CERAMIC FLOOR TILES — clipped to walkable map cells.
+// WORLD-LOCKED INDUSTRIAL METAL GRATE FLOOR TILES — clipped to walkable map cells.
 // Render to a compact reusable buffer to avoid allocating and shading hundreds
 // of thousands of pixels on every frame. The original tile colors and geometry
 // are retained; browser smoothing scales the buffer cleanly to the screen.
@@ -1545,18 +1545,33 @@ function drawWorld(){
 
             const localX = worldX - tileX;
             const localY = worldY - tileY;
-            const grout = localX < 0.022 || localX > 0.978 || localY < 0.022 || localY > 0.978;
+            // Reference-inspired industrial grating: framed rectangular steel
+            // panels with recessed channels and closely spaced raised ribs.
+            // Everything stays perspective-correct and world-locked as you move.
+            const panelX = (worldX * 0.75) - Math.floor(worldX * 0.75);
+            const panelY = (worldY * 0.65) - Math.floor(worldY * 0.65);
+            const edge = Math.min(panelX,1-panelX,panelY,1-panelY);
+            const rib = (panelY * 19) % 1;
+            const channel = rib < .20;
+            const ribHighlight = rib > .23 && rib < .40;
+            const centerRail = Math.abs(panelX - .5) < .025;
+            const fastener = (panelX < .08 || panelX > .92) && (panelY < .09 || panelY > .91);
+            const noise = ((Math.floor(worldX*47)*17 + Math.floor(worldY*53)*29) & 7) - 3;
+            const variation = ((tileX * 13 + tileY * 7) & 3) * 2;
+            let metal = 158 + variation + noise;
+            if (edge < .023) metal = 49;             // dark seams between plates
+            else if (edge < .045) metal = 108;       // raised steel frames
+            else if (edge < .067) metal = 192;       // bright beveled edge
+            else if (centerRail) metal = 104;        // structural lengthwise rail
+            else if (channel) metal = 99;            // recessed ventilation groove
+            else if (ribHighlight) metal = 197;      // catch light on each ridge
+            else if (rib > .78) metal = 135;
+            if (fastener) metal = 57;
+            const shade = metal * distanceLight;
             const i = rowOffset + px * 4;
-            if (grout) {
-                pixels[i] = 31; pixels[i + 1] = 43; pixels[i + 2] = 51;
-            } else {
-                const variation = ((tileX * 13 + tileY * 7) & 3) * 3;
-                const wear = ((Math.floor(localX * 11) * 7 + Math.floor(localY * 13) * 11 + tileX * 3 + tileY * 5) & 7);
-                const shade = (122 + variation - wear) * distanceLight;
-                pixels[i] = Math.min(255, (shade * .86) | 0);
-                pixels[i + 1] = Math.min(255, (shade * .98) | 0);
-                pixels[i + 2] = Math.min(255, (shade * 1.05) | 0);
-            }
+            pixels[i] = Math.max(0,Math.min(255,shade * .86)) | 0;
+            pixels[i + 1] = Math.max(0,Math.min(255,shade * .97)) | 0;
+            pixels[i + 2] = Math.max(0,Math.min(255,shade * 1.01)) | 0;
             pixels[i + 3] = 255;
         }
     }
