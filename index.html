@@ -570,6 +570,41 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  }
  #shopScreen .shop-item .item-cost{margin-top:8px!important}
 }
+
+/* Critical tab isolation: mobile #gunsView flex styling must never override .hidden. */
+#loadoutScreen .loadout-view.hidden,
+#loadoutScreen #gunsView.hidden,
+#loadoutScreen #equipmentView.hidden,
+#loadoutScreen #inventoryView.hidden{
+ display:none!important;
+ visibility:hidden!important;
+}
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ #loadoutScreen #gunsView:not(.hidden){display:flex!important}
+ #loadoutScreen #equipmentView:not(.hidden),
+ #loadoutScreen #inventoryView:not(.hidden){
+  display:block!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  touch-action:pan-y!important;
+ }
+ #loadoutScreen #equipmentView .shop-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:100%!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:4px!important;
+ }
+ #loadoutScreen #equipmentView .shop-item{min-height:145px!important;height:auto!important}
+ #loadoutScreen #inventoryView .deployment-inventory-grid{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:8px!important;width:100%!important;
+ }
+ #loadoutScreen #inventoryView .deployment-inventory-grid>*{min-width:0!important}
+}
 </style>
 </head>
 <body>
