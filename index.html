@@ -322,6 +322,44 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  #shopScreen .shop-item .weapon-art .art-body{min-height:17px}
  #shopScreen .shop-item .item-icon{flex-shrink:0}
 }
+
+/* iPhone landscape main menu: keep all three action buttons on screen. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape) {
+ #mainMenu{align-items:center!important;justify-content:center!important;padding:4px max(8px,env(safe-area-inset-right)) 4px max(8px,env(safe-area-inset-left))!important}
+ #mainMenu>.menu-wrap{
+   box-sizing:border-box;display:flex!important;flex-direction:column!important;
+   justify-content:center!important;gap:3px!important;
+   width:100%!important;max-width:1050px!important;
+   height:100%!important;max-height:100%!important;
+   padding:3px 8px!important;margin:0 auto!important;overflow:hidden!important;
+ }
+ #mainMenu .eyebrow{font-size:9px!important;letter-spacing:2px!important}
+ #mainMenu .menu-title{font-size:clamp(23px,7vh,36px)!important;line-height:1!important;margin:2px 0!important;letter-spacing:3px!important}
+ #mainMenu .menu-sub{font-size:9px!important;margin:0 0 3px!important;line-height:1.1!important}
+ #mainMenu .account-panel{flex:0 0 auto!important;max-width:none!important;width:100%!important;gap:5px!important;
+   padding:5px!important;margin:0 0 4px!important;flex-wrap:nowrap!important;min-height:0!important}
+ #mainMenu .account-panel input{min-width:0!important;width:18%!important;flex:1 1 18%!important;
+   height:30px!important;padding:4px 7px!important;font-size:12px!important}
+ #mainMenu .account-panel button{flex:0 0 auto!important;min-height:30px!important;height:30px!important;
+   padding:3px 9px!important;margin:0!important;font-size:11px!important;letter-spacing:1px!important}
+ #mainMenu #accountStatus{display:none!important}
+ #mainMenu .menu-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+   flex:0 1 auto!important;min-height:0!important;gap:7px!important}
+ #mainMenu .menu-card{box-sizing:border-box!important;min-height:0!important;height:auto!important;
+   padding:8px!important;gap:5px!important;overflow:hidden!important}
+ #mainMenu .menu-card h2{font-size:clamp(17px,4vh,24px)!important;line-height:1.05!important;margin:3px 0!important}
+ #mainMenu .menu-card p{font-size:10px!important;line-height:1.2!important;margin:2px 0!important}
+ #mainMenu .menu-card .menu-btn{display:block!important;flex:0 0 auto!important;
+   min-height:34px!important;padding:6px 7px!important;margin:4px 0 0!important;
+   font-size:12px!important;line-height:1.1!important}
+}
+@media (hover:none) and (orientation:landscape) and (max-height:390px),
+       (pointer:coarse) and (orientation:landscape) and (max-height:390px) {
+ #mainMenu .menu-card p{display:none!important}
+ #mainMenu .account-panel{padding:3px!important}
+ #mainMenu .menu-card{padding:7px!important}
+ #mainMenu .menu-title{font-size:25px!important}
+}
 </style>
 </head>
 <body>
