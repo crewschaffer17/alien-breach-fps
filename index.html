@@ -193,6 +193,24 @@
 .weapon-art-plasma{--accent:#b27aff}.weapon-art-plasma .art-barrel{height:23%;top:30%;border-radius:18px;background:#47316b}.weapon-art-plasma .art-body{height:35%;border-radius:25px}.weapon-art-plasma .art-glow{height:16%;top:36%;border-radius:20px}
 .weapon-art-obliterator{--accent:#ff5b63}.weapon-art-obliterator .art-barrel{height:16%;top:34%;clip-path:polygon(0 0,90% 0,100% 50%,90% 100%,0 100%)}.weapon-art-obliterator .art-body{clip-path:polygon(0 20%,65% 0,100% 30%,90% 100%,15% 80%);height:39%}
 @media(max-width:760px){.weapon-art{height:65px}.new-gun-shop{min-width:0}}
+
+.weapon-art-pulse{--accent:#64f5bd}.weapon-art-pulse .art-barrel{width:18%}.weapon-art-pulse .art-body{border-radius:14px}
+.weapon-art-shotgun{--accent:#e6a46c}.weapon-art-shotgun .art-body{height:39%;top:25%;width:38%}.weapon-art-shotgun .art-barrel{height:23%;top:30%;width:24%;background:repeating-linear-gradient(0deg,#172028 0 6px,#62737c 6px 10px)}
+.weapon-art-rifle{--accent:#81c6ed}.weapon-art-rifle .art-barrel{height:8%;width:35%;top:38%}.weapon-art-rifle .art-body{width:44%;height:22%;top:33%}.weapon-art-rifle .art-stock{width:28%}
+.weapon-art-laser{--accent:#48dfff}.weapon-art-laser .art-body{height:37%;border-radius:8px 24px 9px 9px}.weapon-art-laser .art-barrel{height:13%;width:36%;border-right:8px solid #b8f9ff}.weapon-art-laser .art-glow{height:11%;border-radius:12px}
+.equipment-art{position:relative;height:95px;width:100%;margin:0 auto 12px;filter:drop-shadow(0 4px 9px #000a)}
+.equipment-art>div{position:absolute}
+.equipment-art-medkit .equipment-shape{width:61px;height:65px;left:calc(50% - 30px);top:12px;border-radius:11px;background:linear-gradient(130deg,#ecf7f4,#809a9d);border:5px solid #425a62}
+.equipment-art-medkit .equipment-detail{width:28px;height:10px;left:calc(50% - 14px);top:4px;border-radius:5px;background:#b4d0c8;border:3px solid #4e6971}
+.equipment-art-medkit .equipment-symbol{left:calc(50% - 21px);top:20px;width:42px;height:42px;border-radius:8px;background:#a32e37;color:white;text-align:center;line-height:39px;font-size:39px;font-weight:bold}
+.equipment-art-speed .equipment-shape{width:46px;height:65px;left:calc(50% - 23px);top:15px;border-radius:9px 9px 16px 16px;background:linear-gradient(110deg,#064a51,#26e8f0,#0d4779);border:4px solid #b1faff}
+.equipment-art-speed .equipment-detail{width:27px;height:13px;left:calc(50% - 13px);top:3px;background:#4d6677;border:3px solid #a6b9c6;border-radius:4px}
+.equipment-art-speed .equipment-symbol{left:calc(50% - 15px);top:30px;width:30px;text-align:center;font-size:35px;color:#fff7a1;text-shadow:0 0 12px #fff}
+.collection-weapon-art .weapon-art{height:66px;margin-bottom:6px}
+.battle-item-art .weapon-art,.battle-item-art .equipment-art{height:42px;margin:0}
+.battle-item-art .equipment-art{transform:scale(.5);transform-origin:center top;height:45px}
+.battle-item-art .weapon-art .art-grip{height:22%}
+@media(max-width:760px){.equipment-art{height:65px}.collection-weapon-art .weapon-art{height:50px}}
 </style>
 </head>
 <body>
@@ -276,53 +294,53 @@
 <div class="shop-grid">
 
   <article class="shop-item">
-    <div class="item-icon">◈</div>
+    <div class="weapon-art weapon-art-shotgun" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
     <h3>SHOTGUN</h3>
     <p>Click once to fire 4 forward-spreading pellets.</p>
-    <div class="item-cost">4000 CREDITS</div>
+    <div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="shotgun">BUY SHOTGUN</button>
   </article>
 
   <article class="shop-item">
-    <div class="item-icon">▰</div>
+    <div class="weapon-art weapon-art-rifle" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
     <h3>ASSAULT RIFLE</h3>
     <p>Hold to fire one shot every 0.6 seconds.</p>
-    <div class="item-cost">3500 CREDITS</div>
+    <div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
   </article>
 
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-viper"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>VIPER SMG</h3><p>Fast compact SMG; rapid fire, short range.</p><div class="item-cost">3000 CREDITS</div>
+    <h3>VIPER SMG</h3><p>Fast compact SMG; rapid fire, short range.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="viper">BUY VIPER SMG</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-ar51"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>AR-51 ASSAULT RIFLE</h3><p>Reliable midrange rifle with balanced fire.</p><div class="item-cost">3000 CREDITS</div>
+    <h3>AR-51 ASSAULT RIFLE</h3><p>Reliable midrange rifle with balanced fire.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="ar51">BUY AR-51 ASSAULT RIFLE</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-phantom"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>PHANTOM SNIPER</h3><p>Long-range precision rifle; slow powerful shots.</p><div class="item-cost">3500 CREDITS</div>
+    <h3>PHANTOM SNIPER</h3><p>Long-range precision rifle; slow powerful shots.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="phantom">BUY PHANTOM SNIPER</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-titan"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>TITAN MINIGUN</h3><p>Heavy rotary cannon with a high rate of fire.</p><div class="item-cost">4500 CREDITS</div>
+    <h3>TITAN MINIGUN</h3><p>Heavy rotary cannon with a high rate of fire.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="titan">BUY TITAN MINIGUN</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-plasma"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>PLASMA BLASTER</h3><p>Explosive purple plasma with splash damage.</p><div class="item-cost">5000 CREDITS</div>
+    <h3>PLASMA BLASTER</h3><p>Explosive purple plasma with splash damage.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="plasma">BUY PLASMA BLASTER</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-obliterator"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>OBLITERATOR X</h3><p>Legendary piercing red energy weapon.</p><div class="item-cost">6000 CREDITS</div>
+    <h3>OBLITERATOR X</h3><p>Legendary piercing red energy weapon.</p><div class="item-cost">10 CREDITS</div>
     <button class="buy-btn" data-item="obliterator">BUY OBLITERATOR X</button>
   </article>
   <article class="shop-item">
-    <div class="item-icon">✚</div>
+    <div class="equipment-art equipment-art-medkit" aria-hidden="true"><div class="equipment-shape"></div><div class="equipment-detail"></div><div class="equipment-symbol">+</div></div>
     <h3>MED-KIT</h3>
     <p>Restores 35 suit integrity. Use it during battle.</p>
     <div class="item-cost">350 CREDITS</div>
@@ -330,7 +348,7 @@
   </article>
 
   <article class="shop-item">
-    <div class="item-icon">ϟ</div>
+    <div class="equipment-art equipment-art-speed" aria-hidden="true"><div class="equipment-shape"></div><div class="equipment-detail"></div><div class="equipment-symbol">ϟ</div></div>
     <h3>SPEED BOOST</h3>
     <p>Temporarily increases your movement speed.</p>
     <div class="item-cost">750 CREDITS</div>
@@ -1638,16 +1656,16 @@ document.getElementById('backLoadout').onclick = () => {
     document.getElementById('mainMenu').classList.remove('hidden');
 };
 const shopPrices = {
-    shotgun: 4000,
-    rifle: 3500,
+    shotgun: 10,
+    rifle: 10,
     medkit: 350,
     speed: 750,
-    viper: 3000,
-    ar51: 3000,
-    phantom: 3500,
-    titan: 4500,
-    plasma: 5000,
-    obliterator: 6000
+    viper: 10,
+    ar51: 10,
+    phantom: 10,
+    titan: 10,
+    plasma: 10,
+    obliterator: 10
 };
 
 const shopLabels = {
@@ -1751,7 +1769,7 @@ function refreshGunCollection() {
 ];
     root.innerHTML = weapons.map(w => `
       <article class="weapon-card ${w.owned ? 'owned' : ''}">
-        <div class="item-icon">${w.icon}</div>
+        <div class="collection-weapon-art"><div class="weapon-art weapon-art-${w.id}" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div></div>
         <h3>${w.name}</h3>
         <p>${w.owned ? w.desc : 'Not owned yet. Visit the Shop to unlock this weapon.'}</p>
         <button type="button" data-equip="${w.id}" ${!w.owned ? 'disabled' : ''}>
@@ -1850,7 +1868,7 @@ function refreshBattleInventory() {
         else count = item ? (item === 'laser' ? '5 charges per shot' : 'Weapon') : 'Empty slot';
         const title = item ? names[item] : 'EMPTY';
         const canUse = Boolean(item) && ((['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(item) && isOwnedWeapon(item)) || (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0) || (i===3 && battleMedkits>0) || (i===4 && battleSpeed>0));
-        return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
+        return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="battle-item-art">${item==='medkit'||item==='speed'||i===3||i===4? `<div class="equipment-art equipment-art-${i===3?medkit:speed}" aria-hidden="true"><div class="equipment-shape"></div><div class="equipment-detail"></div><div class="equipment-symbol">ϟ</div></div>` : item ? `<div class="weapon-art weapon-art-${item}" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>` : ''}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
     }).join('');
     root.querySelectorAll('[data-use-slot]').forEach(btn => btn.addEventListener('click', () => useInventorySlot(Number(btn.dataset.useSlot))));
 }
