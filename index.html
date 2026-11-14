@@ -1492,8 +1492,8 @@ function ray(angle, originX=player.x, originY=player.y){
 function drawWorld(){
  const horrorOverlay=document.getElementById('gameHorrorOverlay');if(horrorOverlay)horrorOverlay.style.display=playing?'block':'none';
  const horizon=H*.49+player.pitch;
- let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#03070d');sky.addColorStop(1,'#15252b');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
- let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#182725');floor.addColorStop(1,'#05080b');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+ let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#25333b');sky.addColorStop(1,'#50666d');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
+ let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#506467');floor.addColorStop(1,'#1b292d');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
 
 // WORLD-LOCKED CERAMIC FLOOR TILES — clipped to walkable map cells.
 // Render to a compact reusable buffer to avoid allocating and shading hundreds
@@ -1568,10 +1568,10 @@ function drawWorld(){
 // Sample at half-resolution to keep landscape phone rendering responsive.
 const time=performance.now()/1000;
 const emergencyActive=performance.now()<emergencyLightUntil;
-const flicker=(Math.sin(time*13)>.975||Math.sin(time*5.7)<-.985)?0.08:0.86+0.1*Math.sin(time*2.1);
+const flicker=(Math.sin(time*13)>.995||Math.sin(time*5.7)<-.995)?0.72:1.05+0.07*Math.sin(time*2.1);
 const ceilingBottom=Math.max(0,Math.min(H,horizon));
 // Lightweight ceiling: perspective panel seams and fixtures, no pixel-by-pixel image generation.
-ctx.fillStyle='#101b20';ctx.fillRect(0,0,W,ceilingBottom);
+ctx.fillStyle='#34454c';ctx.fillRect(0,0,W,ceilingBottom);
 ctx.strokeStyle='rgba(65,89,92,.32)';ctx.lineWidth=1;
 for(let i=-6;i<=6;i++){
  const topX=W*.5+i*W*.12-player.a*8;
