@@ -302,6 +302,26 @@ html,body,button,input,select,textarea{font-family:'Iceland','Arial Narrow',sans
 @keyframes horrorPulse{0%,83%,100%{opacity:.16}84%{opacity:.32}85%{opacity:.08}86%{opacity:.27}}
 #hud .panel{border-color:rgba(124,196,169,.24);background:linear-gradient(135deg,rgba(3,11,14,.9),rgba(5,10,15,.67))}
 #hud #statusTitle{text-shadow:0 0 12px #b51d3066,0 2px 8px #000}
+
+/* Prevent the page, game canvas, and menu shells from moving on touch.
+   Only explicit item collections may scroll. */
+html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!important}
+@media(hover:none),(pointer:coarse){
+ html,body{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;touch-action:none}
+ .screen{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;max-height:100%!important;overflow:hidden!important;touch-action:none;transform:none!important}
+ .screen .menu-wrap{max-height:100%!important;overflow:hidden!important}
+ #shopScreen .shop-grid{touch-action:pan-x!important;overscroll-behavior:contain!important;overflow-x:auto!important;overflow-y:hidden!important}
+ #loadoutScreen .loadout-view:not(.hidden),#loadoutScreen .stats-panel{touch-action:pan-y!important;overscroll-behavior:contain!important}
+ #shopScreen .shop-item{height:auto!important;min-height:210px!important;align-self:stretch!important;overflow:visible!important}
+ #shopScreen .shop-item .weapon-art,#shopScreen .shop-item .equipment-art{
+  display:block!important;position:relative!important;flex:0 0 95px!important;
+  height:95px!important;min-height:95px!important;width:100%!important;
+  transform:none!important;overflow:visible!important
+ }
+ #shopScreen .shop-item .weapon-art>div,#shopScreen .shop-item .equipment-art>div{flex-shrink:0}
+ #shopScreen .shop-item .weapon-art .art-body{min-height:17px}
+ #shopScreen .shop-item .item-icon{flex-shrink:0}
+}
 </style>
 </head>
 <body>
@@ -1208,33 +1228,24 @@ const time=performance.now()/1000;
 const emergencyActive=performance.now()<emergencyLightUntil;
 const flicker=(Math.sin(time*13)>.975||Math.sin(time*5.7)<-.985)?0.08:0.86+0.1*Math.sin(time*2.1);
 const ceilingBottom=Math.max(0,Math.min(H,horizon));
-const ceilingStep=3, ceilingW=Math.ceil(W/ceilingStep),ceilingH=Math.ceil(ceilingBottom/ceilingStep);
-if(ceilingW>0&&ceilingH>0){
- if(!window._ceilingCanvas){window._ceilingCanvas=document.createElement('canvas');window._ceilingCtx=window._ceilingCanvas.getContext('2d',{alpha:false});}
- const cc=window._ceilingCanvas,ct=window._ceilingCtx;
- if(cc.width!==ceilingW||cc.height!==ceilingH){cc.width=ceilingW;cc.height=ceilingH;}
- const im=ct.createImageData(ceilingW,ceilingH),px=im.data;
- const ceilingFocal=W/(2*Math.tan(FOV/2));
- for(let py=0;py<ceilingH;py++){
-  const sy=py*ceilingStep;
-  const distance=(1.55*ceilingFocal)/Math.max(1,horizon-sy);
-  for(let cx=0;cx<ceilingW;cx++){
-   const sx=cx*ceilingStep,ang=player.a+(sx/W-.5)*FOV;
-   const d=distance/Math.max(.2,Math.cos(ang-player.a));
-   const wx=player.x+Math.cos(ang)*d,wy=player.y+Math.sin(ang)*d;
-   const tx=Math.floor(wx*1.4),ty=Math.floor(wy*1.4);
-   const seam=(wx*1.4-tx<.055)||(wy*1.4-ty<.055);
-   const lightCell=(tx%5===1&&ty%4===1);
-   const strip=lightCell&&Math.abs(wx*1.4-tx-.5)<.34&&Math.abs(wy*1.4-ty-.5)<.12;
-   const level=strip?(emergencyActive?110+95*Math.abs(Math.sin(time*9)):175*flicker):seam?12:25+Math.min(12,12/(d+.2));
-   const idx=(py*ceilingW+cx)*4;
-   px[idx]=strip?(emergencyActive?level:level*.82):level*.78;
-   px[idx+1]=strip?(emergencyActive?level*.14:level):level*.95;
-   px[idx+2]=strip?(emergencyActive?level*.12:level*.89):level;
-   px[idx+3]=255;
-  }
- }
- ct.putImageData(im,0,0);ctx.drawImage(cc,0,0,W,ceilingBottom);
+// Lightweight ceiling: perspective panel seams and fixtures, no pixel-by-pixel image generation.
+ctx.fillStyle='#101b20';ctx.fillRect(0,0,W,ceilingBottom);
+ctx.strokeStyle='rgba(65,89,92,.32)';ctx.lineWidth=1;
+for(let i=-6;i<=6;i++){
+ const topX=W*.5+i*W*.12-player.a*8;
+ ctx.beginPath();ctx.moveTo(topX,0);ctx.lineTo(W*.5+(topX-W*.5)*.22,ceilingBottom);ctx.stroke();
+}
+for(let row=1;row<=5;row++){
+ const y=ceilingBottom*(1-Math.pow(.66,row));
+ ctx.fillStyle='rgba(3,7,10,.5)';ctx.fillRect(0,y,W,2);
+}
+for(let i=0;i<5;i++){
+ const x=((i*W*.24-player.a*42)%(W+160)+(W+160))%(W+160)-80;
+ const y=ceilingBottom*(.18+(i%2)*.19);
+ const w=90-(i%2)*25;
+ ctx.fillStyle='#34454b';ctx.fillRect(x,y,w,13);
+ ctx.fillStyle=emergencyActive?'#d94444':flicker<.2?'#263e40':'#b0e9df';
+ ctx.fillRect(x+5,y+4,w-10,5);
 }
 if(emergencyActive){ctx.fillStyle='rgba(190,10,16,'+(0.10+0.14*Math.abs(Math.sin(time*9)))+')';ctx.fillRect(0,0,W,H);}
  const depth=new Float32Array(Math.ceil(W/2));
