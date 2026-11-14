@@ -4,6 +4,9 @@
   <meta name="google-site-verification" content="EYSWuHRzc1nmowUe6Gvyz9p23tayUxvlK22Eicllsas" />
   <title>Alien Breach FPS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Iceland&display=swap" rel="stylesheet">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -281,6 +284,24 @@ html,body{margin:0;overflow:hidden!important;overscroll-behavior:none;height:100
  #shopScreen .shop-item .item-cost {font-size:13px}
  #shopScreen .shop-item .buy-btn {font-size:11px;padding:10px 6px;margin-top:8px}
 }
+
+/* Angular alien-tech lettering inspired by the supplied alphabet reference.
+   Only interface typography changes; canvas gameplay rendering is untouched. */
+html,body,button,input,select,textarea{font-family:'Iceland','Arial Narrow',sans-serif!important}
+.screen h1,.screen h2,.screen h3,.eyebrow,.menu-title,.panel .value{letter-spacing:.085em}
+.screen button,.screen .item-cost,.screen .credits{letter-spacing:.06em}
+.screen button{font-size:max(13px,1em)}
+/* Atmospheric horror polish, without obstructing interactive controls. */
+#gameHorrorOverlay{position:fixed;inset:0;pointer-events:none;z-index:2;display:none;
+ background:radial-gradient(ellipse at center,transparent 29%,rgba(0,0,0,.24) 70%,rgba(0,0,0,.65) 100%);
+ box-shadow:inset 0 0 95px #010405;
+ mix-blend-mode:multiply}
+#gameHorrorOverlay:after{content:'';position:absolute;inset:0;opacity:.22;
+ background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(0,0,0,.15) 6px);
+ animation:horrorPulse 9s ease-in-out infinite}
+@keyframes horrorPulse{0%,83%,100%{opacity:.16}84%{opacity:.32}85%{opacity:.08}86%{opacity:.27}}
+#hud .panel{border-color:rgba(124,196,169,.24);background:linear-gradient(135deg,rgba(3,11,14,.9),rgba(5,10,15,.67))}
+#hud #statusTitle{text-shadow:0 0 12px #b51d3066,0 2px 8px #000}
 </style>
 </head>
 <body>
@@ -292,6 +313,7 @@ html,body{margin:0;overflow:hidden!important;overscroll-behavior:none;height:100
 <button id="touchNext" type="button">NEXT ITEM</button>
 </div>
 <div id="rotatePrompt">↻ Rotate your phone sideways to play Alien Breach</div>
+<div id="gameHorrorOverlay" aria-hidden="true"></div>
 <div id="hud">
   <div class="top">
     <div class="panel"><div class="label">SECTOR</div><div class="value" id="wave">01</div></div>
@@ -1104,9 +1126,10 @@ function ray(angle, originX=player.x, originY=player.y){
 }
 
 function drawWorld(){
+ const horrorOverlay=document.getElementById('gameHorrorOverlay');if(horrorOverlay)horrorOverlay.style.display=playing?'block':'none';
  const horizon=H*.49+player.pitch;
- let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#07131c');sky.addColorStop(1,'#263b40');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
- let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#273b38');floor.addColorStop(1,'#080d12');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+ let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#03070d');sky.addColorStop(1,'#15252b');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
+ let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#182725');floor.addColorStop(1,'#05080b');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
 
 // WORLD-LOCKED CERAMIC FLOOR TILES — clipped to walkable map cells.
 // Render to a compact reusable buffer to avoid allocating and shading hundreds
