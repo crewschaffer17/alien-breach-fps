@@ -1701,25 +1701,58 @@ drawLabProps(depth,horizon);
    ctx.fillStyle='#c2cfd0';ctx.fillRect(-23,-119,46,5);
    ctx.fillStyle='#ff9b34';ctx.fillRect(-23,-65,46,4);
   }else{
-   // Tall upright nightmare with narrow shoulders, hooked claws, and a long jaw.
-   ctx.fillStyle='#000a';ctx.beginPath();ctx.ellipse(0,3,37,7,0,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle='#465d50';ctx.lineWidth=13;ctx.lineCap='round';
-   ctx.beginPath();ctx.moveTo(-13,-52);ctx.lineTo(-21,-24);ctx.lineTo(-25,0);
-   ctx.moveTo(13,-52);ctx.lineTo(21,-24);ctx.lineTo(25,0);ctx.stroke();
-   ctx.fillStyle='#364e43';ctx.beginPath();ctx.moveTo(-24,-105);ctx.lineTo(25,-105);ctx.lineTo(18,-48);ctx.lineTo(-18,-48);ctx.closePath();ctx.fill();
-   ctx.strokeStyle='#91a493';ctx.lineWidth=2.5;
-   for(let i=0;i<5;i++){let y=-94+i*9;ctx.beginPath();ctx.moveTo(-18,y);ctx.quadraticCurveTo(0,y+8,18,y);ctx.stroke();}
-   ctx.strokeStyle='#516d5d';ctx.lineWidth=10;
+   // Standard alien: tall, very thin turquoise-grey body, oversized pear-shaped cranium,
+   // tiny jaw, and huge glossy black almond eyes (reference-inspired silhouette).
+   const sway=Math.sin(t)*2.2;
+   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,3,31,6,0,0,Math.PI*2);ctx.fill();
+   // Slender long legs and narrow feet.
+   ctx.lineCap='round';ctx.strokeStyle='#3d6768';ctx.lineWidth=8;
+   ctx.beginPath();ctx.moveTo(-8,-53);ctx.lineTo(-11,-27);ctx.lineTo(-13,0);
+   ctx.moveTo(8,-53);ctx.lineTo(11,-27);ctx.lineTo(13,0);ctx.stroke();
+   ctx.strokeStyle='#2c5155';ctx.lineWidth=5;
+   ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(-20,2);ctx.moveTo(13,0);ctx.lineTo(20,2);ctx.stroke();
+   // Thin tapered chest and tiny waist, with subtle cyan highlights.
+   const skin=ctx.createLinearGradient(-24,-120,27,-46);
+   skin.addColorStop(0,'#2a787c');skin.addColorStop(.45,'#508d8c');skin.addColorStop(1,'#263f48');
+   ctx.fillStyle=skin;ctx.beginPath();
+   ctx.moveTo(-18,-109);ctx.quadraticCurveTo(-25,-96,-16,-78);
+   ctx.lineTo(-10,-50);ctx.quadraticCurveTo(0,-45,10,-50);
+   ctx.lineTo(16,-78);ctx.quadraticCurveTo(25,-96,18,-109);
+   ctx.quadraticCurveTo(0,-118,-18,-109);ctx.fill();
+   // Extra-long, delicate arms and three narrow fingers.
+   ctx.strokeStyle='#3c888b';ctx.lineWidth=7;
    for(const side of [-1,1]){
-    ctx.beginPath();ctx.moveTo(side*22,-103);ctx.lineTo(side*32,-66);ctx.lineTo(side*42,-16);ctx.stroke();
-    ctx.strokeStyle='#d2d8bf';ctx.lineWidth=2.5;
-    for(let c=0;c<3;c++){ctx.beginPath();ctx.moveTo(side*(39+c*3),-18);ctx.lineTo(side*(43+c*4),-2);ctx.stroke();}
-    ctx.strokeStyle='#516d5d';ctx.lineWidth=10;
+     const reach=side*(39+sway);
+     ctx.beginPath();ctx.moveTo(side*17,-105);ctx.lineTo(side*29,-78);ctx.lineTo(reach,-40);ctx.stroke();
+     ctx.strokeStyle='#3c888b';ctx.lineWidth=2.7;
+     for(let finger=0;finger<3;finger++){
+       ctx.beginPath();ctx.moveTo(reach,-40);ctx.lineTo(reach+side*(finger-1)*4,-27+finger*3);ctx.stroke();
+     }
+     ctx.strokeStyle='#3c888b';ctx.lineWidth=7;
    }
-   ctx.fillStyle='#738a75';ctx.beginPath();ctx.ellipse(0,-133,21,32,0,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#101b1b';ctx.beginPath();ctx.ellipse(0,-115,17,15,0,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#e6d7b9';for(let j=-2;j<=2;j++){ctx.beginPath();ctx.moveTo(j*6,-123);ctx.lineTo(j*6+2,-107);ctx.lineTo(j*6+4,-123);ctx.fill();}
-   ctx.fillStyle='#fa4039';for(const x of [-10,10]){ctx.beginPath();ctx.ellipse(x,-142,5,4,0,0,Math.PI*2);ctx.fill();}
+   // Narrow neck supporting an unusually wide bulbous upper head.
+   ctx.fillStyle='#43878a';ctx.fillRect(-7,-119,14,15);
+   const head=ctx.createRadialGradient(-12,-149,5,0,-144,43);
+   head.addColorStop(0,'#59d1d0');head.addColorStop(.42,'#2a9ca2');head.addColorStop(1,'#174b58');
+   ctx.fillStyle=head;ctx.beginPath();
+   ctx.moveTo(0,-181);
+   ctx.bezierCurveTo(-30,-182,-40,-168,-37,-145);
+   ctx.bezierCurveTo(-34,-128,-23,-116,-11,-109);
+   ctx.quadraticCurveTo(0,-101,11,-109);
+   ctx.bezierCurveTo(23,-116,34,-128,37,-145);
+   ctx.bezierCurveTo(40,-168,30,-182,0,-181);ctx.fill();
+   // Large slanted jet-black eyes with a glossy light reflection.
+   for(const side of [-1,1]){
+     ctx.save();ctx.translate(side*19,-143);ctx.rotate(-side*.20);
+     ctx.fillStyle='#07171c';ctx.beginPath();ctx.ellipse(0,0,13,18,0,0,Math.PI*2);ctx.fill();
+     ctx.fillStyle='#142e35';ctx.beginPath();ctx.ellipse(-side*2,2,8,12,0,0,Math.PI*2);ctx.fill();
+     ctx.fillStyle='#b6ece6';ctx.globalAlpha=.53;ctx.beginPath();ctx.ellipse(-4,-7,4,6,-.35,0,Math.PI*2);ctx.fill();
+     ctx.restore();
+   }
+   // Almost invisible nose and short straight mouth.
+   ctx.strokeStyle='#143f46';ctx.lineWidth=1.5;
+   ctx.beginPath();ctx.moveTo(-2,-120);ctx.lineTo(1,-119);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(-6,-112);ctx.quadraticCurveTo(0,-110,6,-112);ctx.stroke();
   }
   ctx.restore();
  }
