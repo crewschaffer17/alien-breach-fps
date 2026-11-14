@@ -400,6 +400,57 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  #shopScreen .shop-grid{min-height:0!important;overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
  #loadoutScreen .loadout-view:not(.hidden){min-height:0!important;overflow-y:auto!important;touch-action:pan-y!important}
 }
+
+/* Phone landscape: complete shop/loadout cards inside the visible collection viewport. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape) {
+ #shopScreen .shop-grid{
+  align-items:stretch!important;scroll-snap-type:x proximity!important;
+  padding:5px 10px 8px!important;min-height:0!important;
+ }
+ #shopScreen .shop-item{
+  flex:0 0 clamp(195px,30vw,260px)!important;
+  width:clamp(195px,30vw,260px)!important;
+  min-width:195px!important;
+  height:100%!important;max-height:100%!important;
+  min-height:0!important;padding:8px 12px!important;
+  display:flex!important;flex-direction:column!important;
+  justify-content:flex-start!important;gap:2px!important;
+  overflow:hidden!important;
+ }
+ #shopScreen .shop-item .weapon-art,#shopScreen .shop-item .equipment-art{
+  flex:0 0 clamp(40px,12vh,70px)!important;
+  height:clamp(40px,12vh,70px)!important;
+  min-height:0!important;margin:0 0 3px!important;
+ }
+ #shopScreen .shop-item h3{font-size:clamp(12px,3vh,17px)!important;margin:1px 0!important;line-height:1.05!important}
+ #shopScreen .shop-item p{font-size:clamp(10px,2.3vh,12px)!important;
+  line-height:1.15!important;margin:2px 0!important;flex:1 1 auto!important;min-height:0!important;
+  overflow:hidden!important}
+ #shopScreen .shop-item .item-cost{font-size:12px!important;line-height:1.1!important;flex:0 0 auto!important}
+ #shopScreen .shop-item .buy-btn{flex:0 0 auto!important;display:block!important;
+  min-height:30px!important;padding:5px 4px!important;margin:3px 0 0!important;
+  font-size:11px!important;line-height:1.1!important}
+ #loadoutScreen .loadout-view:not(.hidden){overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
+ #loadoutScreen .weapon-grid{
+  display:flex!important;flex-flow:row nowrap!important;align-items:stretch!important;
+  width:max-content!important;min-width:100%!important;height:calc(100% - 46px)!important;
+  max-height:calc(100% - 46px)!important;gap:9px!important;
+ }
+ #loadoutScreen .weapon-card{
+  box-sizing:border-box!important;flex:0 0 clamp(185px,27vw,245px)!important;
+  width:clamp(185px,27vw,245px)!important;min-width:185px!important;
+  min-height:0!important;height:100%!important;max-height:100%!important;
+  padding:7px 10px!important;display:flex!important;flex-direction:column!important;
+  overflow:hidden!important;gap:2px!important;
+ }
+ #loadoutScreen .collection-weapon-art{flex:0 0 clamp(35px,9vh,58px)!important;overflow:hidden!important}
+ #loadoutScreen .collection-weapon-art .weapon-art{height:100%!important;margin:0!important}
+ #loadoutScreen .weapon-card h3{font-size:clamp(12px,2.8vh,16px)!important;line-height:1.05!important;margin:1px 0!important}
+ #loadoutScreen .weapon-card p{font-size:10px!important;line-height:1.1!important;flex:1 1 auto!important;
+  min-height:0!important;overflow:hidden!important;margin:1px 0!important}
+ #loadoutScreen .weapon-card button{display:block!important;flex:0 0 auto!important;
+  min-height:29px!important;padding:5px!important;margin:2px 0 0!important}
+}
 </style>
 </head>
 <body>
