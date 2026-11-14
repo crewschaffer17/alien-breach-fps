@@ -509,6 +509,29 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
   box-sizing:border-box!important;
  }
 }
+
+/* Center the shop art and descriptions without changing the price/button layout. */
+#shopScreen .shop-item .weapon-art,
+#shopScreen .shop-item .equipment-art{align-self:center!important;margin-left:auto!important;margin-right:auto!important}
+#shopScreen .shop-item h3,#shopScreen .shop-item p{text-align:center!important}
+#shopScreen .shop-item .item-cost{text-align:center!important}
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ #mainMenu .menu-actions{
+  width:91%!important;
+  max-width:1060px!important;
+  gap:12px!important;
+ }
+ #mainMenu .menu-card{
+  min-height:clamp(145px,30vh,205px)!important;
+  height:clamp(145px,30vh,205px)!important;
+  padding:12px 13px!important;
+  justify-content:space-between!important;
+ }
+ #mainMenu .menu-card .menu-btn{
+  min-height:40px!important;
+  margin-top:auto!important;
+ }
+}
 </style>
 </head>
 <body>
