@@ -1855,6 +1855,8 @@ function equipBattleWeapon(id) {
     return true;
 }
 
+function weaponArtMarkup(id){return '<div class="weapon-art weapon-art-'+id+'"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>';}
+function equipmentArtMarkup(id){return '<div class="equipment-art equipment-art-'+id+'"><div class="equipment-shape"></div><div class="equipment-detail"></div><div class="equipment-symbol">'+(id==='medkit'?'+':'ϟ')+'</div></div>';}
 function refreshBattleInventory() {
     const root = document.getElementById('battleInventorySlots');
     if (!root) return;
@@ -1868,7 +1870,7 @@ function refreshBattleInventory() {
         else count = item ? (item === 'laser' ? '5 charges per shot' : 'Weapon') : 'Empty slot';
         const title = item ? names[item] : 'EMPTY';
         const canUse = Boolean(item) && ((['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(item) && isOwnedWeapon(item)) || (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0) || (i===3 && battleMedkits>0) || (i===4 && battleSpeed>0));
-        return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="battle-item-art">${item==='medkit'||item==='speed'||i===3||i===4? `<div class="equipment-art equipment-art-${i===3?medkit:speed}" aria-hidden="true"><div class="equipment-shape"></div><div class="equipment-detail"></div><div class="equipment-symbol">ϟ</div></div>` : item ? `<div class="weapon-art weapon-art-${item}" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>` : ''}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
+        return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="battle-item-art">${(i===3||i===4||item==='medkit'||item==='speed') ? equipmentArtMarkup(i===3?'medkit':i===4?'speed':item) : item ? weaponArtMarkup(item) : ''}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
     }).join('');
     root.querySelectorAll('[data-use-slot]').forEach(btn => btn.addEventListener('click', () => useInventorySlot(Number(btn.dataset.useSlot))));
 }
