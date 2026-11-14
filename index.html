@@ -117,7 +117,7 @@
 
 
 /* Phone-only landscape layout. Desktop UI remains unchanged. */
-@media(pointer:coarse){
+@media (hover:none), (pointer:coarse){
  html,body{overscroll-behavior:none;touch-action:none}
  #game{touch-action:none}
  #mobilePad{display:block!important}
@@ -137,7 +137,18 @@
 #touchInventory{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 98px)}
 #touchNext{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 144px)}
 #rotatePrompt{display:none;position:fixed;inset:0;z-index:30;background:#06110e;color:#baffd6;align-items:center;justify-content:center;text-align:center;padding:24px;font:bold 22px Arial}
-@media(pointer:coarse) and (orientation:portrait){#rotatePrompt{display:flex}#mobilePad{display:none!important}}
+@media (hover:none) and (orientation:portrait), (pointer:coarse) and (orientation:portrait){#rotatePrompt{display:flex}#mobilePad{display:none!important}}
+
+@media (hover:none), (pointer:coarse) {
+ .screen {height:100dvh;overflow-y:auto;align-items:flex-start}
+ .screen .menu-wrap{margin:auto;max-height:none;width:min(96vw,800px)}
+ #overlay,.inventory-screen{max-height:100dvh;overflow-y:auto}
+}
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ .screen .menu-wrap{padding:8px 12px;transform:none!important}
+ .screen .menu-title{font-size:clamp(22px,5vw,38px)}
+ .screen button{padding:9px 12px;margin-top:6px}
+}
 </style>
 </head>
 <body>
@@ -1900,13 +1911,13 @@ addEventListener('mousedown',e=>{
 });
 addEventListener('mouseup',()=>{draggingCamera=false;mouseDown=false;});
  addEventListener('blur',()=>{mouseDown=false;draggingCamera=false;});
-canvas.addEventListener('touchstart',e=>{ if(matchMedia('(pointer:coarse)').matches)return;
+canvas.addEventListener('touchstart',e=>{ if(isPhoneDevice())return;
     if(!playing || !e.touches.length) return;
     draggingCamera=true;
     previousMouseX=e.touches[0].clientX;
     previousMouseY=e.touches[0].clientY;
 },{passive:true});
-canvas.addEventListener('touchmove',e=>{ if(matchMedia('(pointer:coarse)').matches)return;
+canvas.addEventListener('touchmove',e=>{ if(isPhoneDevice())return;
     if(!playing || !draggingCamera || !e.touches.length) return;
     const touch=e.touches[0];
     player.a += (touch.clientX-previousMouseX) * 0.0025;
@@ -1918,6 +1929,16 @@ canvas.addEventListener('touchmove',e=>{ if(matchMedia('(pointer:coarse)').match
 },{passive:true});
 canvas.addEventListener('touchend',()=>{draggingCamera=false;});
 
+const isPhoneDevice=()=>navigator.maxTouchPoints>0 && (/iPhone|Android|iPod/i.test(navigator.userAgent)||Math.min(screen.width,screen.height)<700);
+function syncPhoneLayout(){
+ const phone=isPhoneDevice(),portrait=innerHeight>innerWidth;
+ document.getElementById('rotatePrompt').style.display=phone&&portrait?'flex':'none';
+ document.getElementById('mobilePad').style.display=phone&&!portrait?'block':'none';
+ resize();
+}
+addEventListener('orientationchange',()=>{setTimeout(syncPhoneLayout,100);setTimeout(syncPhoneLayout,450)});
+addEventListener('resize',syncPhoneLayout);
+syncPhoneLayout();
 const movePad=document.getElementById('movePad'),moveKnob=document.getElementById('moveKnob'),fireButton=document.getElementById('touchFire');
 let movingId=null,firingId=null,lookingId=null,lookX=0,lookY=0;
 function resetMove(){for(const k of ['KeyW','KeyA','KeyS','KeyD'])keys[k]=false;moveKnob.style.left='50%';moveKnob.style.top='50%'}
