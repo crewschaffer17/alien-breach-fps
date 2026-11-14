@@ -1,21 +1,99 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Alien Breach — 3D Prototype</title><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030608;color:#e4e9ed;font:600 13px system-ui;touch-action:none}canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none}#top{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;text-shadow:0 2px 5px #000}#top b{color:#ff4e48}#health{position:absolute;bottom:12px;left:15px}#ammo{position:absolute;bottom:12px;right:20px;font-size:19px}#cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:27px;color:#f4e9d5}#message{position:absolute;top:19%;left:50%;transform:translateX(-50%);text-align:center;letter-spacing:2px;color:#ff6960;text-shadow:0 2px 9px black}#start{pointer-events:auto;position:absolute;inset:0;background:#020507dc;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center;padding:25px}#start h1{font-size:clamp(26px,6vw,54px);letter-spacing:5px;margin:0;color:#e5e8e7}#start p{max-width:490px;line-height:1.6;color:#9cabb0}button{background:#8c2929;border:1px solid #ef7770;border-radius:8px;padding:13px 28px;color:white;font-weight:800;letter-spacing:2px}#controls{position:absolute;inset:0;pointer-events:none}#stick{position:absolute;bottom:52px;left:35px;width:120px;height:120px;border:2px solid #ffffff55;background:#ffffff12;border-radius:50%;pointer-events:auto}#nub{position:absolute;width:47px;height:47px;border-radius:50%;background:#d4e6eb55;left:35px;top:35px}#fire{position:absolute;right:32px;bottom:58px;width:100px;height:100px;border-radius:50%;background:#b92c2c77;border:2px solid #e65a56;pointer-events:auto}#reload{position:absolute;right:143px;bottom:73px;border-radius:50%;padding:15px;pointer-events:auto;background:#22323caa}#hint{position:absolute;right:14px;top:48px;font-size:10px;color:#b6c3c8}#flash{position:absolute;inset:0;background:#ff2424;opacity:0;pointer-events:none}#quality{position:absolute;top:46px;left:12px;pointer-events:auto;background:#18242b;color:white;border:1px solid #63747b;padding:5px 8px;border-radius:4px;font-size:11px}@media (pointer:fine){#stick,#fire,#reload{opacity:.3}}@media (orientation:portrait){#rotate{display:block!important}}#rotate{display:none;position:absolute;inset:0;background:#03070af0;z-index:9;text-align:center;padding-top:35vh;font-size:23px}
-</style></head><body><div id="hud"><div id="top"><span>AREA 51 · CONTAINMENT <b>BREACH</b></span><span>ROUND <b id="wave">1</b> · KILLS <b id="kills">0</b></span></div><select id="quality"><option value="low">iPhone / Performance</option><option value="high">High quality</option></select><div id="hint">Drag right side to aim · Left joystick to move</div><div id="cross">+</div><div id="message">CONTAINMENT FAILURE</div><div id="health">HEALTH <span id="hp">100</span></div><div id="ammo">30 / 180</div><div id="flash"></div><div id="controls"><div id="stick"><div id="nub"></div></div><button id="reload">↻</button><button id="fire">FIRE</button></div><div id="start"><h1>ALIEN BREACH <span style="color:#e14b48">3D</span></h1><p>Experimental 3D horror prototype. Explore the containment corridor, aim and shoot the alien. This is separate from your original game and does not alter your saves.</p><button id="play">ENTER FACILITY</button><small>iPhone: landscape, left joystick to move, drag right side to aim, FIRE to shoot.<br>Desktop: WASD, mouse to look, click to fire, R to reload.</small></div><div id="rotate">ROTATE YOUR PHONE ↻</div></div>
+</style></head><body><div id="hud"><div id="top"><span>AREA 51 · CONTAINMENT <b>BREACH</b></span><span>ROUND <b id="wave">1</b> · KILLS <b id="kills">0</b></span></div><select id="quality"><option value="low">iPhone / Performance</option><option value="high">High quality</option></select><div id="hint">Drag right side to aim · Left joystick to move</div><div id="cross">+</div><div id="message">CONTAINMENT FAILURE</div><div id="health">HEALTH <span id="hp">100</span></div><div id="ammo">30 / 180</div><div id="flash"></div><div id="controls"><div id="stick"><div id="nub"></div></div><button id="reload">↻</button><button id="fire">FIRE</button></div><div id="start"><h1>ALIEN BREACH <span style="color:#e14b48">3D</span></h1><p>3D facility expansion. Explore the central laboratory, connected corridors and research rooms, aim and shoot the alien. This is separate from your original game and does not alter your saves.</p><button id="play">ENTER FACILITY</button><small>iPhone: landscape, left joystick to move, drag right side to aim, FIRE to shoot.<br>Desktop: WASD, mouse to look, click to fire, R to reload.</small></div><div id="rotate">ROTATE YOUR PHONE ↻</div></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x25343e);scene.fog=new THREE.FogExp2(0x2c3a42,.028);
-const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.08,85);camera.position.set(0,1.65,8);
+const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.08,85);camera.position.set(0,1.65,7);
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.8;document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xb4d7ed,0x39424c,2.1));
 const mat=(c,metal=.3,rough=.65)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
 const steel=mat(0x29333b,.72,.45),dark=mat(0x10171e,.7,.62),floor=mat(0x263039,.65,.31),stripe=mat(0xa27d31,.5,.58),red= new THREE.MeshBasicMaterial({color:0xff242b}),lightmat=new THREE.MeshBasicMaterial({color:0xa6d9ed});
 function box(w,h,d,x,y,z,m,parent=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o}
-box(10,.22,43,0,-.13,-8,floor);box(10,.25,43,0,4.8,-8,dark);for(const side of [-1,1]){box(.3,4.8,43,side*5,2.3,-8,steel);box(.2,.12,43,side*4.2,.06,-8,stripe);for(let z=10;z>-29;z-=4){box(.45,4.5,.23,side*4.75,2.3,z,dark);box(.3,.4,1.9,side*4.78,3.6,z-1.3,steel);box(.18,.13,3.4,side*4.52,4.45,z-1.3,steel);box(.12,.12,2.7,side*4.7,1,z-1.3,dark);}}
-for(let z=10;z>-29;z-=3){box(9.6,.05,.04,0,.02,z,dark);box(9.6,.07,.06,0,4.7,z,steel);box(.12,.1,9.2,0,4.6,z,dark);}
-for(let z=9;z>-29;z-=8){box(2,.1,.55,0,4.55,z,lightmat);const p=new THREE.PointLight(0xb8e3f4,35,16,2);p.position.set(0,4.1,z);scene.add(p);}
-for(let z=5;z>-29;z-=11){box(.24,.55,.2,-4.73,2.4,z,red);const p=new THREE.PointLight(0xff1d26,12,8,2);p.position.set(-4.35,2.5,z);scene.add(p);}
-for(let z=4;z>-25;z-=8){box(1.4,1.4,1.4,3.8,.7,z,dark);box(1.5,.1,1.5,3.8,1.45,z,steel);box(1.3,1.3,1.3,-3.9,.65,z-3,steel);}
-for(let z=9;z>-29;z-=9){box(10,.4,.4,0,4.5,z,steel);for(const side of [-1,1])box(.4,4.4,.4,side*4.8,2.25,z,steel);}
+
+const concrete=mat(0x788187,.22,.78),silver=mat(0x9baeb0,.65,.44),grate=mat(0x728b8e,.72,.43),yellow=mat(0xc1a33e,.45,.62),screen=new THREE.MeshBasicMaterial({color:0x45bb9b}),glass=mat(0x2a5960,.4,.23);
+const rooms=[
+ {name:'CENTRAL LAB',x:0,z:1,w:19,d:19},
+ {name:'ACCESS CORRIDOR',x:0,z:-18,w:5,d:20},
+ {name:'CONTAINMENT',x:-9,z:-31,w:13,d:13},
+ {name:'CONTROL ROOM',x:9,z:-31,w:13,d:13},
+ {name:'RESEARCH WING',x:0,z:-44,w:11,d:14}
+];
+function roomFloor(r){
+ box(r.w,.25,r.d,r.x,-.15,r.z,concrete);
+ box(r.w,.2,r.d,r.x,4.85,r.z,concrete);
+ // Raised steel grid modules; individual geometry, not painted 2D floor.
+ const countX=Math.floor(r.w/1.25),countZ=Math.floor(r.d/1.25);
+ for(let i=0;i<countX;i++)for(let j=0;j<countZ;j++){
+  const x=r.x-r.w/2+(i+.5)*r.w/countX,z=r.z-r.d/2+(j+.5)*r.d/countZ;
+  box(r.w/countX-.055,.025,r.d/countZ-.055,x,.01,z,grate);
+ }
+ for(let x=r.x-r.w/2+.5;x<r.x+r.w/2;x+=2.5)box(.07,.025,r.d,x,.035,r.z,steel);
+ for(let z=r.z-r.d/2+.5;z<r.z+r.d/2;z+=2.5)box(r.w,.025,.07,r.x,.035,z,steel);
+ for(let z=r.z-r.d/2+1;z<r.z+r.d/2;z+=5){
+  box(1.6,.10,.3,r.x,4.65,z,lightmat);
+  const l=new THREE.PointLight(0xe2f5ff,28,13,2);l.position.set(r.x,4.3,z);scene.add(l);
+ }
+ // Structural ceiling beams and visible industrial yellow ducts.
+ for(let z=r.z-r.d/2+1;z<r.z+r.d/2;z+=5){
+  box(r.w,.32,.25,r.x,4.53,z,steel);
+ }
+ box(.38,.34,r.d,r.x+r.w*.29,4.38,r.z,yellow);
+ for(let z=r.z-r.d/2+1;z<r.z+r.d/2;z+=3)box(.5,.18,.12,r.x+r.w*.29,4.1,z,steel);
+}
+rooms.forEach(roomFloor);
+function wallX(x,z1,z2){box(.25,4.6,z2-z1,x,2.3,(z1+z2)/2,concrete);box(.10,.14,z2-z1,x,1.1,(z1+z2)/2,steel)}
+function wallZ(z,x1,x2){box(x2-x1,4.6,.25,(x1+x2)/2,2.3,z,concrete);box(x2-x1,.12,.1,(x1+x2)/2,1.05,z,steel)}
+// Central room: one exit at the far end leads to the hallway.
+wallX(-9.5,-8.5,10.5);wallX(9.5,-8.5,10.5);wallZ(10.5,-9.5,9.5);
+wallZ(-8.5,-9.5,-2.5);wallZ(-8.5,2.5,9.5);
+// Corridor: side doorways open to two separate laboratories.
+wallX(-2.5,-27,-23);wallX(-2.5,-23,-19);wallX(-2.5,-15,-8.5);
+wallX(2.5,-27,-23);wallX(2.5,-23,-19);wallX(2.5,-15,-8.5);
+// Door openings between corridor and side labs at z=-31, width 3.5 in Z.
+wallX(-2.5,-38,-32.75);wallX(-2.5,-29.25,-27);
+wallX(2.5,-38,-32.75);wallX(2.5,-29.25,-27);
+wallZ(-27,-15.5,-2.5);wallZ(-27,2.5,15.5);
+wallZ(-37.5,-15.5,-2.5);wallZ(-37.5,2.5,15.5);
+wallX(-15.5,-37.5,-24.5);wallX(15.5,-37.5,-24.5);
+// Research wing at the end of the corridor.
+wallX(-5.5,-51,-38);wallX(5.5,-51,-38);wallZ(-51,-5.5,5.5);
+wallZ(-38,-5.5,-2.5);wallZ(-38,2.5,5.5);
+function consoleUnit(x,z,rot=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+ box(1.65,.85,.72,0,.46,0,steel,g);box(1.48,.08,.9,0,.93,-.05,silver,g);
+ box(1.4,.8,.12,0,1.46,-.32,dark,g);box(1.2,.59,.025,0,1.46,-.395,screen,g);
+ for(let i=0;i<5;i++)box(.12,.045,.07,-.46+i*.22,.96,-.28,yellow,g);
+}
+function tank(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ const c=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,3.25,12),glass);c.position.y=2.08;g.add(c);
+ const top=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.34,12),steel);top.position.y=3.84;g.add(top);
+ const base=top.clone();base.position.y=.39;g.add(base);
+ for(let j=0;j<4;j++){let a=j*Math.PI/2;box(.13,2.9,.15,Math.sin(a)*.96,2.1,Math.cos(a)*.96,steel,g)}
+ const lamp=new THREE.PointLight(0x8ac6b7,4,3);lamp.position.set(0,2,0);g.add(lamp);
+}
+for(let i=0;i<3;i++)tank(-7.2,-5+i*4);
+consoleUnit(-2,-4);consoleUnit(3,3,Math.PI);consoleUnit(7,-3,Math.PI/2);
+for(let i=0;i<3;i++)consoleUnit(8,-27+i*3,Math.PI/2);
+for(let i=0;i<2;i++)tank(-11,-33+i*4);
+for(let i=0;i<3;i++)consoleUnit(-2+i*2,-45);
+function railing(x,z,length){for(let d=-length/2;d<=length/2;d+=1.8){box(.09,1.05,.09,x, .54,z+d,steel)}box(.10,.10,length,x,1.08,z,steel)}
+railing(4.8,2,9);railing(-4.5,3,7);
+for(const [x,z] of [[-1,-8.5],[-2.5,-31],[2.5,-31],[0,-38]]){
+ box(1.4,.16,.12,x,3.5,z,yellow);
+}
+const navLabel=document.createElement('div');navLabel.style.cssText='position:fixed;top:73px;left:12px;color:#e4f4f4;text-shadow:0 2px 5px #000;font-size:12px;pointer-events:none;letter-spacing:1px';document.body.append(navLabel);
+function inRoom(x,z){return rooms.some(r=>x>r.x-r.w/2+.45&&x<r.x+r.w/2-.45&&z>r.z-r.d/2+.45&&z<r.z+r.d/2-.45)}
+function canWalk(x,z){if(!inRoom(x,z))return false;
+ // Passage between main room and corridor.
+ if(z<-8.05&&z>-9&&Math.abs(x)>2.25)return false;
+ // Side rooms connect only through central doorway at z=-31.
+ if(Math.abs(x)>2.2&&Math.abs(x)<3&&z<-37.5)return false;
+ if(Math.abs(x)>2.2&&Math.abs(x)<3&&z>-27.1&&z<-26.6)return false;
+ if(Math.abs(x)>2.2&&Math.abs(x)<3&&z>-37.7&&z<-29.25)return z>-32.75;
+ return true;
+}
 const gun=new THREE.Group();camera.add(gun);scene.add(camera);gun.position.set(.39,-.38,-.7);box(.18,.18,.75,0,0,-.25,dark,gun);box(.23,.23,.43,0,-.04,.1,steel,gun);box(.07,.1,.35,0,.16,-.14,steel,gun);box(.09,.24,.17,0,-.25,.2,dark,gun);const muzzle=new THREE.PointLight(0xff9e42,0,3);muzzle.position.set(0,0,-.72);gun.add(muzzle);
 let aliens=[],hp=100,ammo=30,reserve=180,wave=1,kills=0,playing=false,fireHeld=false,shotAt=0,damageFlash=0,yaw=0,pitch=0;
 const bodyMat=mat(0x4e6158,.1,.82),armorMat=mat(0x53636b,.8,.44),eyeMat=new THREE.MeshBasicMaterial({color:0xff4034});
@@ -88,7 +166,7 @@ function animateAlien(a,t,d){
  if(parts.mouth&&kind==='stalker')parts.mouth.scale.y=.025+.027*(1+Math.sin(t*4+phase));
  a.position.y=kind==='crawler'?0:Math.max(0,Math.sin(gait*2))*.025;
 }
-function spawn(){for(const a of aliens)scene.remove(a);aliens=[];alien('stalker',-10);if(wave>=2)alien('brute',-16);if(wave>=2)alien('crawler',-21);}
+function spawn(){for(const a of aliens)scene.remove(a);aliens=[];alien('stalker',-3);if(wave>=2)alien('brute',-22);if(wave>=2)alien('crawler',-29);}
 function hud(){document.getElementById('hp').textContent=hp;document.getElementById('ammo').textContent=ammo+' / '+reserve;document.getElementById('kills').textContent=kills;document.getElementById('wave').textContent=wave}
 function shoot(){const now=performance.now();if(!playing||now-shotAt<230||ammo<=0)return;shotAt=now;ammo--;muzzle.intensity=28;gun.rotation.x=.12;const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(aliens,true);if(hits.length){let a=hits[0].object;while(a.parent&&!aliens.includes(a))a=a.parent;if(aliens.includes(a)){a.userData.hp-=1;if(a.userData.hp<=0){scene.remove(a);aliens.splice(aliens.indexOf(a),1);kills++;if(!aliens.length){wave++;spawn();document.getElementById('message').textContent='WAVE '+wave+' · NEW CONTACTS';}}}}hud()}
 function reload(){if(ammo===30||reserve<=0)return;const n=Math.min(30-ammo,reserve);ammo+=n;reserve-=n;hud()}
@@ -101,6 +179,6 @@ stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCap
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.35){lookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)}});renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookId||!playing||document.pointerLockElement)return;yaw-=(e.clientX-lastX)*.005;pitch=Math.max(-1.1,Math.min(1.1,pitch-(e.clientY-lastY)*.005));lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointerup',()=>lookId=null);
 document.getElementById('fire').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});for(const ev of ['pointerup','pointercancel'])document.getElementById('fire').addEventListener(ev,()=>fireHeld=false);document.getElementById('reload').onclick=reload;
 document.getElementById('quality').onchange=e=>{renderer.setPixelRatio(Math.min(devicePixelRatio,e.target.value==='high'?2:1.1));renderer.setSize(innerWidth,innerHeight)};
-const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(.045,clock.getDelta());if(playing){camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;const speed=3.2*dt;let x=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,z=(keys.KeyS?1:0)-(keys.KeyW?1:0)+moveY;const length=Math.hypot(x,z)||1;x/=length;z/=length;camera.position.x=Math.max(-4.2,Math.min(4.2,camera.position.x+(Math.cos(yaw)*x+Math.sin(yaw)*z)*speed));camera.position.z=Math.max(-27,Math.min(10,camera.position.z+(-Math.sin(yaw)*x+Math.cos(yaw)*z)*speed));if(fireHeld)shoot();for(const a of aliens){const dx=camera.position.x-a.position.x,dz=camera.position.z-a.position.z,d=Math.hypot(dx,dz);if(d>.85){a.position.x+=dx/d*a.userData.speed*dt;a.position.z+=dz/d*a.userData.speed*dt}a.lookAt(camera.position.x,0,camera.position.z);a.rotation.y+=Math.PI; animateAlien(a,performance.now()/1000,d);if(d<1.1){a.userData.attack=(a.userData.attack||0)-dt;if(a.userData.attack<=0){hp=Math.max(0,hp-(a.userData.kind==='brute'?22:15));damageFlash=.55;a.userData.attack=1.2;hud();if(hp===0){playing=false;document.getElementById('start').style.display='flex';document.querySelector('#start h1').textContent='CONTAINMENT LOST';document.querySelector('#play').textContent='RESTART';document.querySelector('#play').onclick=()=>location.reload()}}}}gun.rotation.x*=.75;muzzle.intensity*=.7;damageFlash=Math.max(0,damageFlash-dt);document.getElementById('flash').style.opacity=damageFlash*.55}renderer.render(scene,camera)}loop();
+const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(.045,clock.getDelta());if(playing){camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;const speed=3.2*dt;let x=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,z=(keys.KeyS?1:0)-(keys.KeyW?1:0)+moveY;const length=Math.hypot(x,z)||1;x/=length;z/=length;const nx=camera.position.x+(Math.cos(yaw)*x+Math.sin(yaw)*z)*speed,nz=camera.position.z+(-Math.sin(yaw)*x+Math.cos(yaw)*z)*speed;if(canWalk(nx,camera.position.z))camera.position.x=nx;if(canWalk(camera.position.x,nz))camera.position.z=nz;const current=rooms.find(r=>Math.abs(camera.position.x-r.x)<r.w/2&&Math.abs(camera.position.z-r.z)<r.d/2);navLabel.textContent=current?'LOCATION · '+current.name:'';if(fireHeld)shoot();for(const a of aliens){const dx=camera.position.x-a.position.x,dz=camera.position.z-a.position.z,d=Math.hypot(dx,dz);if(d>.85){a.position.x+=dx/d*a.userData.speed*dt;a.position.z+=dz/d*a.userData.speed*dt}a.lookAt(camera.position.x,0,camera.position.z);a.rotation.y+=Math.PI; animateAlien(a,performance.now()/1000,d);if(d<1.1){a.userData.attack=(a.userData.attack||0)-dt;if(a.userData.attack<=0){hp=Math.max(0,hp-(a.userData.kind==='brute'?22:15));damageFlash=.55;a.userData.attack=1.2;hud();if(hp===0){playing=false;document.getElementById('start').style.display='flex';document.querySelector('#start h1').textContent='CONTAINMENT LOST';document.querySelector('#play').textContent='RESTART';document.querySelector('#play').onclick=()=>location.reload()}}}}gun.rotation.x*=.75;muzzle.intensity*=.7;damageFlash=Math.max(0,damageFlash-dt);document.getElementById('flash').style.opacity=damageFlash*.55}renderer.render(scene,camera)}loop();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
