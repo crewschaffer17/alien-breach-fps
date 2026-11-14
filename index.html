@@ -1981,7 +1981,7 @@ function shoot(){
      }
      let kills=0;
      for(const [target,pelletCount] of hits){
-         target.hp=laserActive?0:target.hp-pelletCount*({viper:1,ar51:1,phantom:4,titan:1,plasma:4,obliterator:4}[equipped]??1);
+         target.hp-=laserActive?(target.kind==='armored'?2:target.hp):pelletCount*({viper:1,ar51:1,phantom:4,titan:1,plasma:target.kind==='armored'?2:4,obliterator:4}[equipped]??1);
          if(target.hp<=0){target.alive=false;score++;credits+=20;kills++;}
      }
      if(equipped==='plasma'&&hits.size){for(const target of hits.keys()){for(const a of aliens){if(a.alive&&a!==target&&Math.hypot(a.x-target.x,a.y-target.y)<1.8){a.hp-=1.8;if(a.hp<=0){a.alive=false;score++;credits+=20;kills++}}}}}
