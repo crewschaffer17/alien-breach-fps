@@ -1345,13 +1345,17 @@ function spawnWave(){
     const alienSpeed = Math.min(1.25, .35 + wave * .035);
     for(let i=0;i<n;i++){
         const pos=randomOpenPosition(5);
-        const crawler=wave>=2 && Math.random()<Math.min(.32,.10+wave*.018);
+        const roll=Math.random();
+        const crawler=wave>=2 && roll<Math.min(.30,.10+wave*.018);
+        const armored=wave>=3 && !crawler && roll<Math.min(.57,.24+wave*.025);
+        const kind=crawler?'crawler':armored?'armored':'stalker';
         aliens.push({
-            kind:crawler?'crawler':'stalker',
+            kind,
             surface:crawler?(Math.random()<.55?'ceiling':'wall'):'floor',
             x:pos.x,y:pos.y,
-            hp:alienHp,
-            speed:Math.min(1.35, alienSpeed + Math.random()*.13 + (crawler?.16:0)),
+            hp:armored?alienHp*3:alienHp,
+            maxHp:armored?alienHp*3:alienHp,
+            speed:Math.min(1.35, alienSpeed + Math.random()*.13 + (crawler?.22:armored?-.12:0)),
             phase:Math.random()*7,
             attack:Math.max(.75, 2.4 - wave*.055) + Math.random()*.45,
             alive:true
@@ -1630,7 +1634,7 @@ drawLabProps(depth,horizon);
   let dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
   if(Math.abs(ang)>FOV*.72||dist<.2)continue;
   const forward=dx*Math.cos(player.a)+dy*Math.sin(player.a);
-  let sx=W/2+Math.tan(ang)/(Math.tan(FOV/2))*(W/2),size=Math.min(H*1.1,H/(dist+.15)*.82),base=horizon+size*.42;
+  let sx=W/2+Math.tan(ang)/(Math.tan(FOV/2))*(W/2),size=Math.min(H*1.65,H/(dist+.15)*(al.kind==='armored'?1.40:al.kind==='crawler'?.94:1.24)),base=horizon+size*.47;
   if(forward<=0)continue;
   // Clip every sprite column against wall depth, not just its center pixel.
   ctx.save();
@@ -1661,20 +1665,44 @@ drawLabProps(depth,horizon);
    ctx.fillStyle='#ff4348';for(let ex of [-10,10]){ctx.beginPath();ctx.ellipse(ex,-34,4,3,0,0,Math.PI*2);ctx.fill();}
    ctx.strokeStyle='#d1dfb6';ctx.lineWidth=2;for(let j=-2;j<=2;j++){ctx.beginPath();ctx.moveTo(j*5,-24);ctx.lineTo(j*6,-16+Math.abs(j)*2);ctx.stroke();}
   }else{
-   // Original alien redesign: gaunt limbs, hunched armored torso, elongated skull,
-   // glowing eyes, exposed ribs, and needle teeth. All vector-based for mobile speed.
-   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,2,38,7,0,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle='#243c36';ctx.lineWidth=14;ctx.lineCap='round';
-   ctx.beginPath();ctx.moveTo(-17,-52);ctx.lineTo(-24,-20);ctx.lineTo(-30,0);ctx.moveTo(17,-52);ctx.lineTo(25,-18);ctx.lineTo(29,0);ctx.stroke();
-   ctx.strokeStyle='#506f5b';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(-25,-83);ctx.lineTo(-44,-57);ctx.lineTo(-48,-27);ctx.moveTo(25,-83);ctx.lineTo(44,-55);ctx.lineTo(49,-25);ctx.stroke();
-   ctx.fillStyle='#2d5145';ctx.beginPath();ctx.moveTo(-34,-86);ctx.quadraticCurveTo(0,-108,34,-86);ctx.lineTo(23,-46);ctx.lineTo(0,-39);ctx.lineTo(-23,-46);ctx.closePath();ctx.fill();
-   ctx.strokeStyle='#8aa18a';ctx.lineWidth=3;
-   for(let rib=0;rib<4;rib++){let y=-78+rib*9;ctx.beginPath();ctx.moveTo(-22+rib*2,y);ctx.quadraticCurveTo(0,y+10,22-rib*2,y);ctx.stroke();}
-   ctx.fillStyle='#526d59';ctx.beginPath();ctx.ellipse(0,-116,27,36,0,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#101c20';ctx.beginPath();ctx.ellipse(0,-102,19,14,0,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle='#ff5153';for(let ex of [-12,12]){ctx.beginPath();ctx.ellipse(ex,-122,7,4,0,0,Math.PI*2);ctx.fill();}
-   ctx.strokeStyle='#d7dbb9';ctx.lineWidth=2;for(let j=-3;j<=3;j++){ctx.beginPath();ctx.moveTo(j*4,-100);ctx.lineTo(j*3.6,-91+(j%2)*3);ctx.stroke();}
-   ctx.fillStyle='#a5c2a2';ctx.beginPath();ctx.moveTo(-15,-142);ctx.lineTo(-23,-160);ctx.lineTo(-7,-148);ctx.moveTo(15,-142);ctx.lineTo(23,-160);ctx.lineTo(7,-148);ctx.fill();
+   const armored=al.kind==='armored';
+   // Towering, asymmetrical horror silhouette: long arms, digitigrade legs, skull-like head.
+   ctx.fillStyle='#0009';ctx.beginPath();ctx.ellipse(0,4,45,9,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle=armored?'#313b44':'#334c43';ctx.lineCap='round';ctx.lineWidth=16;
+   ctx.beginPath();ctx.moveTo(-19,-61);ctx.lineTo(-25,-25);ctx.lineTo(-39,0);
+   ctx.moveTo(19,-61);ctx.lineTo(28,-25);ctx.lineTo(40,0);ctx.stroke();
+   ctx.strokeStyle=armored?'#515b64':'#5b7868';ctx.lineWidth=13;
+   ctx.beginPath();ctx.moveTo(-31,-98);ctx.lineTo(-49,-66);ctx.lineTo(-57,-17);
+   ctx.moveTo(31,-98);ctx.lineTo(49,-66);ctx.lineTo(58,-17);ctx.stroke();
+   ctx.fillStyle=armored?'#424d58':'#294b40';
+   ctx.beginPath();ctx.moveTo(-35,-102);ctx.quadraticCurveTo(0,-126,35,-102);
+   ctx.lineTo(27,-54);ctx.lineTo(0,-45);ctx.lineTo(-27,-54);ctx.closePath();ctx.fill();
+   if(armored){
+    ctx.fillStyle='#77838b';ctx.beginPath();
+    ctx.moveTo(-40,-111);ctx.lineTo(-12,-117);ctx.lineTo(-8,-80);ctx.lineTo(-34,-74);ctx.closePath();
+    ctx.moveTo(40,-111);ctx.lineTo(12,-117);ctx.lineTo(8,-80);ctx.lineTo(34,-74);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#8c9ba3';ctx.fillRect(-8,-105,16,46);
+    ctx.strokeStyle='#c4d1d2';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-39,-99);ctx.lineTo(-17,-105);
+    ctx.moveTo(39,-99);ctx.lineTo(17,-105);ctx.stroke();
+   }else{
+    ctx.strokeStyle='#9cba99';ctx.lineWidth=3;
+    for(let rib=0;rib<4;rib++){let y=-95+rib*10;ctx.beginPath();ctx.moveTo(-23+rib*2,y);ctx.quadraticCurveTo(0,y+11,23-rib*2,y);ctx.stroke();}
+   }
+   ctx.fillStyle=armored?'#77878a':'#627e6d';ctx.beginPath();ctx.ellipse(0,-135,28,41,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#101419';ctx.beginPath();ctx.ellipse(0,-119,22,16,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle=armored?'#ffb34f':'#ff454c';
+   for(let ex of [-13,13]){ctx.beginPath();ctx.ellipse(ex,-144,8,5,0,0,Math.PI*2);ctx.fill();}
+   ctx.strokeStyle='#e0e4d2';ctx.lineWidth=2;
+   for(let j=-3;j<=3;j++){ctx.beginPath();ctx.moveTo(j*5,-123);ctx.lineTo(j*4,-109+(j%2)*3);ctx.stroke();}
+   ctx.fillStyle=armored?'#b1c0c5':'#93a99b';ctx.beginPath();
+   ctx.moveTo(-17,-165);ctx.lineTo(-29,-186);ctx.lineTo(-7,-172);
+   ctx.moveTo(17,-165);ctx.lineTo(29,-186);ctx.lineTo(7,-172);ctx.fill();
+   // Oversized talons.
+   ctx.strokeStyle='#b4c5b8';ctx.lineWidth=3;
+   for(let side of [-1,1])for(let claw=0;claw<3;claw++){
+    ctx.beginPath();ctx.moveTo(side*(54+claw*3),-19);ctx.lineTo(side*(59+claw*4),-4);ctx.stroke();
+   }
+
   }
   ctx.restore();
  }
@@ -2028,7 +2056,7 @@ if(!blocked(nx,a.y,.3)){
 
 if(!blocked(a.x,ny,.3)){
     a.y=ny;
-}}a.attack-=dt;if(a.attack<=0&&d<9){const orbSpeed=Math.min(4,2.2+wave*.08);orbs.push({x:a.x,y:a.y,vx:vx/d*orbSpeed,vy:vy/d*orbSpeed,life:4});a.attack=Math.max(.75,2.3-wave*.055)+Math.random()*.45;}}
+}}a.attack-=dt;if(a.kind==='crawler'){if(d<.82&&a.attack<=0){if(shieldHits>0){shieldHits--;}else{player.hp=Math.max(0,player.hp-22);}damageFlash=1;a.attack=1.35;}continue;}if(a.attack<=0&&d<9){const orbSpeed=Math.min(4,2.2+wave*.08);orbs.push({x:a.x,y:a.y,vx:vx/d*orbSpeed,vy:vy/d*orbSpeed,life:4});a.attack=Math.max(.75,2.3-wave*.055)+Math.random()*.45;}}
  for(let o of orbs){o.x+=o.vx*dt;o.y+=o.vy*dt;o.life-=dt;if(Math.hypot(o.x-player.x,o.y-player.y)<.38){if(shieldHits>0){shieldHits--;document.getElementById('statusTitle').textContent='SHIELD HIT';document.getElementById('statusText').textContent=shieldHits+' SHIELD CHARGES REMAIN';}else{player.hp=Math.max(0,player.hp-15);}o.life=0;damageFlash=1;}}
  orbs=orbs.filter(o=>o.life>0&&!wall(o.x,o.y));document.getElementById('healthFill').style.width=player.hp+'%';document.getElementById('threat').textContent=aliens.filter(a=>a.alive).length>6?'HIGH':aliens.filter(a=>a.alive).length>3?'MED':'LOW';
  if(player.hp<=0){
