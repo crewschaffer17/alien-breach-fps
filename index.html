@@ -1341,7 +1341,7 @@ function spawnWave(){
     // Start with twice the original enemy count, then add more every sector.
     const n = Math.min(110, Math.ceil(7 + wave * 4 + Math.pow(Math.max(0,wave-1),1.16)));
     // Each new sector adds health, movement speed, and more frequent attacks.
-    const alienHp = 2 + Math.floor((wave - 1) / 2);
+    const alienHp = 2; // Regular aliens and crawlers always take two standard hits.
     const alienSpeed = Math.min(1.25, .35 + wave * .035);
     for(let i=0;i<n;i++){
         const pos=randomOpenPosition(5);
@@ -1353,8 +1353,8 @@ function spawnWave(){
             kind,
             surface:'floor',
             x:pos.x,y:pos.y,
-            hp:armored?alienHp*3:alienHp,
-            maxHp:armored?alienHp*3:alienHp,
+            hp:armored?alienHp*2:alienHp,
+            maxHp:armored?alienHp*2:alienHp,
             speed:Math.min(1.35, alienSpeed + Math.random()*.13 + (crawler?.22:armored?-.12:0)),
             phase:Math.random()*7,
             attack:Math.max(.75, 2.4 - wave*.055) + Math.random()*.45,
@@ -1981,7 +1981,7 @@ function shoot(){
      }
      let kills=0;
      for(const [target,pelletCount] of hits){
-         target.hp=laserActive?0:target.hp-pelletCount*({viper:.65,ar51:1.6,phantom:7,titan:.75,plasma:3,obliterator:9}[equipped]??1);
+         target.hp=laserActive?0:target.hp-pelletCount*({viper:1,ar51:1,phantom:4,titan:1,plasma:4,obliterator:4}[equipped]??1);
          if(target.hp<=0){target.alive=false;score++;credits+=20;kills++;}
      }
      if(equipped==='plasma'&&hits.size){for(const target of hits.keys()){for(const a of aliens){if(a.alive&&a!==target&&Math.hypot(a.x-target.x,a.y-target.y)<1.8){a.hp-=1.8;if(a.hp<=0){a.alive=false;score++;credits+=20;kills++}}}}}
