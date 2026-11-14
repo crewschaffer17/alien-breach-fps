@@ -2143,17 +2143,27 @@ function startBattle() {
     playing = true;
     savedBattleAvailable = false;
     document.getElementById('resumeGame').style.display = 'none';
-    saveGame();
+    // Saving is optional: private browsing or storage limits must not block Play.
+    try { saveGame(); } catch (error) { console.warn('Save unavailable; continuing game',error); }
 
     document.getElementById('overlay').style.display = 'none';
     document.getElementById('mainMenu').classList.add('hidden');
     document.getElementById('shopScreen').classList.add('hidden');
     document.getElementById('loadoutScreen').classList.add('hidden');
 
-    canvas.requestPointerLock?.();
+    // iOS Safari does not support pointer lock; never block starting the game.
+    if (!isPhoneDevice() && canvas.requestPointerLock) {
+        try { const lock=canvas.requestPointerLock(); if(lock && lock.catch)lock.catch(()=>{}); } catch(error) { console.warn('Pointer lock unavailable',error); }
+    }
 }
 document.getElementById('start').onclick=startBattle;
 document.getElementById('playNow').onclick=startBattle;
+// Surface startup failures instead of leaving the Play button apparently inert.
+for(const id of ['playNow','start']){
+ const btn=document.getElementById(id);
+ btn.addEventListener('click',()=>{if(!playing){setTimeout(()=>{if(!playing){const note=document.getElementById('playErrorMessage');if(note)note.textContent='Unable to start. Please send a screenshot of this screen.';}},150);}});
+}
+
 document.getElementById('resumeGame').onclick=resumeSavedBattle;
 document.getElementById('openShop').onclick=()=>{document.getElementById('mainMenu').classList.add('hidden');document.getElementById('shopScreen').classList.remove('hidden');};
 document.getElementById('backMenu').onclick=()=>{document.getElementById('shopScreen').classList.add('hidden');document.getElementById('mainMenu').classList.remove('hidden');};
