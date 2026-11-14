@@ -532,6 +532,30 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
   margin-top:auto!important;
  }
 }
+
+/* Phone landscape: compact sign-in fields, centered high-impact menu titles and shop contents. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ #mainMenu .account-panel{width:91%!important;max-width:1060px!important;box-sizing:border-box!important;
+   margin:0 auto 4px!important;justify-content:center!important;gap:8px!important}
+ #mainMenu .account-panel input{flex:0 1 27%!important;width:27%!important;min-width:0!important;
+   max-width:290px!important;box-sizing:border-box!important}
+ #mainMenu .account-panel button{flex:0 0 auto!important}
+ #mainMenu .menu-card>div:first-child{display:flex!important;flex-direction:column!important;
+   align-items:center!important;justify-content:center!important;flex:1 1 auto!important;text-align:center!important}
+ #mainMenu .menu-card .eyebrow{text-align:center!important}
+ #mainMenu .menu-card h2{font-size:clamp(22px,5.4vh,33px)!important;
+   font-weight:900!important;letter-spacing:3px!important;
+   text-align:center!important;text-shadow:0 0 14px rgba(96,255,180,.65),0 2px 3px #000!important;
+   color:#eafff5!important}
+ #mainMenu .menu-card .menu-btn{flex:0 0 auto!important}
+ #shopScreen .shop-item{justify-content:space-between!important}
+ #shopScreen .shop-item .weapon-art,#shopScreen .shop-item .equipment-art{
+   margin-left:auto!important;margin-right:auto!important;align-self:center!important}
+ #shopScreen .shop-item h3,#shopScreen .shop-item p{text-align:center!important}
+ #shopScreen .shop-item p{display:flex!important;align-items:center!important;justify-content:center!important;
+   flex:1 1 auto!important;max-height:none!important}
+ #shopScreen .shop-item .item-cost{margin-top:auto!important}
+}
 </style>
 </head>
 <body>
