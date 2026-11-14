@@ -245,6 +245,42 @@ html,body{margin:0;overflow:hidden!important;overscroll-behavior:none;height:100
  #loadoutScreen .weapon-card p{font-size:10px;line-height:1.2}
  #loadoutScreen .weapon-card button{padding:6px;font-size:10px}
 }
+
+/* Shop: restore large illustrated cards, swipe horizontally on mobile. */
+@media (hover:none), (pointer:coarse) {
+ #shopScreen .shop-grid {
+   display:flex!important;
+   flex-direction:row!important;
+   flex-wrap:nowrap!important;
+   align-items:stretch;
+   gap:14px!important;
+   overflow-x:auto!important;
+   overflow-y:hidden!important;
+   scroll-snap-type:x mandatory;
+   scroll-padding-inline:8px;
+   overscroll-behavior-x:contain;
+   -webkit-overflow-scrolling:touch;
+   touch-action:pan-x;
+   padding:10px 12px 18px!important;
+ }
+ #shopScreen .shop-item {
+   box-sizing:border-box;
+   flex:0 0 clamp(205px,35vw,280px)!important;
+   width:clamp(205px,35vw,280px)!important;
+   min-width:205px!important;
+   min-height:0;
+   padding:16px!important;
+   scroll-snap-align:start;
+   display:flex;
+   flex-direction:column;
+ }
+ #shopScreen .shop-item .weapon-art,
+ #shopScreen .shop-item .equipment-art {height:95px!important;margin-bottom:12px}
+ #shopScreen .shop-item h3 {font-size:17px!important;line-height:1.15;margin:0 0 8px}
+ #shopScreen .shop-item p {font-size:12px!important;line-height:1.35;margin:0 0 8px;flex:1}
+ #shopScreen .shop-item .item-cost {font-size:13px}
+ #shopScreen .shop-item .buy-btn {font-size:11px;padding:10px 6px;margin-top:8px}
+}
 </style>
 </head>
 <body>
