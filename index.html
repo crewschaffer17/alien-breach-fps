@@ -451,6 +451,43 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  #loadoutScreen .weapon-card button{display:block!important;flex:0 0 auto!important;
   min-height:29px!important;padding:5px!important;margin:2px 0 0!important}
 }
+
+/* Fill the loadout collection panel vertically instead of leaving a blank band. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape) {
+ #loadoutScreen #gunsView{
+  display:flex!important;flex-direction:column!important;
+  justify-content:flex-start!important;align-items:stretch!important;
+  padding:5px 6px 8px!important;min-height:0!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+ }
+ #loadoutScreen #gunsView>.eyebrow,#loadoutScreen #gunsView>h2{
+  flex:0 0 auto!important;margin:0 0 3px!important;
+  font-size:clamp(10px,2.5vh,15px)!important;line-height:1.1!important;
+ }
+ #loadoutScreen #ownedGunCollection{
+  display:flex!important;flex-flow:row nowrap!important;
+  align-items:stretch!important;align-content:stretch!important;
+  flex:1 0 auto!important;height:auto!important;max-height:none!important;
+  min-height:0!important;width:max-content!important;min-width:100%!important;
+  padding:0 3px 5px!important;gap:9px!important;
+ }
+ #loadoutScreen #ownedGunCollection>.weapon-card{
+  align-self:stretch!important;height:auto!important;max-height:none!important;
+  min-height:0!important;flex:0 0 clamp(185px,27vw,245px)!important;
+  justify-content:flex-start!important;
+ }
+ #loadoutScreen #ownedGunCollection .collection-weapon-art{
+  flex:0 0 clamp(55px,15vh,90px)!important;
+  height:clamp(55px,15vh,90px)!important;overflow:visible!important;
+ }
+ #loadoutScreen #ownedGunCollection .collection-weapon-art .weapon-art{
+  height:100%!important;min-height:0!important;
+ }
+ #loadoutScreen #ownedGunCollection .weapon-card p{flex:1 1 auto!important;min-height:0!important}
+ #loadoutScreen #ownedGunCollection .weapon-card button{
+  margin-top:auto!important;min-height:30px!important;
+ }
+}
 </style>
 </head>
 <body>
