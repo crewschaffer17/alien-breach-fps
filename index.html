@@ -2199,6 +2199,9 @@ function startBattle() {
 }
 document.getElementById('start').onclick=startBattle;
 document.getElementById('playNow').onclick=startBattle;
+// A user tap allows supported browsers to enter fullscreen and lock landscape.
+document.getElementById('playNow').addEventListener('click',requestLandscape);
+document.getElementById('start').addEventListener('click',requestLandscape);
 // Surface startup failures instead of leaving the Play button apparently inert.
 for(const id of ['playNow','start']){
  const btn=document.getElementById(id);
@@ -2652,9 +2655,20 @@ canvas.addEventListener('touchend',()=>{draggingCamera=false;});
 const isPhoneDevice=()=>navigator.maxTouchPoints>0 && (/iPhone|Android|iPod/i.test(navigator.userAgent)||Math.min(screen.width,screen.height)<700);
 async function requestLandscape(){
  if(!isPhoneDevice())return;
- try{if(screen.orientation?.lock && document.fullscreenElement)await screen.orientation.lock('landscape')}catch(e){}
+ // iOS Safari / home-screen apps cannot programmatically force rotation.
+ // Supported Android browsers allow orientation locking while fullscreen.
+ if(!screen.orientation?.lock)return;
+ try{
+   if(!document.fullscreenElement && document.documentElement.requestFullscreen){
+     await document.documentElement.requestFullscreen();
+   }
+   if(document.fullscreenElement)await screen.orientation.lock('landscape');
+ }catch(error){console.info('Automatic landscape lock unavailable on this device:',error);}
 }
-document.addEventListener('fullscreenchange',requestLandscape);
+document.addEventListener('fullscreenchange',()=>{
+ if(document.fullscreenElement)requestLandscape();
+ else {try{screen.orientation?.unlock?.();}catch(error){}}
+});
 function syncPhoneLayout(){
  const phone=isPhoneDevice(),portrait=innerHeight>innerWidth;
  document.getElementById('rotatePrompt').style.display=phone&&portrait?'flex':'none';
