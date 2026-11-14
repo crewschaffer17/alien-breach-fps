@@ -177,6 +177,22 @@
  .inventory-slots{grid-template-columns:repeat(5,minmax(0,1fr))}
  .inventory-slot .label{font-size:9px}
 }
+
+/* Six distinct weapon silhouettes in the shop, responsive on phone. */
+.weapon-art{--accent:#6effa9;position:relative;width:100%;height:95px;margin:0 auto 12px;filter:drop-shadow(0 3px 9px #000b)}
+.weapon-art>div{position:absolute}
+.weapon-art .art-body{left:25%;top:29%;width:42%;height:29%;background:linear-gradient(140deg,#52646b,#101b22 65%);border:2px solid var(--accent);border-radius:7px 15px 5px 5px}
+.weapon-art .art-barrel{left:62%;top:36%;width:30%;height:12%;background:linear-gradient(#6b7781,#141a21);border-right:5px solid var(--accent)}
+.weapon-art .art-stock{left:8%;top:38%;width:22%;height:16%;border:6px solid #56636d;border-radius:5px}
+.weapon-art .art-grip{left:39%;top:55%;width:10%;height:32%;background:#222b32;transform:skew(-13deg)}
+.weapon-art .art-glow{left:38%;top:34%;width:21%;height:5%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.weapon-art-viper{--accent:#6effa9}.weapon-art-viper .art-barrel{width:15%}.weapon-art-viper .art-body{width:35%;border-radius:12px}
+.weapon-art-ar51{--accent:#90b4c8}.weapon-art-ar51 .art-barrel{width:35%;height:8%}.weapon-art-ar51 .art-stock{width:24%;clip-path:polygon(0 0,100% 0,80% 100%,0 75%)}
+.weapon-art-phantom{--accent:#61e4ff}.weapon-art-phantom .art-barrel{width:44%;height:5%;top:39%}.weapon-art-phantom .art-body{width:37%;height:17%;top:34%}.weapon-art-phantom:after{content:'';position:absolute;left:38%;top:17%;width:26%;height:13%;background:#0e202d;border:3px solid #61e4ff;border-radius:12px}
+.weapon-art-titan{--accent:#ffb45b}.weapon-art-titan .art-barrel{height:25%;top:30%;background:repeating-linear-gradient(0deg,#394550 0 5px,#10151b 5px 9px);border-right:8px solid #ffb45b}.weapon-art-titan .art-body{height:36%;top:26%;border-radius:17px}
+.weapon-art-plasma{--accent:#b27aff}.weapon-art-plasma .art-barrel{height:23%;top:30%;border-radius:18px;background:#47316b}.weapon-art-plasma .art-body{height:35%;border-radius:25px}.weapon-art-plasma .art-glow{height:16%;top:36%;border-radius:20px}
+.weapon-art-obliterator{--accent:#ff5b63}.weapon-art-obliterator .art-barrel{height:16%;top:34%;clip-path:polygon(0 0,90% 0,100% 50%,90% 100%,0 100%)}.weapon-art-obliterator .art-body{clip-path:polygon(0 20%,65% 0,100% 30%,90% 100%,15% 80%);height:39%}
+@media(max-width:760px){.weapon-art{height:65px}.new-gun-shop{min-width:0}}
 </style>
 </head>
 <body>
@@ -275,6 +291,36 @@
     <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
   </article>
 
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-viper"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>VIPER SMG</h3><p>Fast compact SMG; rapid fire, short range.</p><div class="item-cost">3000 CREDITS</div>
+    <button class="buy-btn" data-item="viper">BUY VIPER SMG</button>
+  </article>
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-ar51"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>AR-51 ASSAULT RIFLE</h3><p>Reliable midrange rifle with balanced fire.</p><div class="item-cost">3000 CREDITS</div>
+    <button class="buy-btn" data-item="ar51">BUY AR-51 ASSAULT RIFLE</button>
+  </article>
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-phantom"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>PHANTOM SNIPER</h3><p>Long-range precision rifle; slow powerful shots.</p><div class="item-cost">3500 CREDITS</div>
+    <button class="buy-btn" data-item="phantom">BUY PHANTOM SNIPER</button>
+  </article>
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-titan"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>TITAN MINIGUN</h3><p>Heavy rotary cannon with a high rate of fire.</p><div class="item-cost">4500 CREDITS</div>
+    <button class="buy-btn" data-item="titan">BUY TITAN MINIGUN</button>
+  </article>
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-plasma"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>PLASMA BLASTER</h3><p>Explosive purple plasma with splash damage.</p><div class="item-cost">5000 CREDITS</div>
+    <button class="buy-btn" data-item="plasma">BUY PLASMA BLASTER</button>
+  </article>
+  <article class="shop-item new-gun-shop">
+    <div class="weapon-art weapon-art-obliterator"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
+    <h3>OBLITERATOR X</h3><p>Legendary piercing red energy weapon.</p><div class="item-cost">6000 CREDITS</div>
+    <button class="buy-btn" data-item="obliterator">BUY OBLITERATOR X</button>
+  </article>
   <article class="shop-item">
     <div class="item-icon">✚</div>
     <h3>MED-KIT</h3>
@@ -422,7 +468,13 @@ let inventory = {
     rifle: false,
     medkit: 0,
     speed: 0,
-    supergun: 0
+    supergun: 0,
+    viper: false,
+    ar51: false,
+    phantom: false,
+    titan: false,
+    plasma: false,
+    obliterator: false
 };
 
 let loadout = {
@@ -545,10 +597,22 @@ function applySaveData(data) {
     inventory.medkit = Math.max(0, Math.floor(Number(inv.medkit) || 0));
             inventory.supergun = Math.max(0, Math.floor(Number(inv.supergun) || 0));
     inventory.speed = Math.max(0, Math.floor(Number(inv.speed) || 0));
+    inventory.viper = Boolean(inv.viper);
+    inventory.ar51 = Boolean(inv.ar51);
+    inventory.phantom = Boolean(inv.phantom);
+    inventory.titan = Boolean(inv.titan);
+    inventory.plasma = Boolean(inv.plasma);
+    inventory.obliterator = Boolean(inv.obliterator);
 
-    loadout.weapon = ['pulse', 'shotgun', 'rifle', 'laser'].includes(savedLoadout.weapon) && (savedLoadout.weapon !== 'laser' || inventory.supergun > 0) ? savedLoadout.weapon : 'pulse';
+    loadout.weapon = ['pulse', 'shotgun', 'rifle', 'laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(savedLoadout.weapon) && (savedLoadout.weapon !== 'laser' || inventory.supergun > 0) ? savedLoadout.weapon : 'pulse';
     if (loadout.weapon === 'shotgun' && !inventory.shotgun) loadout.weapon = 'pulse';
     if (loadout.weapon === 'rifle' && !inventory.rifle) loadout.weapon = 'pulse';
+    if(loadout.weapon==='viper'&&!inventory.viper)loadout.weapon='pulse';
+    if(loadout.weapon==='ar51'&&!inventory.ar51)loadout.weapon='pulse';
+    if(loadout.weapon==='phantom'&&!inventory.phantom)loadout.weapon='pulse';
+    if(loadout.weapon==='titan'&&!inventory.titan)loadout.weapon='pulse';
+    if(loadout.weapon==='plasma'&&!inventory.plasma)loadout.weapon='pulse';
+    if(loadout.weapon==='obliterator'&&!inventory.obliterator)loadout.weapon='pulse';
     loadout.medkits = Math.min(inventory.medkit, Math.max(0, Math.floor(Number(savedLoadout.medkits) || 0)));
     loadout.speed = Math.min(inventory.speed, Math.max(0, Math.floor(Number(savedLoadout.speed) || 0)));
     const savedSlots = Array.isArray(savedLoadout.inventorySlots) ? savedLoadout.inventorySlots : [loadout.weapon, '', ''];
@@ -1270,7 +1334,19 @@ drawLabProps(depth,horizon);
  ctx.fillStyle='#a96f5d';
  ctx.beginPath();ctx.moveTo(-34,22);ctx.lineTo(-61,73);ctx.lineTo(-38,92);ctx.lineTo(1,49);ctx.lineTo(-2,20);ctx.closePath();ctx.fill();
 
- if(equipped === 'shotgun'){
+ if(equipped==='viper'||equipped==='ar51'||equipped==='phantom'||equipped==='titan'||equipped==='plasma'||equipped==='obliterator'){
+ const theme={viper:['#193a31','#6effa9',70,40],ar51:['#2a3540','#90b4c8',112,32],phantom:['#172c3d','#61e4ff',155,18],titan:['#3e3129','#ffb45b',115,65],plasma:['#392752','#b27aff',94,56],obliterator:['#421d2a','#ff5b63',142,48]}[equipped];
+ const [base,glow,len,thick]=theme;
+ ctx.fillStyle=base;ctx.fillRect(-64,-35,110,thick);
+ ctx.fillStyle='#0c131a';ctx.fillRect(36,-31,len-35,Math.max(9,thick*.38));
+ ctx.fillStyle=glow;ctx.shadowColor=glow;ctx.shadowBlur=shotFlash>0?32:14;
+ ctx.fillRect(-25,-25,54,7);ctx.fillRect(len-2,-28,8,12);ctx.shadowBlur=0;
+ ctx.fillStyle='#10171d';ctx.fillRect(-30,12,25,53);
+ if(equipped==='phantom'){ctx.fillStyle='#121c26';ctx.fillRect(-5,-65,68,14);ctx.fillStyle=glow;ctx.fillRect(15,-70,23,6)}
+ if(equipped==='titan'){for(let j=0;j<4;j++){ctx.fillStyle=j%2?'#77828b':'#1b2228';ctx.fillRect(32,-30+j*10,94,6)}}
+ if(equipped==='plasma'){ctx.fillStyle=glow;ctx.shadowColor=glow;ctx.shadowBlur=20;ctx.beginPath();ctx.ellipse(66,-20,23,15,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}
+ if(equipped==='obliterator'){ctx.fillStyle='#a88d55';ctx.fillRect(-52,-42,30,8);ctx.fillRect(6,-48,48,8)}
+ } else if(equipped === 'shotgun'){
      // Short, thick pump-action shotgun with two visible muzzle tubes.
      ctx.fillStyle='#151b20';ctx.fillRect(-66,-34,116,54);
      ctx.fillStyle='#303b40';ctx.fillRect(-12,-57,66,31);
@@ -1332,13 +1408,13 @@ function shoot(){
      const laserActive = equipped === 'laser' && inventory.supergun > 0;
      const shotgunActive = equipped === 'shotgun' && inventory.shotgun;
      const rifleActive = equipped === 'rifle' && inventory.rifle;
-     const shotCost = laserActive ? 5 : 1;
+     const shotCost = laserActive ? 5 : equipped==='titan'?2:equipped==='plasma'?3:equipped==='obliterator'?4:1;
      if(ammo < shotCost) return;
      ammo -= shotCost;
      document.getElementById('ammo').textContent = ammo;
      // SMG range remains 12 units. Rifle reaches 1.3x; laser reaches 5x.
-     const weaponRange = laserActive ? 60 : rifleActive ? 15.6 : 12;
-     fireCd = shotgunActive ? .72 : rifleActive ? .6 : laserActive ? .18 : .3;
+     const weaponRange = laserActive ? 60 : equipped==='phantom'||equipped==='obliterator'?48:equipped==='ar51'?19:equipped==='plasma'?17:equipped==='titan'?15:rifleActive?15.6:12;
+     fireCd = shotgunActive ? .72 : rifleActive ? .6 : laserActive ? .18 : ({viper:.12,ar51:.34,phantom:1.35,titan:.085,plasma:.68,obliterator:.85}[equipped]??.3);
      shotFlash = .8;
      // Four shotgun pellets leave the muzzle in a compact 2x2 square,
      // then angle outward as they travel. Other weapons use one centered shot.
@@ -1380,7 +1456,7 @@ function shoot(){
                  if(dist>weaponRange||dist>=closestDist||shotRay.d<=dist-.3)continue;
                  let ang=Math.atan2(dy,dx)-shotAngle;
                  while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;
-                 const hitWidth=shotgunActive?.045:.11;
+                 const hitWidth=shotgunActive?.045:equipped==='phantom'?.035:.11;
                  if(Math.abs(ang)<hitWidth){closest=a;closestDist=dist;}
              }
              if(closest)hits.set(closest,(hits.get(closest)||0)+1);
@@ -1388,9 +1464,11 @@ function shoot(){
      }
      let kills=0;
      for(const [target,pelletCount] of hits){
-         target.hp=laserActive?0:target.hp-pelletCount;
+         target.hp=laserActive?0:target.hp-pelletCount*({viper:.65,ar51:1.6,phantom:7,titan:.75,plasma:3,obliterator:9}[equipped]??1);
          if(target.hp<=0){target.alive=false;score++;credits+=20;kills++;}
      }
+     if(equipped==='plasma'&&hits.size){for(const target of hits.keys()){for(const a of aliens){if(a.alive&&a!==target&&Math.hypot(a.x-target.x,a.y-target.y)<1.8){a.hp-=1.8;if(a.hp<=0){a.alive=false;score++;credits+=20;kills++}}}}}
+     if(equipped==='obliterator'&&hits.size){for(const a of aliens){if(!a.alive||hits.has(a))continue;const d=Math.hypot(a.x-player.x,a.y-player.y),ang=Math.atan2(a.y-player.y,a.x-player.x)-player.a;if(d<weaponRange&&Math.abs(Math.atan2(Math.sin(ang),Math.cos(ang)))<.075&&ray(player.a).d>d-.3){a.hp-=6;if(a.hp<=0){a.alive=false;score++;credits+=20;kills++}}}}
      if(kills>0){
          document.getElementById('credits').textContent=credits;
          refreshShop();refreshLoadout();
@@ -1563,14 +1641,26 @@ const shopPrices = {
     shotgun: 4000,
     rifle: 3500,
     medkit: 350,
-    speed: 750
+    speed: 750,
+    viper: 3000,
+    ar51: 3000,
+    phantom: 3500,
+    titan: 4500,
+    plasma: 5000,
+    obliterator: 6000
 };
 
 const shopLabels = {
     shotgun: 'SHOTGUN',
     rifle: 'ASSAULT RIFLE',
     medkit: 'MED-KIT',
-    speed: 'SPEED BOOST'
+    speed: 'SPEED BOOST',
+    viper: 'VIPER SMG',
+    ar51: 'AR-51 ASSAULT RIFLE',
+    phantom: 'PHANTOM SNIPER',
+    titan: 'TITAN MINIGUN',
+    plasma: 'PLASMA BLASTER',
+    obliterator: 'OBLITERATOR X'
 };
 function refreshStats() {
     const values = {
@@ -1606,6 +1696,12 @@ function ownedInventoryChoices(slotIndex) {
     if (inventory.shotgun) choices.push({value:'shotgun',label:'SHOTGUN'});
     if (inventory.rifle) choices.push({value:'rifle',label:'ASSAULT RIFLE'});
     if (inventory.supergun > 0) choices.push({value:'laser',label:'LEGENDARY LASER'});
+    if(inventory.viper)choices.push({value:'viper',label:'VIPER SMG'});
+    if(inventory.ar51)choices.push({value:'ar51',label:'AR-51 ASSAULT RIFLE'});
+    if(inventory.phantom)choices.push({value:'phantom',label:'PHANTOM SNIPER'});
+    if(inventory.titan)choices.push({value:'titan',label:'TITAN MINIGUN'});
+    if(inventory.plasma)choices.push({value:'plasma',label:'PLASMA BLASTER'});
+    if(inventory.obliterator)choices.push({value:'obliterator',label:'OBLITERATOR X'});
     if (slotIndex === 2) {
         if (loadout.medkits > 0) choices.push({value:'medkit',label:'MED-KIT'});
         if (loadout.speed > 0) choices.push({value:'speed',label:'SPEED POTION'});
@@ -1631,7 +1727,7 @@ function refreshDeploymentInventory() {
         select.addEventListener('change', () => {
             const index = Number(select.dataset.deploymentSlot);
             loadout.inventorySlots[index] = select.value;
-            if (index === 0 && select.value && ['pulse','shotgun','rifle','laser'].includes(select.value)) loadout.weapon = select.value;
+            if (index === 0 && select.value && ['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(select.value)) loadout.weapon = select.value;
             document.getElementById('loadoutMessage').textContent = 'Inventory slot updated. Press SAVE LOADOUT to keep it.';
             saveGame();
         });
@@ -1645,7 +1741,13 @@ function refreshGunCollection() {
     { id:'pulse', name:'PULSE SMG', icon:'◉', desc:'Compact automatic weapon. Hold the mouse button; fires every 0.3 seconds.', owned:true },
     { id:'shotgun', name:'SHOTGUN', icon:'◈', desc:'A close-range weapon that fires multiple pellets.', owned:Boolean(inventory.shotgun) },
     { id:'rifle', name:'ASSAULT RIFLE', icon:'▰', desc:'Long-barrel automatic rifle. Hold the mouse button; fires every 0.6 seconds.', owned:Boolean(inventory.rifle) },
-    { id:'laser', name:'LEGENDARY LASER', icon:'✦', desc:'A piercing beam that can eliminate every alien in its path.', owned:inventory.supergun > 0 }
+    { id:'laser', name:'LEGENDARY LASER', icon:'✦', desc:'A piercing beam that can eliminate every alien in its path.', owned:inventory.supergun > 0 },
+    {id:'viper',name:'VIPER SMG',icon:'◆',desc:'Fast compact SMG; rapid fire, short range.',owned:Boolean(inventory.viper)},
+    {id:'ar51',name:'AR-51 ASSAULT RIFLE',icon:'◆',desc:'Reliable midrange rifle with balanced fire.',owned:Boolean(inventory.ar51)},
+    {id:'phantom',name:'PHANTOM SNIPER',icon:'◆',desc:'Long-range precision rifle; slow powerful shots.',owned:Boolean(inventory.phantom)},
+    {id:'titan',name:'TITAN MINIGUN',icon:'◆',desc:'Heavy rotary cannon with a high rate of fire.',owned:Boolean(inventory.titan)},
+    {id:'plasma',name:'PLASMA BLASTER',icon:'◆',desc:'Explosive purple plasma with splash damage.',owned:Boolean(inventory.plasma)},
+    {id:'obliterator',name:'OBLITERATOR X',icon:'◆',desc:'Legendary piercing red energy weapon.',owned:Boolean(inventory.obliterator)}
 ];
     root.innerHTML = weapons.map(w => `
       <article class="weapon-card ${w.owned ? 'owned' : ''}">
@@ -1713,7 +1815,7 @@ document.getElementById('saveLoadout').onclick = () => {
     loadout.inventorySlots = loadout.inventorySlots.slice(0,3);
     while (loadout.inventorySlots.length < 3) loadout.inventorySlots.push('');
     if (!loadout.inventorySlots[0]) loadout.inventorySlots[0] = loadout.weapon || 'pulse';
-    if (['pulse','shotgun','rifle','laser'].includes(loadout.inventorySlots[0])) loadout.weapon = loadout.inventorySlots[0];
+    if (['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(loadout.inventorySlots[0])) loadout.weapon = loadout.inventorySlots[0];
 
     document.getElementById('loadoutMessage').textContent =
         'Loadout saved successfully!';
@@ -1721,7 +1823,7 @@ document.getElementById('saveLoadout').onclick = () => {
     saveGame();
 };
 function isOwnedWeapon(id) {
-    return id === 'pulse' || (id === 'shotgun' && inventory.shotgun) ||
+    return id === 'pulse' || (id==='viper'&&inventory.viper) || (id==='ar51'&&inventory.ar51) || (id==='phantom'&&inventory.phantom) || (id==='titan'&&inventory.titan) || (id==='plasma'&&inventory.plasma) || (id==='obliterator'&&inventory.obliterator) || (id === 'shotgun' && inventory.shotgun) ||
         (id === 'rifle' && inventory.rifle) || (id === 'laser' && inventory.supergun > 0);
 }
 
@@ -1729,7 +1831,7 @@ function equipBattleWeapon(id) {
     if (!isOwnedWeapon(id)) return false;
     loadout.weapon = id;
     superGunEquipped = id === 'laser' && inventory.supergun > 0;
-    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER'};
+    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER',viper:'VIPER SMG',ar51:'AR-51 ASSAULT RIFLE',phantom:'PHANTOM SNIPER',titan:'TITAN MINIGUN',plasma:'PLASMA BLASTER',obliterator:'OBLITERATOR X'};
     document.getElementById('statusTitle').textContent = names[id] + ' EQUIPPED';
     document.getElementById('statusText').textContent = 'WEAPON READY';
     return true;
@@ -1738,7 +1840,7 @@ function equipBattleWeapon(id) {
 function refreshBattleInventory() {
     const root = document.getElementById('battleInventorySlots');
     if (!root) return;
-    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER',medkit:'MED-KIT',speed:'SPEED POTION'};
+    const names = {pulse:'PULSE SMG',shotgun:'SHOTGUN',rifle:'ASSAULT RIFLE',laser:'LEGENDARY LASER',viper:'VIPER SMG',ar51:'AR-51 ASSAULT RIFLE',phantom:'PHANTOM SNIPER',titan:'TITAN MINIGUN',plasma:'PLASMA BLASTER',obliterator:'OBLITERATOR X',medkit:'MED-KIT',speed:'SPEED POTION'};
     root.innerHTML = battleInventorySlots.map((item, i) => {
         let count = '';
         if (i === 3) count = `${battleMedkits} available`;
@@ -1747,7 +1849,7 @@ function refreshBattleInventory() {
         else if (item === 'speed') count = `${battleSpeed} available`;
         else count = item ? (item === 'laser' ? '5 charges per shot' : 'Weapon') : 'Empty slot';
         const title = item ? names[item] : 'EMPTY';
-        const canUse = Boolean(item) && ((['pulse','shotgun','rifle','laser'].includes(item) && isOwnedWeapon(item)) || (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0) || (i===3 && battleMedkits>0) || (i===4 && battleSpeed>0));
+        const canUse = Boolean(item) && ((['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(item) && isOwnedWeapon(item)) || (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0) || (i===3 && battleMedkits>0) || (i===4 && battleSpeed>0));
         return `<div class="inventory-slot ${i===activeInventoryIndex?'active':''}"><div class="slot-number">SLOT ${i+1}</div><div class="slot-name">${title}</div><div class="slot-count">${count}</div><button type="button" data-use-slot="${i}" ${canUse?'':'disabled'}>USE NOW</button></div>`;
     }).join('');
     root.querySelectorAll('[data-use-slot]').forEach(btn => btn.addEventListener('click', () => useInventorySlot(Number(btn.dataset.useSlot))));
@@ -1776,7 +1878,7 @@ function useInventorySlot(index) {
     if (index === 3) item = 'medkit';
     if (index === 4) item = 'speed';
     let used = false;
-    if (['pulse','shotgun','rifle','laser'].includes(item)) {
+    if (['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(item)) {
         used = equipBattleWeapon(item);
     } else if (item === 'medkit') {
         if (battleMedkits > 0 && player.hp < 100) {
@@ -1816,7 +1918,7 @@ function cycleBattleInventory() {
         let item = battleInventorySlots[index];
         if (index === 3) item = 'medkit';
         if (index === 4) item = 'speed';
-        const available = (['pulse','shotgun','rifle','laser'].includes(item) && isOwnedWeapon(item)) ||
+        const available = (['pulse','shotgun','rifle','laser','viper','ar51','phantom','titan','plasma','obliterator'].includes(item) && isOwnedWeapon(item)) ||
             (item==='medkit' && battleMedkits>0) || (item==='speed' && battleSpeed>0);
         if (!available) continue;
         activeInventoryIndex = index;
@@ -1840,7 +1942,7 @@ function refreshShop() {
         if (price === undefined) return;
 
         const alreadyOwned =
-            (item === 'shotgun' || item === 'rifle') && inventory[item];
+            (item === 'shotgun' || item === 'rifle' || item==='viper' || item==='ar51' || item==='phantom' || item==='titan' || item==='plasma' || item==='obliterator') && inventory[item];
 
         btn.disabled = credits < price || alreadyOwned;
 
@@ -1862,7 +1964,7 @@ document.querySelectorAll('.buy-btn').forEach(btn => {
         if (price === undefined || credits < price) return;
 
         if (
-            (item === 'shotgun' || item === 'rifle') &&
+            (item === 'shotgun' || item === 'rifle' || item==='viper' || item==='ar51' || item==='phantom' || item==='titan' || item==='plasma' || item==='obliterator') &&
             inventory[item]
         ) {
             return;
@@ -1870,7 +1972,7 @@ document.querySelectorAll('.buy-btn').forEach(btn => {
 
         credits -= price;
 
-        if (item === 'shotgun' || item === 'rifle') {
+        if (item === 'shotgun' || item === 'rifle' || item==='viper' || item==='ar51' || item==='phantom' || item==='titan' || item==='plasma' || item==='obliterator') {
             inventory[item] = true;
         } else {
             inventory[item]++;
