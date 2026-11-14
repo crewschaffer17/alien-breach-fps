@@ -379,6 +379,27 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
   padding:8px 16px!important;
  }
 }
+
+/* Match the successful 12% phone-landscape menu zoom in Shop and Loadout. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape) {
+ #shopScreen>.shop-wrap,#loadoutScreen>.shop-wrap{
+  transform:scale(.88)!important;
+  transform-origin:center center!important;
+  width:calc(100% / .88)!important;
+  height:calc(100% / .88)!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex-shrink:0!important;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  margin:0!important;
+  translate:-50% -50%;
+  padding:8px 16px!important;
+ }
+ #shopScreen .shop-grid{min-height:0!important;overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
+ #loadoutScreen .loadout-view:not(.hidden){min-height:0!important;overflow-y:auto!important;touch-action:pan-y!important}
+}
 </style>
 </head>
 <body>
