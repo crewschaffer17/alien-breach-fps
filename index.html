@@ -488,6 +488,27 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
   margin-top:auto!important;min-height:30px!important;
  }
 }
+
+/* Center and evenly size the three main menu tabs on landscape phones. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ #mainMenu .menu-actions{
+  width:94%!important;
+  max-width:1100px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+ }
+ #mainMenu .menu-card{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+ }
+ #mainMenu .menu-card .menu-btn{
+  width:100%!important;
+  box-sizing:border-box!important;
+ }
+}
 </style>
 </head>
 <body>
