@@ -890,7 +890,7 @@ const floorCanvas=document.createElement('canvas');
 const floorCtx=floorCanvas.getContext('2d',{alpha:true, willReadFrequently:false});
 let floorImageData=null;
 let lastFloorWidth=0,lastFloorHeight=0;
-let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,1);
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
 function resize(){const v=window.visualViewport;W=Math.round(v?v.width:innerWidth);H=Math.round(v?v.height:innerHeight);canvas.style.width=W+'px';canvas.style.height=H+'px';canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>{resize();requestAnimationFrame(resize)});if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);resize();
 const map=[
@@ -1501,7 +1501,7 @@ function drawWorld(){
 // of thousands of pixels on every frame. The original tile colors and geometry
 // are retained; browser smoothing scales the buffer cleanly to the screen.
 {
-    const pixelStep = 3;
+    const pixelStep = 2; // Higher-resolution floor shading to reduce blockiness on iPhone.
     const lowW = Math.max(1, Math.ceil(W / pixelStep));
     const lowH = Math.max(1, Math.ceil(H / pixelStep));
 
