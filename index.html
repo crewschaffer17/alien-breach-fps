@@ -624,6 +624,39 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  #loadoutScreen #inventoryView .deployment-inventory-grid>*{min-width:0!important;box-sizing:border-box!important}
  #loadoutScreen #inventoryView select{width:100%!important;min-width:0!important}
 }
+
+/* Compact the complete personnel record into the fixed landscape stats panel. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape){
+ #loadoutScreen .stats-panel{
+  box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;
+  padding:10px 12px!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  touch-action:pan-y!important;-webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+  scrollbar-width:thin;
+ }
+ #loadoutScreen .stats-panel .eyebrow{
+  flex:0 0 auto!important;font-size:9px!important;line-height:1.1!important;
+  margin:0 0 3px!important;
+ }
+ #loadoutScreen .stats-panel h2{
+  flex:0 0 auto!important;font-size:clamp(14px,3.2vh,20px)!important;
+  line-height:1.05!important;margin:0 0 7px!important;letter-spacing:1.5px!important;
+ }
+ #loadoutScreen .stats-panel .stat-row{
+  flex:0 0 auto!important;align-items:center!important;
+  min-height:0!important;padding:clamp(3px,.8vh,6px) 0!important;gap:6px!important;
+ }
+ #loadoutScreen .stats-panel .stat-row span{
+  font-size:clamp(9px,2.1vh,12px)!important;
+  line-height:1.15!important;letter-spacing:.25px!important;
+  overflow-wrap:break-word!important;min-width:0!important;
+ }
+ #loadoutScreen .stats-panel .stat-row strong{
+  flex:0 0 auto!important;font-size:clamp(13px,3vh,17px)!important;
+ }
+}
 </style>
 </head>
 <body>
