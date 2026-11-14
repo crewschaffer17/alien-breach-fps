@@ -3,16 +3,16 @@
 </style></head><body><div id="hud"><div id="top"><span>AREA 51 · CONTAINMENT <b>BREACH</b></span><span>ROUND <b id="wave">1</b> · KILLS <b id="kills">0</b></span></div><select id="quality"><option value="low">iPhone / Performance</option><option value="high">High quality</option></select><div id="hint">Drag right side to aim · Left joystick to move</div><div id="cross">+</div><div id="message">CONTAINMENT FAILURE</div><div id="health">HEALTH <span id="hp">100</span></div><div id="ammo">30 / 180</div><div id="flash"></div><div id="controls"><div id="stick"><div id="nub"></div></div><button id="reload">↻</button><button id="fire">FIRE</button></div><div id="start"><h1>ALIEN BREACH <span style="color:#e14b48">3D</span></h1><p>Experimental 3D horror prototype. Explore the containment corridor, aim and shoot the alien. This is separate from your original game and does not alter your saves.</p><button id="play">ENTER FACILITY</button><small>iPhone: landscape, left joystick to move, drag right side to aim, FIRE to shoot.<br>Desktop: WASD, mouse to look, click to fire, R to reload.</small></div><div id="rotate">ROTATE YOUR PHONE ↻</div></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x05090d);scene.fog=new THREE.FogExp2(0x070b0f,.052);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x25343e);scene.fog=new THREE.FogExp2(0x2c3a42,.028);
 const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.08,85);camera.position.set(0,1.65,8);
-const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;document.body.prepend(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0x668a9b,0x0a0b10,1.1));
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.8;document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xb4d7ed,0x39424c,2.1));
 const mat=(c,metal=.3,rough=.65)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
 const steel=mat(0x29333b,.72,.45),dark=mat(0x10171e,.7,.62),floor=mat(0x263039,.65,.31),stripe=mat(0xa27d31,.5,.58),red= new THREE.MeshBasicMaterial({color:0xff242b}),lightmat=new THREE.MeshBasicMaterial({color:0xa6d9ed});
 function box(w,h,d,x,y,z,m,parent=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o}
 box(10,.22,43,0,-.13,-8,floor);box(10,.25,43,0,4.8,-8,dark);for(const side of [-1,1]){box(.3,4.8,43,side*5,2.3,-8,steel);box(.2,.12,43,side*4.2,.06,-8,stripe);for(let z=10;z>-29;z-=4){box(.45,4.5,.23,side*4.75,2.3,z,dark);box(.3,.4,1.9,side*4.78,3.6,z-1.3,steel);box(.18,.13,3.4,side*4.52,4.45,z-1.3,steel);box(.12,.12,2.7,side*4.7,1,z-1.3,dark);}}
 for(let z=10;z>-29;z-=3){box(9.6,.05,.04,0,.02,z,dark);box(9.6,.07,.06,0,4.7,z,steel);box(.12,.1,9.2,0,4.6,z,dark);}
-for(let z=9;z>-29;z-=8){box(2,.1,.55,0,4.55,z,lightmat);const p=new THREE.PointLight(0x9ac4e2,20,13,2);p.position.set(0,4.1,z);scene.add(p);}
+for(let z=9;z>-29;z-=8){box(2,.1,.55,0,4.55,z,lightmat);const p=new THREE.PointLight(0xb8e3f4,35,16,2);p.position.set(0,4.1,z);scene.add(p);}
 for(let z=5;z>-29;z-=11){box(.24,.55,.2,-4.73,2.4,z,red);const p=new THREE.PointLight(0xff1d26,12,8,2);p.position.set(-4.35,2.5,z);scene.add(p);}
 for(let z=4;z>-25;z-=8){box(1.4,1.4,1.4,3.8,.7,z,dark);box(1.5,.1,1.5,3.8,1.45,z,steel);box(1.3,1.3,1.3,-3.9,.65,z-3,steel);}
 for(let z=9;z>-29;z-=9){box(10,.4,.4,0,4.5,z,steel);for(const side of [-1,1])box(.4,4.4,.4,side*4.8,2.25,z,steel);}
@@ -20,13 +20,74 @@ const gun=new THREE.Group();camera.add(gun);scene.add(camera);gun.position.set(.
 let aliens=[],hp=100,ammo=30,reserve=180,wave=1,kills=0,playing=false,fireHeld=false,shotAt=0,damageFlash=0,yaw=0,pitch=0;
 const bodyMat=mat(0x4e6158,.1,.82),armorMat=mat(0x53636b,.8,.44),eyeMat=new THREE.MeshBasicMaterial({color:0xff4034});
 function limb(parent,a,b,r1,r2,m){const v=new THREE.Vector3().subVectors(b,a);const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,v.length(),7),m);mesh.position.copy(a).add(b).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());parent.add(mesh)}
-function alien(kind,z){const root=new THREE.Group();root.position.set((Math.random()-.5)*5,0,z);scene.add(root);const armored=kind==='brute',crawler=kind==='crawler';const material=armored?armorMat:bodyMat;const torso=new THREE.Mesh(new THREE.SphereGeometry(1,9,7),material);torso.scale.set(crawler?.65:armored?.78:.42,crawler?.34:armored?1.03:.84,crawler?.85:.37);torso.position.y=crawler?.65:armored?1.55:1.55;root.add(torso);
-const head=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),material);head.scale.set(crawler?.42:armored?.42:.30,crawler?.35:.44,crawler?.48:.4);head.position.set(0,crawler?.7:armored?2.5:2.55,crawler?-.65:-.15);root.add(head);
-for(let side of [-1,1]){const x=side*(crawler?.45:armored?.6:.37);const y=crawler?.66:armored?1.65:1.6;limb(root,new THREE.Vector3(x,y,0),new THREE.Vector3(x*1.4,crawler?.25:.85,.1),crawler?.13:.16,.1,material);limb(root,new THREE.Vector3(x*1.4,crawler?.25:.85,.1),new THREE.Vector3(x*1.5,.08,-.15),.1,.06,material);if(!crawler){limb(root,new THREE.Vector3(x,y+.4,0),new THREE.Vector3(x*1.7,.5,-.2),armored?.22:.11,.08,material);}}
-for(let side of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.075,7,5),eyeMat);e.position.set(side*(crawler?.18:.16),crawler?.78:armored?2.56:2.6,crawler?-1.04:-.52);root.add(e);}
-if(armored)for(let side of [-1,1]){box(.5,.34,.7,side*.66,2.1,0,steel,root);box(.68,.6,.2,side*.4,1.7,-.4,steel,root);}
-if(crawler)for(let side of [-1,1])for(let i=0;i<2;i++){const x=side*.42;limb(root,new THREE.Vector3(x,.67,i*.4-.25),new THREE.Vector3(side*.85,.14,i*.6-.35),.11,.055,material);}
-root.userData={kind,hp:armored?4:2,speed:crawler?1.9:armored?.65:1.1,phase:Math.random()*6};aliens.push(root)}
+function alien(kind,z){
+ const root=new THREE.Group();root.position.set((Math.random()-.5)*4,0,z);scene.add(root);
+ const crawler=kind==='crawler',armored=kind==='brute';
+ const cyan=mat(0x16aabb,.12,.49),charcoal=mat(0x35464c,.08,.85),flesh=mat(0x8f706b,.04,.93),inner=mat(0x291317,.05,.94),teeth=mat(0xd6b9a3,.05,.7);
+ const parts={legs:[],arms:[],petals:[],mouth:null};
+ const ell=(parent,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(new THREE.SphereGeometry(1,12,9),m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);parent.add(o);return o};
+ const pivot=(x,y,z)=>{const p=new THREE.Group();p.position.set(x,y,z);root.add(p);return p};
+ if(crawler){
+   // Four-limbed, ground-running creature with fleshy head and opening four-petal mouth.
+   ell(root,flesh,0,.83,.25,.57,.39,.9);
+   ell(root,flesh,0,.7,-.54,.45,.34,.48);
+   const mouth=ell(root,inner,0,.7,-.98,.29,.28,.07);parts.mouth=mouth;
+   for(let j=0;j<4;j++){
+     const ang=j*Math.PI/2,p=new THREE.Group();p.position.set(0,.7,-.94);p.rotation.z=ang;root.add(p);
+     ell(p,flesh,0,.23,-.06,.22,.34,.13);
+     for(let k=-1;k<=1;k++)ell(p,teeth,k*.095,.33,-.18,.025,.085,.025);
+     parts.petals.push(p);
+   }
+   for(const side of [-1,1])for(const rear of [false,true]){
+     const p=pivot(side*.4,.77,rear?.66:-.45);parts.legs.push({p,side,rear});
+     ell(p,flesh,side*.22,-.20,0,.22,.33,.20);
+     ell(p,flesh,side*.39,-.48,-.12,.15,.31,.16);
+     for(let j=-1;j<=1;j++)ell(p,teeth,side*(.38+j*.11),-.69,-.26,.07,.055,.17);
+   }
+ }else if(!armored){
+   // Reference one: teal grey alien with oversized smooth cranium, black eyes, long arms and thin legs.
+   ell(root,charcoal,0,1.52,0,.39,.72,.25);
+   ell(root,cyan,0,2.48,-.05,.59,.68,.46);
+   ell(root,cyan,0,2.02,-.19,.29,.26,.3);
+   const eyeMat=new THREE.MeshStandardMaterial({color:0x05090d,metalness:.13,roughness:.12});
+   for(const side of [-1,1]){
+     const e=ell(root,eyeMat,side*.28,2.5,-.46,.205,.265,.085);e.rotation.z=side*-.19;
+     const arm=pivot(side*.35,1.96,0);parts.arms.push({p:arm,side});
+     ell(arm,cyan,side*.14,-.36,0,.16,.48,.15);
+     ell(arm,cyan,side*.2,-.82,-.10,.115,.43,.11);
+     ell(arm,cyan,side*.22,-1.13,-.12,.14,.18,.1);
+     for(let j=-1;j<=1;j++)ell(arm,cyan,side*(.18+j*.07),-1.33,-.15,.035,.18,.04);
+     const leg=pivot(side*.20,1.07,0);parts.legs.push({p:leg,side});
+     ell(leg,charcoal,0,-.35,0,.18,.46,.18);
+     ell(leg,charcoal,0,-.75,-.12,.14,.37,.14);
+     ell(leg,cyan,0,-1.0,-.24,.16,.09,.26);
+   }
+   const mouth=ell(root,inner,0,2.10,-.48,.075,.027,.022);parts.mouth=mouth;
+ }else{
+   ell(root,armorMat,0,1.5,0,.75,.96,.5);
+   ell(root,steel,0,2.45,-.10,.43,.47,.39);
+   for(const side of [-1,1]){
+     ell(root,steel,side*.70,2.03,0,.4,.38,.43);
+     const arm=pivot(side*.8,1.93,0);parts.arms.push({p:arm,side});
+     ell(arm,armorMat,side*.10,-.50,0,.29,.58,.29);
+     ell(arm,steel,side*.13,-1.02,-.09,.27,.25,.32);
+     const leg=pivot(side*.36,1.06,0);parts.legs.push({p:leg,side});
+     ell(leg,armorMat,0,-.40,0,.29,.50,.28);
+     ell(leg,steel,0,-.86,-.16,.25,.35,.27);
+   }
+   ell(root,eyeMat,0,2.5,-.48,.28,.08,.04);
+ }
+ root.userData={kind,hp:armored?4:2,speed:crawler?1.8:armored?.65:1.1,phase:Math.random()*6,parts};
+ aliens.push(root);
+}
+function animateAlien(a,t,d){
+ const {kind,parts,phase}=a.userData;const run=d>1.1;const gait=t*(kind==='crawler'?11:7)+phase,amount=run?1:.22;
+ parts.legs.forEach(({p,side,rear},i)=>{p.rotation.x=Math.sin(gait+(i%2?Math.PI:0)+(rear?Math.PI:0))*amount*(kind==='crawler'?.47:.35);});
+ parts.arms.forEach(({p,side})=>{p.rotation.x=Math.sin(gait+(side>0?Math.PI:0))*amount*.40;p.rotation.z=Math.sin(gait*.5+side)*.09;});
+ if(parts.petals.length){const open=.16+.42*(.5+.5*Math.sin(t*5+phase))*(d<2?1:.5);parts.petals.forEach((p,i)=>{p.rotation.z=i*Math.PI/2+(i%2?1:-1)*open;});}
+ if(parts.mouth&&kind==='stalker')parts.mouth.scale.y=.025+.027*(1+Math.sin(t*4+phase));
+ a.position.y=kind==='crawler'?0:Math.max(0,Math.sin(gait*2))*.025;
+}
 function spawn(){for(const a of aliens)scene.remove(a);aliens=[];alien('stalker',-10);if(wave>=2)alien('brute',-16);if(wave>=2)alien('crawler',-21);}
 function hud(){document.getElementById('hp').textContent=hp;document.getElementById('ammo').textContent=ammo+' / '+reserve;document.getElementById('kills').textContent=kills;document.getElementById('wave').textContent=wave}
 function shoot(){const now=performance.now();if(!playing||now-shotAt<230||ammo<=0)return;shotAt=now;ammo--;muzzle.intensity=28;gun.rotation.x=.12;const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(aliens,true);if(hits.length){let a=hits[0].object;while(a.parent&&!aliens.includes(a))a=a.parent;if(aliens.includes(a)){a.userData.hp-=1;if(a.userData.hp<=0){scene.remove(a);aliens.splice(aliens.indexOf(a),1);kills++;if(!aliens.length){wave++;spawn();document.getElementById('message').textContent='WAVE '+wave+' · NEW CONTACTS';}}}}hud()}
@@ -40,6 +101,6 @@ stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCap
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.35){lookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)}});renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==lookId||!playing||document.pointerLockElement)return;yaw-=(e.clientX-lastX)*.005;pitch=Math.max(-1.1,Math.min(1.1,pitch-(e.clientY-lastY)*.005));lastX=e.clientX;lastY=e.clientY});renderer.domElement.addEventListener('pointerup',()=>lookId=null);
 document.getElementById('fire').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});for(const ev of ['pointerup','pointercancel'])document.getElementById('fire').addEventListener(ev,()=>fireHeld=false);document.getElementById('reload').onclick=reload;
 document.getElementById('quality').onchange=e=>{renderer.setPixelRatio(Math.min(devicePixelRatio,e.target.value==='high'?2:1.1));renderer.setSize(innerWidth,innerHeight)};
-const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(.045,clock.getDelta());if(playing){camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;const speed=3.2*dt;let x=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,z=(keys.KeyS?1:0)-(keys.KeyW?1:0)+moveY;const length=Math.hypot(x,z)||1;x/=length;z/=length;camera.position.x=Math.max(-4.2,Math.min(4.2,camera.position.x+(Math.cos(yaw)*x+Math.sin(yaw)*z)*speed));camera.position.z=Math.max(-27,Math.min(10,camera.position.z+(-Math.sin(yaw)*x+Math.cos(yaw)*z)*speed));if(fireHeld)shoot();for(const a of aliens){const dx=camera.position.x-a.position.x,dz=camera.position.z-a.position.z,d=Math.hypot(dx,dz);if(d>.85){a.position.x+=dx/d*a.userData.speed*dt;a.position.z+=dz/d*a.userData.speed*dt}a.lookAt(camera.position.x,0,camera.position.z);a.rotation.y+=Math.PI; a.position.y=Math.sin(performance.now()*.003+a.userData.phase)*.025;if(d<1.1){a.userData.attack=(a.userData.attack||0)-dt;if(a.userData.attack<=0){hp=Math.max(0,hp-(a.userData.kind==='brute'?22:15));damageFlash=.55;a.userData.attack=1.2;hud();if(hp===0){playing=false;document.getElementById('start').style.display='flex';document.querySelector('#start h1').textContent='CONTAINMENT LOST';document.querySelector('#play').textContent='RESTART';document.querySelector('#play').onclick=()=>location.reload()}}}}gun.rotation.x*=.75;muzzle.intensity*=.7;damageFlash=Math.max(0,damageFlash-dt);document.getElementById('flash').style.opacity=damageFlash*.55}renderer.render(scene,camera)}loop();
+const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);const dt=Math.min(.045,clock.getDelta());if(playing){camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;const speed=3.2*dt;let x=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,z=(keys.KeyS?1:0)-(keys.KeyW?1:0)+moveY;const length=Math.hypot(x,z)||1;x/=length;z/=length;camera.position.x=Math.max(-4.2,Math.min(4.2,camera.position.x+(Math.cos(yaw)*x+Math.sin(yaw)*z)*speed));camera.position.z=Math.max(-27,Math.min(10,camera.position.z+(-Math.sin(yaw)*x+Math.cos(yaw)*z)*speed));if(fireHeld)shoot();for(const a of aliens){const dx=camera.position.x-a.position.x,dz=camera.position.z-a.position.z,d=Math.hypot(dx,dz);if(d>.85){a.position.x+=dx/d*a.userData.speed*dt;a.position.z+=dz/d*a.userData.speed*dt}a.lookAt(camera.position.x,0,camera.position.z);a.rotation.y+=Math.PI; animateAlien(a,performance.now()/1000,d);if(d<1.1){a.userData.attack=(a.userData.attack||0)-dt;if(a.userData.attack<=0){hp=Math.max(0,hp-(a.userData.kind==='brute'?22:15));damageFlash=.55;a.userData.attack=1.2;hud();if(hp===0){playing=false;document.getElementById('start').style.display='flex';document.querySelector('#start h1').textContent='CONTAINMENT LOST';document.querySelector('#play').textContent='RESTART';document.querySelector('#play').onclick=()=>location.reload()}}}}gun.rotation.x*=.75;muzzle.intensity*=.7;damageFlash=Math.max(0,damageFlash-dt);document.getElementById('flash').style.opacity=damageFlash*.55}renderer.render(scene,camera)}loop();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
