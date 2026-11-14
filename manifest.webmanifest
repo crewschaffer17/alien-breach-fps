@@ -1,0 +1,20 @@
+{
+  "name": "Alien Breach FPS",
+  "short_name": "Alien Breach",
+  "description": "Survive the alien breach at Area 51.",
+  "id": "/alien-breach-fps/",
+  "start_url": "/alien-breach-fps/",
+  "scope": "/alien-breach-fps/",
+  "display": "standalone",
+  "background_color": "#05090d",
+  "theme_color": "#05090d",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "./alien-breach-icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
