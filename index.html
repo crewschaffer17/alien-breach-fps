@@ -360,6 +360,25 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
  #mainMenu .menu-card{padding:7px!important}
  #mainMenu .menu-title{font-size:25px!important}
 }
+
+/* Slightly zoom out only the iPhone landscape main menu, keeping controls reachable. */
+@media (hover:none) and (orientation:landscape), (pointer:coarse) and (orientation:landscape) {
+ #mainMenu>.menu-wrap {
+  transform:scale(.88)!important;
+  transform-origin:center center!important;
+  width:calc(100% / .88)!important;
+  height:calc(100% / .88)!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex-shrink:0!important;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  margin:0!important;
+  translate:-50% -50%;
+  padding:8px 16px!important;
+ }
+}
 </style>
 </head>
 <body>
