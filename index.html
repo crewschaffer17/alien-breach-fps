@@ -2678,7 +2678,7 @@ document.getElementById('closeBattleInventoryTouch').addEventListener('click',()
 document.getElementById('touchInventory').addEventListener('click',()=>{if(playing){if(inventoryOpen)closeBattleInventory();else openBattleInventory()}});
 document.getElementById('touchNext').addEventListener('click',()=>{if(playing)cycleBattleInventory()});
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||!playing||lookingId!==null)return;e.preventDefault();lookingId=e.pointerId;lookX=e.clientX;lookY=e.clientY;canvas.setPointerCapture(e.pointerId)});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookingId||!playing)return;e.preventDefault();player.a+=(e.clientX-lookX)*.004;player.pitch=Math.max(-150,Math.min(150,player.pitch-(e.clientY-lookY)*1.1));lookX=e.clientX;lookY=e.clientY});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookingId||!playing)return;e.preventDefault();player.a+=(e.clientX-lookX)*.009;player.pitch=Math.max(-150,Math.min(150,player.pitch-(e.clientY-lookY)*1.1));lookX=e.clientX;lookY=e.clientY});
 for(const type of ['pointerup','pointercancel'])canvas.addEventListener(type,e=>{if(e.pointerId===lookingId)lookingId=null});
 addEventListener('blur',()=>{resetMove();mouseDown=false;movingId=firingId=lookingId=null});
 addEventListener('contextmenu',e=>e.preventDefault());
