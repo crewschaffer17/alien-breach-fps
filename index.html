@@ -881,6 +881,7 @@ html,body,#game,#hud,.screen,.menu-wrap,.shop-wrap{overscroll-behavior:none!impo
     <p style="font-size:10px;letter-spacing:1px">FICTIONAL SCI-FI ARCADE GAME · NON-GRAPHIC</p>
   </div>
 </div>
+<script type="module">import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';window.THREE=THREE;window.dispatchEvent(new Event('alien-three-ready'));</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
@@ -890,7 +891,7 @@ const floorCanvas=document.createElement('canvas');
 const floorCtx=floorCanvas.getContext('2d',{alpha:true, willReadFrequently:false});
 let floorImageData=null;
 let lastFloorWidth=0,lastFloorHeight=0;
-let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,1.5);
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,1);
 function resize(){const v=window.visualViewport;W=Math.round(v?v.width:innerWidth);H=Math.round(v?v.height:innerHeight);canvas.style.width=W+'px';canvas.style.height=H+'px';canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>{resize();requestAnimationFrame(resize)});if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);resize();
 const map=[
@@ -1501,7 +1502,7 @@ function drawWorld(){
 // of thousands of pixels on every frame. The original tile colors and geometry
 // are retained; browser smoothing scales the buffer cleanly to the screen.
 {
-    const pixelStep = 2; // Higher-resolution floor shading to reduce blockiness on iPhone.
+    const pixelStep = 3;
     const lowW = Math.max(1, Math.ceil(W / pixelStep));
     const lowH = Math.max(1, Math.ceil(H / pixelStep));
 
@@ -2089,7 +2090,191 @@ if(!blocked(a.x,ny,.3)){
      saveGame();
      document.exitPointerLock?.();document.getElementById('overlay').style.display='flex';document.querySelector('.modal h1').innerHTML='OUTPOST <span>OVERRUN</span>';document.querySelector('.modal p').innerHTML=`You tagged ${score} alien scouts. The outpost needs you back.`;document.getElementById('start').textContent='RETURN TO MENU';document.getElementById('start').onclick=()=>{document.getElementById('overlay').style.display='none';document.getElementById('mainMenu').classList.remove('hidden');document.getElementById('start').onclick=startBattle;};}
 }
-function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);if(playing && document.visibilityState==='visible') drawWorld();requestAnimationFrame(loop);}
+
+let threeEngine=null;
+function initThreeEngine(){
+ if(threeEngine||!window.THREE)return;
+ try{
+ const T=window.THREE,scene=new T.Scene();scene.background=new T.Color(0x62757c);scene.fog=new T.Fog(0x71848a,9,32);
+ const camera=new T.PerspectiveCamera(66,W/H,.05,65);
+ const renderer=new T.WebGLRenderer({antialias:false,alpha:false,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.2));renderer.setSize(W,H);
+ renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.5;
+ renderer.domElement.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none';
+ canvas.parentNode.insertBefore(renderer.domElement,canvas);
+ canvas.style.position='fixed';canvas.style.inset='0';canvas.style.zIndex='1';
+ scene.add(new T.HemisphereLight(0xe1f6ff,0x58686b,2.1));
+ const material=(c,metal=.5,rough=.65)=>new T.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
+ const wallMat=material(0x88979c,.42,.75),trimMat=material(0x354b54,.68,.52),lightMat=new T.MeshBasicMaterial({color:0xe1f5f8}),grateMat=material(0x8da6a9,.7,.48);
+ const geometry=new T.BoxGeometry(1,1,1);
+ const blocks=[];
+ for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++)if(map[y][x]==='1')blocks.push([x,y]);
+ const inst=new T.InstancedMesh(geometry,wallMat,blocks.length);const dummy=new T.Object3D();
+ blocks.forEach(([x,y],i)=>{dummy.position.set(x+.5,1.6,-y-.5);dummy.scale.set(1,3.2,1);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix)});scene.add(inst);
+ const makeBox=(x,y,z,w,h,d,m=trimMat)=>{const o=new T.Mesh(geometry,m);o.position.set(x,y,z);o.scale.set(w,h,d);scene.add(o);return o};
+
+ // Reference-inspired worn industrial concrete/ceramic tile floor.
+ // Repeatable tile texture with cracked grout, scuffs, stains and subtle mottling.
+ const texCanvas=document.createElement('canvas');texCanvas.width=512;texCanvas.height=512;
+ const fc=texCanvas.getContext('2d'),tileSize=128;
+ let seed=4177;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ fc.fillStyle='#333f3d';fc.fillRect(0,0,512,512);
+ for(let ty=0;ty<4;ty++)for(let tx=0;tx<4;tx++){
+  const x=tx*tileSize,y=ty*tileSize,base=118+Math.floor(rnd()*22);
+  fc.fillStyle=`rgb(${base-10},${base},${base-1})`;fc.fillRect(x+3,y+3,122,122);
+  const grad=fc.createLinearGradient(x,y,x+125,y+125);
+  grad.addColorStop(0,'rgba(225,231,216,.19)');grad.addColorStop(.5,'rgba(62,79,77,.06)');grad.addColorStop(1,'rgba(23,36,35,.3)');
+  fc.fillStyle=grad;fc.fillRect(x+4,y+4,120,120);
+  for(let k=0;k<320;k++){
+   const px=x+5+rnd()*118,py=y+5+rnd()*118,r=rnd()*4+.3;
+   fc.fillStyle=rnd()>.48?'rgba(21,35,34,.085)':'rgba(213,224,210,.085)';
+   fc.fillRect(px,py,r,r*.6);
+  }
+  for(let k=0;k<3;k++){
+   fc.strokeStyle='rgba(35,48,46,.17)';fc.lineWidth=.7+rnd()*1.2;fc.beginPath();
+   const px=x+8+rnd()*105,py=y+8+rnd()*105;fc.moveTo(px,py);
+   fc.lineTo(px+8+rnd()*23,py+(rnd()-.5)*12);fc.stroke();
+  }
+  fc.strokeStyle='rgba(22,31,30,.45)';fc.lineWidth=3;fc.strokeRect(x+1.5,y+1.5,125,125);
+  fc.strokeStyle='rgba(206,216,204,.22)';fc.lineWidth=1;fc.strokeRect(x+4.5,y+4.5,119,119);
+ }
+ // Longer irregular cracks crossing several slabs, as in the reference.
+ for(let i=0;i<14;i++){
+  let x=rnd()*512,y=rnd()*512;fc.beginPath();fc.moveTo(x,y);
+  for(let j=0;j<5;j++){x+=8+rnd()*22;y+=(rnd()-.5)*18;fc.lineTo(x,y)}
+  fc.strokeStyle='rgba(29,39,37,.42)';fc.lineWidth=.65+rnd()*1.1;fc.stroke();
+ }
+ const floorTexture=new T.CanvasTexture(texCanvas);floorTexture.wrapS=floorTexture.wrapT=T.RepeatWrapping;
+ floorTexture.repeat.set(map[0].length/4,map.length/4);
+ floorTexture.colorSpace=T.SRGBColorSpace;floorTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ const tileMaterial=new T.MeshStandardMaterial({map:floorTexture,color:0xe3e9e4,metalness:.10,roughness:.86});
+ const floorMesh=new T.Mesh(new T.PlaneGeometry(map[0].length,map.length),tileMaterial);
+ floorMesh.rotation.x=-Math.PI/2;floorMesh.position.set(map[0].length/2,-.035,-map.length/2);scene.add(floorMesh);
+ const ceiling=makeBox(map[0].length/2,3.25,-map.length/2,map[0].length,.09,map.length,material(0x697a80,.4,.7));
+ for(let y=2;y<map.length-1;y+=5)for(let x=2;x<map[y].length-1;x+=7)if(map[y][x]==='0'){
+  makeBox(x+.5,3.16,-y-.5,1.6,.06,.22,lightMat);
+  const l=new T.PointLight(0xe0f7ff,10,8,2);l.position.set(x+.5,2.8,-y-.5);scene.add(l);
+ }
+
+ // Facility detailing: solid wall cladding, exposed ceiling services,
+ // emergency monitors and scattered loose documents.
+ wallMat.transparent=false;wallMat.opacity=1;wallMat.depthWrite=true;wallMat.side=T.DoubleSide;
+ const panelMat=material(0x65767c,.44,.78),jointMat=material(0x25353d,.66,.63),pipeMat=material(0x777c69,.62,.48);
+ const cableMat=material(0x343a39,.25,.85),warningMat=material(0xa9954a,.45,.67);
+ // Attach a raised wall panel only on faces facing navigable floor cells.
+ const panels=[];
+ for(let y=1;y<map.length-1;y++)for(let x=1;x<map[y].length-1;x++)if(map[y][x]==='1'){
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   if(map[y+dy]?.[x+dx]!=='0')continue;
+   const sideX=dx!==0,px=x+.5+dx*.505,pz=-y-.5-dy*.505;
+   panels.push({px,pz,sideX});
+  }
+ }
+ const pMesh=new T.InstancedMesh(geometry,panelMat,panels.length);
+ panels.forEach((p,i)=>{dummy.position.set(p.px,1.65,p.pz);dummy.scale.set(p.sideX?.065:.87,2.8,p.sideX?.87:.065);dummy.updateMatrix();pMesh.setMatrixAt(i,dummy.matrix)});scene.add(pMesh);
+ // Dark metal horizontal seam and waist-level trim at intervals.
+ const trim=new T.InstancedMesh(geometry,jointMat,panels.length*2);
+ panels.forEach((p,i)=>{for(let j=0;j<2;j++){dummy.position.set(p.px,j?2.72:.88,p.pz);dummy.scale.set(p.sideX?.09:.89,.065,p.sideX?.89:.09);dummy.updateMatrix();trim.setMatrixAt(i*2+j,dummy.matrix)}});scene.add(trim);
+ // Ceiling ductwork, cables and yellow utility pipes, placed above navigable routes.
+ const pipeGeo=new T.CylinderGeometry(.11,.11,1,9);
+ const addPipe=(x1,y1,z1,x2,y2,z2,m,r=.11)=>{
+  const a=new T.Vector3(x1,y1,z1),b=new T.Vector3(x2,y2,z2),d=new T.Vector3().subVectors(b,a);
+  const o=new T.Mesh(pipeGeo,m);o.position.copy(a).add(b).multiplyScalar(.5);
+  o.scale.set(r/.11,d.length(),r/.11);
+  o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());scene.add(o);
+ };
+ for(let y=1;y<map.length-2;y++){
+  for(let x=1;x<map[y].length-1;x++){
+   if(map[y][x]!=='0')continue;
+   // Segmented ducts connect through open cells without running across solid walls.
+   if(map[y+1][x]==='0' && (x%7===3)){
+    addPipe(x+.72,2.96,-y-.5,x+.72,2.96,-y-1.5,pipeMat,.14);
+    addPipe(x+.42,3.03,-y-.5,x+.42,3.03,-y-1.5,cableMat,.065);
+   }
+   if(map[y][x+1]==='0' && y%6===3){
+    addPipe(x+.5,2.91,-y-.2,x+1.5,2.91,-y-.2,warningMat,.115);
+   }
+  }
+ }
+ // Build each wall-mounted monitor as real geometry with a CanvasTexture label.
+ const screenCanvas=document.createElement('canvas');screenCanvas.width=512;screenCanvas.height=256;
+ const sc=screenCanvas.getContext('2d');sc.fillStyle='#080b0e';sc.fillRect(0,0,512,256);
+ sc.fillStyle='#5c1015';sc.fillRect(0,0,512,8);sc.fillRect(0,248,512,8);
+ sc.fillStyle='#f3484b';sc.textAlign='center';sc.font='bold 47px monospace';sc.fillText('AREA 51',256,81);
+ sc.font='bold 29px monospace';sc.fillText('CONTAINMENT BREACH',256,137);
+ sc.fillStyle='#d37d7d';sc.font='21px monospace';sc.fillText('RESTRICTED // LEVEL 5',256,181);
+ sc.fillStyle='#f3484b';sc.font='19px monospace';sc.fillText('WARNING: BIOHAZARD',256,220);
+ const monitorTexture=new T.CanvasTexture(screenCanvas);monitorTexture.colorSpace=T.SRGBColorSpace;
+ const screenMat=new T.MeshBasicMaterial({map:monitorTexture,side:T.DoubleSide});
+ const bezel=material(0x11181c,.45,.42);
+ function monitor(x,y,z,angle){
+  const g=new T.Group();g.position.set(x,y,z);g.rotation.y=angle;scene.add(g);
+  const back=new T.Mesh(geometry,bezel);back.scale.set(1.65,.98,.11);g.add(back);
+  const display=new T.Mesh(new T.PlaneGeometry(1.49,.79),screenMat);
+  display.position.z=.066;g.add(display);
+  const led=new T.Mesh(geometry,warningMat);led.position.set(.69,-.43,.069);led.scale.set(.035,.022,.018);g.add(led);
+ }
+ // Use the wall-face normal so screens face into accessible corridors and rooms.
+ let screenCount=0;
+ for(const p of panels){
+  if(screenCount>=18)break;
+  const ix=Math.floor(p.px),iy=Math.floor(-p.pz);
+  if((ix*17+iy*11)%13!==0)continue;
+  const normalX=p.sideX?(p.px-ix-.5>0?1:-1):0;
+  const normalZ=!p.sideX?(p.pz+iy+.5>0?1:-1):0;
+  const angle=Math.atan2(normalX,normalZ);
+  monitor(p.px+normalX*.13,1.9,p.pz+normalZ*.13,angle);
+  screenCount++;
+ }
+ // Paper sheets: thin, non-interactive meshes on random walkable floor cells.
+ const paperColors=[0xd5d6cb,0xb4bdb8,0xc6c3ae,0x9ba8a5];
+ const paperMats=paperColors.map(c=>new T.MeshStandardMaterial({color:c,roughness:1,metalness:0,side:T.DoubleSide}));
+ const paperGeo=new T.PlaneGeometry(.29,.39);
+ const inkMat=new T.MeshBasicMaterial({color:0x45545b,side:T.DoubleSide});
+ let papers=0;
+ for(let y=1;y<map.length-1;y++)for(let x=1;x<map[y].length-1;x++){
+  if(map[y][x]!=='0'||(x*31+y*19)%7!==0||papers>110)continue;
+  const sheet=new T.Mesh(paperGeo,paperMats[(x+y)%paperMats.length]);
+  sheet.rotation.x=-Math.PI/2;sheet.rotation.z=((x*13+y*7)%11)*.29;
+  sheet.position.set(x+.25+((x*7)%5)*.11,.026,-y-.23-((y*3)%5)*.1);
+  scene.add(sheet);papers++;
+  if(papers%3===0){const ink=new T.Mesh(new T.PlaneGeometry(.2,.012),inkMat);ink.rotation.copy(sheet.rotation);ink.position.copy(sheet.position);ink.position.y+=.002;scene.add(ink)}
+ }
+ const aliens3d=new Map();
+ const alienMat=material(0x457a75,.15,.7),bruteMat=material(0x53636e,.8,.55),crawlerMat=material(0x8d7470,.12,.85),eye=new T.MeshBasicMaterial({color:0xff4d3f});
+ function alienVisual(a){
+  const g=new T.Group(),kind=a.kind||'stalker',crawler=kind==='crawler',brute=kind==='armored',m=crawler?crawlerMat:brute?bruteMat:alienMat;
+  const sphere=(x,y,z,sx,sy,sz,mat=m)=>{const o=new T.Mesh(new T.SphereGeometry(1,9,7),mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);g.add(o)};
+  sphere(0,crawler?.35:1,0,crawler?.35:brute?.46:.28,crawler?.25:brute?.76:.65,crawler?.52:.25);
+  sphere(0,crawler?.43:brute?1.85:1.82,-.18,crawler?.3:brute?.35:.39,crawler?.28:brute?.4:.46,crawler?.3:.31);
+  for(const side of [-1,1]){sphere(side*.17,crawler?.45:brute?1.9:1.85,-.48,.075,.09,.035,eye);
+   sphere(side*(crawler?.36:.34),crawler?.2:.6,0,.11,crawler?.22:.56,.12);
+  }
+  g.userData.kind=kind;scene.add(g);aliens3d.set(a,g);
+ }
+ const gun=new T.Group();camera.add(gun);scene.add(camera);
+ const gunMat=material(0x2c4049,.8,.38);
+ const body=new T.Mesh(geometry,gunMat);body.scale.set(.22,.22,.72);body.position.set(.4,-.34,-.65);gun.add(body);
+ const barrel=new T.Mesh(geometry,trimMat);barrel.scale.set(.09,.09,.38);barrel.position.set(.4,-.31,-1.12);gun.add(barrel);
+ const flash=new T.PointLight(0xffa65b,0,3);flash.position.set(.4,-.3,-1.3);gun.add(flash);
+ threeEngine={T,scene,camera,renderer,aliens3d,alienVisual,gun,flash};
+ }catch(err){console.error('3D engine failed',err);threeEngine=null}
+}
+function renderThreeWorld(){
+ if(!threeEngine){initThreeEngine();if(!threeEngine){drawWorld();return}}
+ const e=threeEngine;
+ if(e.renderer.domElement.width!==Math.round(W*e.renderer.getPixelRatio())||e.renderer.domElement.height!==Math.round(H*e.renderer.getPixelRatio())){e.renderer.setSize(W,H);e.camera.aspect=W/H;e.camera.updateProjectionMatrix()}
+ e.camera.position.set(player.x,1.65,-player.y);e.camera.rotation.order='YXZ';e.camera.rotation.y=Math.PI/2-player.a;e.camera.rotation.x=-player.pitch/Math.max(1,H)*1.1;
+ const alive=new Set(aliens.filter(a=>a.alive));
+ for(const [a,g] of e.aliens3d)if(!alive.has(a)){e.scene.remove(g);e.aliens3d.delete(a)}
+ for(const a of alive){if(!e.aliens3d.has(a))e.alienVisual(a);const g=e.aliens3d.get(a);g.position.set(a.x,0,-a.y);g.rotation.y=Math.PI/2-a.phase;}
+ e.flash.intensity=shotFlash>0?15:0;
+ e.renderer.render(e.scene,e.camera);
+ ctx.clearRect(0,0,W,H);
+ // Original game's HUD, touch controls and menus remain as existing DOM overlays.
+}
+window.addEventListener('alien-three-ready',initThreeEngine);
+function loop(t){let dt=Math.min((t-last)/1000,.04)||0;last=t;update(dt);if(playing && document.visibilityState==='visible') renderThreeWorld();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 function startBattle() {
     runRecorded = false;
