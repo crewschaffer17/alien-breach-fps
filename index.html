@@ -1544,16 +1544,17 @@ function drawWorld(){
 
             const localX = worldX - tileX;
             const localY = worldY - tileY;
-            const grout = localX < 0.035 || localX > 0.965 || localY < 0.035 || localY > 0.965;
+            const grout = localX < 0.022 || localX > 0.978 || localY < 0.022 || localY > 0.978;
             const i = rowOffset + px * 4;
             if (grout) {
-                pixels[i] = 43; pixels[i + 1] = 42; pixels[i + 2] = 39;
+                pixels[i] = 31; pixels[i + 1] = 43; pixels[i + 2] = 51;
             } else {
-                const variation = ((tileX + tileY) & 1) ? 4 : 0;
-                const shade = (139 + variation) * distanceLight;
-                pixels[i] = shade | 0;
-                pixels[i + 1] = Math.max(0, (shade - 2) | 0);
-                pixels[i + 2] = Math.max(0, (shade - 7) | 0);
+                const variation = ((tileX * 13 + tileY * 7) & 3) * 3;
+                const wear = ((Math.floor(localX * 11) * 7 + Math.floor(localY * 13) * 11 + tileX * 3 + tileY * 5) & 7);
+                const shade = (122 + variation - wear) * distanceLight;
+                pixels[i] = Math.min(255, (shade * .86) | 0);
+                pixels[i + 1] = Math.min(255, (shade * .98) | 0);
+                pixels[i + 2] = Math.min(255, (shade * 1.05) | 0);
             }
             pixels[i + 3] = 255;
         }
@@ -1571,22 +1572,22 @@ const emergencyActive=performance.now()<emergencyLightUntil;
 const flicker=(Math.sin(time*13)>.995||Math.sin(time*5.7)<-.995)?0.72:1.05+0.07*Math.sin(time*2.1);
 const ceilingBottom=Math.max(0,Math.min(H,horizon));
 // Lightweight ceiling: perspective panel seams and fixtures, no pixel-by-pixel image generation.
-ctx.fillStyle='#34454c';ctx.fillRect(0,0,W,ceilingBottom);
-ctx.strokeStyle='rgba(65,89,92,.32)';ctx.lineWidth=1;
+ctx.fillStyle='#465760';ctx.fillRect(0,0,W,ceilingBottom);
+ctx.strokeStyle='rgba(24,38,46,.48)';ctx.lineWidth=1;
 for(let i=-6;i<=6;i++){
  const topX=W*.5+i*W*.12-player.a*8;
  ctx.beginPath();ctx.moveTo(topX,0);ctx.lineTo(W*.5+(topX-W*.5)*.22,ceilingBottom);ctx.stroke();
 }
 for(let row=1;row<=5;row++){
  const y=ceilingBottom*(1-Math.pow(.66,row));
- ctx.fillStyle='rgba(3,7,10,.5)';ctx.fillRect(0,y,W,2);
+ ctx.fillStyle='rgba(19,32,39,.45)';ctx.fillRect(0,y,W,2);
 }
 for(let i=0;i<5;i++){
  const x=((i*W*.24-player.a*42)%(W+160)+(W+160))%(W+160)-80;
  const y=ceilingBottom*(.18+(i%2)*.19);
  const w=90-(i%2)*25;
- ctx.fillStyle='#34454b';ctx.fillRect(x,y,w,13);
- ctx.fillStyle=emergencyActive?'#d94444':flicker<.2?'#263e40':'#b0e9df';
+ ctx.fillStyle='#233741';ctx.fillRect(x,y,w,13);
+ ctx.fillStyle=emergencyActive?'#d94444':flicker<.2?'#7fabb5':'#e1f7f7';
  ctx.fillRect(x+5,y+4,w-10,5);
 }
 if(emergencyActive){ctx.fillStyle='rgba(190,10,16,'+(0.10+0.14*Math.abs(Math.sin(time*9)))+')';ctx.fillRect(0,0,W,H);}
@@ -1602,22 +1603,22 @@ if(emergencyActive){ctx.fillStyle='rgba(190,10,16,'+(0.10+0.14*Math.abs(Math.sin
     let side=(Math.floor(r.x*2)+Math.floor(r.y*2))%2;
     const tileIndex=Math.floor((r.x+r.y)*1.15);
     const stain=((tileIndex*17)%9)/9;
-    const tileBase=Math.floor(86+shade*52-stain*14);
-    ctx.fillStyle=`rgb(${tileBase},${tileBase-3},${tileBase-10})`;
+    const tileBase=Math.floor(118+shade*62-stain*12);
+    ctx.fillStyle=`rgb(${tileBase-8},${tileBase},${tileBase+3})`;
     ctx.fillRect(sx,y,2,wallH);
     const tileHeight=wallH/5;
     for(let row=1;row<5;row++){
         const seamY=y+tileHeight*row;
-        ctx.fillStyle=`rgba(45,39,34,${.22+shade*.10})`;
+        ctx.fillStyle=`rgba(30,49,58,${.35+shade*.10})`;
         ctx.fillRect(sx,seamY,2,Math.max(1,wallH*.006));
     }
     if(Math.abs(((r.x+r.y)*1.15)%1)<.10){
-        ctx.fillStyle='rgba(43,37,32,.42)';
+        ctx.fillStyle='rgba(32,51,61,.56)';
         ctx.fillRect(sx,y,2,wallH);
     }
-    ctx.fillStyle=`rgba(65,48,38,${.06+stain*.13})`;
+    ctx.fillStyle=`rgba(44,66,75,${.05+stain*.10})`;
     ctx.fillRect(sx,y+wallH*.48,2,wallH*.30);
-    ctx.fillStyle=`rgba(20,18,16,${.18+side*.10})`;
+    ctx.fillStyle=`rgba(25,40,48,${.22+side*.10})`;
     ctx.fillRect(sx,y+wallH*.82,2,wallH*.18);
  } // end wall-column raycasting loop
  // DRAW LABORATORY FURNITURE
