@@ -211,6 +211,40 @@
 .battle-item-art .equipment-art{transform:scale(.5);transform-origin:center top;height:45px}
 .battle-item-art .weapon-art .art-grip{height:22%}
 @media(max-width:760px){.equipment-art{height:65px}.collection-weapon-art .weapon-art{height:50px}}
+
+/* Fixed application shell: scroll item lists, never the whole game screen. */
+html,body{margin:0;overflow:hidden!important;overscroll-behavior:none;height:100%;height:100dvh}
+#shopScreen,#loadoutScreen{overflow:hidden!important;align-items:stretch;justify-content:center;padding:0!important}
+#shopScreen>.shop-wrap,#loadoutScreen>.shop-wrap{width:min(1100px,96vw);height:100%;height:100dvh;max-height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0 auto}
+#shopScreen .shop-head,#loadoutScreen .shop-head{flex:0 0 auto}
+#shopScreen .shop-grid{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:6px 6px 16px}
+#shopScreen .shop-footer{flex:0 0 auto;margin:4px 0 8px}
+#loadoutScreen .loadout-layout{flex:1 1 auto;min-height:0;overflow:hidden}
+#loadoutScreen .loadout-main,#loadoutScreen .stats-panel{min-height:0;overflow:hidden}
+#loadoutScreen .loadout-main{display:flex;flex-direction:column}
+#loadoutScreen .loadout-tabs{flex:0 0 auto}
+#loadoutScreen .loadout-view:not(.hidden){flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:2px 5px 12px}
+#loadoutScreen .weapon-grid{min-height:0}
+#loadoutScreen .stats-panel{overflow-y:auto;overscroll-behavior:contain}
+@media(hover:none),(pointer:coarse){
+ #shopScreen>.shop-wrap,#loadoutScreen>.shop-wrap{width:calc(100vw - max(12px,env(safe-area-inset-left)) - max(12px,env(safe-area-inset-right)))}
+ #shopScreen .shop-head,#loadoutScreen .shop-head{padding:5px 3px;margin:0}
+ #shopScreen .shop-head h1,#loadoutScreen .shop-head h1{font-size:clamp(17px,5vh,29px);margin:0}
+ #shopScreen .shop-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ #shopScreen .shop-item{padding:8px;min-height:0}
+ #shopScreen .shop-item h3{font-size:12px}
+ #shopScreen .shop-item p{font-size:10px;line-height:1.25;margin:3px 0}
+ #shopScreen .shop-footer{font-size:10px}
+ #loadoutScreen .loadout-layout{grid-template-columns:minmax(0,1fr) minmax(120px,.3fr);gap:6px}
+ #loadoutScreen .loadout-main{padding:7px}
+ #loadoutScreen .loadout-tabs{margin-bottom:5px;gap:4px}
+ #loadoutScreen .loadout-tabs button{padding:6px;font-size:10px}
+ #loadoutScreen .weapon-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #loadoutScreen .weapon-card{min-height:0;padding:6px}
+ #loadoutScreen .weapon-card h3{font-size:11px}
+ #loadoutScreen .weapon-card p{font-size:10px;line-height:1.2}
+ #loadoutScreen .weapon-card button{padding:6px;font-size:10px}
+}
 </style>
 </head>
 <body>
@@ -297,7 +331,7 @@
     <div class="weapon-art weapon-art-shotgun" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
     <h3>SHOTGUN</h3>
     <p>Click once to fire 4 forward-spreading pellets.</p>
-    <div class="item-cost">10 CREDITS</div>
+    <div class="item-cost">4000 CREDITS</div>
     <button class="buy-btn" data-item="shotgun">BUY SHOTGUN</button>
   </article>
 
@@ -305,38 +339,38 @@
     <div class="weapon-art weapon-art-rifle" aria-hidden="true"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
     <h3>ASSAULT RIFLE</h3>
     <p>Hold to fire one shot every 0.6 seconds.</p>
-    <div class="item-cost">10 CREDITS</div>
+    <div class="item-cost">3500 CREDITS</div>
     <button class="buy-btn" data-item="rifle">BUY RIFLE</button>
   </article>
 
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-viper"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>VIPER SMG</h3><p>Fast compact SMG; rapid fire, short range.</p><div class="item-cost">10 CREDITS</div>
+    <h3>VIPER SMG</h3><p>Fast compact SMG; rapid fire, short range.</p><div class="item-cost">3000 CREDITS</div>
     <button class="buy-btn" data-item="viper">BUY VIPER SMG</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-ar51"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>AR-51 ASSAULT RIFLE</h3><p>Reliable midrange rifle with balanced fire.</p><div class="item-cost">10 CREDITS</div>
+    <h3>AR-51 ASSAULT RIFLE</h3><p>Reliable midrange rifle with balanced fire.</p><div class="item-cost">3000 CREDITS</div>
     <button class="buy-btn" data-item="ar51">BUY AR-51 ASSAULT RIFLE</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-phantom"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>PHANTOM SNIPER</h3><p>Long-range precision rifle; slow powerful shots.</p><div class="item-cost">10 CREDITS</div>
+    <h3>PHANTOM SNIPER</h3><p>Long-range precision rifle; slow powerful shots.</p><div class="item-cost">3500 CREDITS</div>
     <button class="buy-btn" data-item="phantom">BUY PHANTOM SNIPER</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-titan"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>TITAN MINIGUN</h3><p>Heavy rotary cannon with a high rate of fire.</p><div class="item-cost">10 CREDITS</div>
+    <h3>TITAN MINIGUN</h3><p>Heavy rotary cannon with a high rate of fire.</p><div class="item-cost">4500 CREDITS</div>
     <button class="buy-btn" data-item="titan">BUY TITAN MINIGUN</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-plasma"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>PLASMA BLASTER</h3><p>Explosive purple plasma with splash damage.</p><div class="item-cost">10 CREDITS</div>
+    <h3>PLASMA BLASTER</h3><p>Explosive purple plasma with splash damage.</p><div class="item-cost">5000 CREDITS</div>
     <button class="buy-btn" data-item="plasma">BUY PLASMA BLASTER</button>
   </article>
   <article class="shop-item new-gun-shop">
     <div class="weapon-art weapon-art-obliterator"><div class="art-barrel"></div><div class="art-body"></div><div class="art-stock"></div><div class="art-grip"></div><div class="art-glow"></div></div>
-    <h3>OBLITERATOR X</h3><p>Legendary piercing red energy weapon.</p><div class="item-cost">10 CREDITS</div>
+    <h3>OBLITERATOR X</h3><p>Legendary piercing red energy weapon.</p><div class="item-cost">6000 CREDITS</div>
     <button class="buy-btn" data-item="obliterator">BUY OBLITERATOR X</button>
   </article>
   <article class="shop-item">
@@ -1656,16 +1690,16 @@ document.getElementById('backLoadout').onclick = () => {
     document.getElementById('mainMenu').classList.remove('hidden');
 };
 const shopPrices = {
-    shotgun: 10,
-    rifle: 10,
+    shotgun: 4000,
+    rifle: 3500,
     medkit: 350,
     speed: 750,
-    viper: 10,
-    ar51: 10,
-    phantom: 10,
-    titan: 10,
-    plasma: 10,
-    obliterator: 10
+    viper: 3000,
+    ar51: 3000,
+    phantom: 3500,
+    titan: 4500,
+    plasma: 5000,
+    obliterator: 6000
 };
 
 const shopLabels = {
@@ -2080,6 +2114,11 @@ canvas.addEventListener('touchmove',e=>{ if(isPhoneDevice())return;
 canvas.addEventListener('touchend',()=>{draggingCamera=false;});
 
 const isPhoneDevice=()=>navigator.maxTouchPoints>0 && (/iPhone|Android|iPod/i.test(navigator.userAgent)||Math.min(screen.width,screen.height)<700);
+async function requestLandscape(){
+ if(!isPhoneDevice())return;
+ try{if(screen.orientation?.lock && document.fullscreenElement)await screen.orientation.lock('landscape')}catch(e){}
+}
+document.addEventListener('fullscreenchange',requestLandscape);
 function syncPhoneLayout(){
  const phone=isPhoneDevice(),portrait=innerHeight>innerWidth;
  document.getElementById('rotatePrompt').style.display=phone&&portrait?'flex':'none';
@@ -2089,6 +2128,7 @@ function syncPhoneLayout(){
 addEventListener('orientationchange',()=>{setTimeout(syncPhoneLayout,100);setTimeout(syncPhoneLayout,450)});
 addEventListener('resize',syncPhoneLayout);
 syncPhoneLayout();
+document.addEventListener('pointerdown',()=>{if(isPhoneDevice())requestLandscape()},{once:true});
 const movePad=document.getElementById('movePad'),moveKnob=document.getElementById('moveKnob'),fireButton=document.getElementById('touchFire');
 let movingId=null,firingId=null,lookingId=null,lookX=0,lookY=0;
 function resetMove(){for(const k of ['KeyW','KeyA','KeyS','KeyD'])keys[k]=false;moveKnob.style.left='50%';moveKnob.style.top='50%'}
