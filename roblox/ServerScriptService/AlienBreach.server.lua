@@ -483,12 +483,12 @@ local function specimenTank(x,y,empty)
 end
 -- Rows of oversized chambers, including adjacent pairs.
 for _,spec in ipairs({
-    {40.5,5.5,false},{41.5,5.5,false},{46.5,5.5,false},{51.5,5.5,false},
-    {40.5,9.5,false},{46.5,9.5,true},{51.5,9.5,false},
-    {40.5,17.5,false},{41.5,17.5,false},{46.5,17.5,false},{51.5,17.5,false},
-    {40.5,22.5,true},{46.5,22.5,false},{51.5,22.5,false},
-    {21.5,36.5,false},{26.5,36.5,false},{31.5,36.5,false},
-    {21.5,40.5,false},{26.5,40.5,true},{31.5,40.5,false}
+    {40.5,5.5,false},{48.5,5.5,false},
+    {40.5,9.5,false},{48.5,9.5,true},
+    {40.5,17.5,false},{48.5,17.5,false},
+    {40.5,23.5,true},{48.5,23.5,false},
+    {21.5,36.5,false},{29.5,36.5,false},
+    {21.5,40.5,false},{29.5,40.5,true}
 }) do
     specimenTank(spec[1],spec[2],spec[3])
 end
