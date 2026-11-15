@@ -1,7 +1,7 @@
--- Alien Breach FPS: one-paste Roblox Studio installer (updated visuals and breach lights)
--- Paste into Studio Command Bar in EDIT mode, then execute once.
+-- Alien Breach FPS one-paste installer: abandoned floor + instant lighting
+-- Run once in Roblox Studio Command Bar in Edit mode.
 local ss=game:GetService("ServerScriptService")
-local starter=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
+local scripts=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
 local function put(parent,name,class,source)
  local existing=parent:FindFirstChild(name)
  if existing then existing:Destroy() end
@@ -58,6 +58,13 @@ if oldRemote then oldRemote:Destroy() end
 local remote = Instance.new("RemoteEvent")
 remote.Name = "AlienBreachFire"
 remote.Parent = ReplicatedStorage
+-- Apply visibility immediately, before constructing any geometry.
+Lighting.ClockTime=0
+Lighting.Brightness=2.8
+Lighting.Ambient=Color3.fromRGB(115,126,126)
+Lighting.OutdoorAmbient=Color3.fromRGB(88,100,104)
+Lighting.FogEnd=320
+Lighting.FogColor=Color3.fromRGB(18,31,36)
 local root = Instance.new("Folder")
 root.Name = "AlienBreachRoblox"
 root.Parent = workspace
@@ -116,48 +123,12 @@ local function detail(name,size,cf,color,material)
     return p
 end
 -- Keep the corridor bright enough to navigate even during flicker.
-Lighting.ClockTime=0
-Lighting.Brightness=2
-Lighting.Ambient=Color3.fromRGB(83,101,106)
-Lighting.OutdoorAmbient=Color3.fromRGB(60,75,82)
-Lighting.FogEnd=300
-Lighting.FogColor=Color3.fromRGB(18,31,36)
+-- Create all overhead fixtures FIRST, before slow decorative tile generation.
+-- This prevents the initial multi-second wait for the laboratory lights.
 for y,row in ipairs(map) do
     for x=1,#row do
-        if row:sub(x,x)=="0" then
-            local px,py=x-0.5,y-0.5
-            local center=pos(px,py,0)
-            -- Individual framed panel with a dark channel and three raised ribs.
-            detail("Steel floor panel",Vector3.new(TILE-0.25,0.12,TILE-0.25),
-                CFrame.new(center+Vector3.new(0,0.04,0)),floorColor)
-            detail("Recessed floor channel",Vector3.new(TILE-0.65,0.035,1.05),
-                CFrame.new(center+Vector3.new(0,0.12,0)),grooveColor)
-            for rib=-1,1 do
-                detail("Raised floor rib",Vector3.new(TILE-0.8,0.075,0.13),
-                    CFrame.new(center+Vector3.new(0,0.16,rib*0.27)),trimColor)
-            end
-            -- Exposed wall panels: horizontal seams and dark inset metal strips.
-            -- Only decorate faces adjacent to walkable tiles.
-            local sides={
-                {dx=1,dy=0,angle=90},
-                {dx=-1,dy=0,angle=90},
-                {dx=0,dy=1,angle=0},
-                {dx=0,dy=-1,angle=0}
-            }
-            for _,side in ipairs(sides) do
-                if not free(px+side.dx,py+side.dy) then
-                    local face=center+Vector3.new(side.dx*TILE*0.5,0,side.dy*TILE*0.5)
-                    local cf=CFrame.new(face)*CFrame.Angles(0,math.rad(side.angle),0)
-                    detail("Wall steel inset",Vector3.new(TILE-0.6,WALL_HEIGHT-1.4,0.1),
-                        cf*CFrame.new(0,WALL_HEIGHT/2,0),Color3.fromRGB(76,91,99))
-                    for height=4,12,4 do
-                        detail("Wall horizontal seam",Vector3.new(TILE-0.5,0.12,0.18),
-                            cf*CFrame.new(0,height,0),Color3.fromRGB(25,39,45))
-                    end
-                    detail("Wall vertical trim",Vector3.new(0.2,WALL_HEIGHT-1.3,0.2),
-                        cf*CFrame.new(-TILE/2+0.4,WALL_HEIGHT/2,0),trimColor)
-                end
-            end
+        if row:sub(x,x)=="0" and x%4==0 and y%4==0 then
+            local center=pos(x-0.5,y-0.5,0)
             -- Evenly spaced overhead fluorescent lamps and independent red alarms.
             if x%4==0 and y%4==0 then
                 local lamp=detail("Always-on ceiling light",Vector3.new(4.5,0.35,1.1),
@@ -181,6 +152,70 @@ for y,row in ipairs(map) do
                 alarmLight.Parent=alarm
                 table.insert(redFixtures,{part=alarm,light=alarmLight})
             end
+        end
+    end
+end
+for y,row in ipairs(map) do
+    for x=1,#row do
+        if row:sub(x,x)=="0" then
+            local px,py=x-0.5,y-0.5
+            local center=pos(px,py,0)
+            -- Abandoned laboratory tiles: varied dirty concrete, uneven staining,
+            -- chipped seams and occasional hairline cracks (deterministic by tile).
+            local shade=((x*37+y*61)%7)-3
+            local base=math.clamp(115+shade*5,70,145)
+            detail("Abandoned floor tile",Vector3.new(TILE-0.18,0.13,TILE-0.18),
+                CFrame.new(center+Vector3.new(0,0.05,0)),
+                Color3.fromRGB(base,base+2,base+1),Enum.Material.Concrete)
+            local tileSize=(TILE-0.35)/2
+            for ix=-1,1,2 do
+                for iz=-1,1,2 do
+                    local noise=(x*17+y*29+ix*13+iz*7)%17
+                    local grey=math.clamp(base+noise-12,67,155)
+                    detail("Dirty ceramic tile",Vector3.new(tileSize,0.035,tileSize),
+                        CFrame.new(center+Vector3.new(ix*2.02,0.135,iz*2.02)),
+                        Color3.fromRGB(grey,grey+2,grey+1),Enum.Material.Concrete)
+                end
+            end
+            -- Patchy grime appears on some tiles, not in a repeating grid.
+            if (x*19+y*23)%5==0 then
+                detail("Ground-in dirt",Vector3.new(1.5+((x+y)%3),0.018,1.2),
+                    CFrame.new(center+Vector3.new(1.1,0.16,-0.7))*CFrame.Angles(0,math.rad(21),0),
+                    Color3.fromRGB(68,70,65),Enum.Material.Concrete)
+            end
+            if (x*11+y*31)%9==0 then
+                -- Thin zig-zag crack, dark and flush with the tile surface.
+                local crackCenter=center+Vector3.new(-0.7,0.18,0.35)
+                detail("Floor crack",Vector3.new(2.2,0.018,0.07),
+                    CFrame.new(crackCenter)*CFrame.Angles(0,math.rad(27),0),
+                    Color3.fromRGB(35,37,36),Enum.Material.SmoothPlastic)
+                detail("Branching crack",Vector3.new(1.4,0.018,0.055),
+                    CFrame.new(crackCenter+Vector3.new(1,0,-0.6))*CFrame.Angles(0,math.rad(-39),0),
+                    Color3.fromRGB(38,40,38),Enum.Material.SmoothPlastic)
+            end
+            -- Exposed wall panels: horizontal seams and dark inset metal strips.
+            -- Only decorate faces adjacent to walkable tiles.
+            local sides={
+                {dx=1,dy=0,angle=90},
+                {dx=-1,dy=0,angle=90},
+                {dx=0,dy=1,angle=0},
+                {dx=0,dy=-1,angle=0}
+            }
+            for _,side in ipairs(sides) do
+                if not free(px+side.dx,py+side.dy) then
+                    local face=center+Vector3.new(side.dx*TILE*0.5,0,side.dy*TILE*0.5)
+                    local cf=CFrame.new(face)*CFrame.Angles(0,math.rad(side.angle),0)
+                    detail("Wall steel inset",Vector3.new(TILE-0.6,WALL_HEIGHT-1.4,0.1),
+                        cf*CFrame.new(0,WALL_HEIGHT/2,0),Color3.fromRGB(76,91,99))
+                    for height=4,12,4 do
+                        detail("Wall horizontal seam",Vector3.new(TILE-0.5,0.12,0.18),
+                            cf*CFrame.new(0,height,0),Color3.fromRGB(25,39,45))
+                    end
+                    detail("Wall vertical trim",Vector3.new(0.2,WALL_HEIGHT-1.3,0.2),
+                        cf*CFrame.new(-TILE/2+0.4,WALL_HEIGHT/2,0),trimColor)
+                end
+            end
+
         end
     end
 end
@@ -386,7 +421,7 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 print("Alien Breach: original GitHub map, props, chests and starter alien combat loaded.")
 ]======])
-put(starter,"AlienBreachClient","LocalScript",[======[-- Alien Breach FPS - starter first-person weapon/HUD
+put(scripts,"AlienBreachClient","LocalScript",[======[-- Alien Breach FPS - starter first-person weapon/HUD
 -- Put in StarterPlayer > StarterPlayerScripts as a LocalScript.
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
@@ -462,4 +497,4 @@ end)
 fire.Activated:Connect(shoot)
 update()
 ]======])
-print("Alien Breach updated! Disable old test lab scripts and press Play.")
+print("Alien Breach installed. Disable any previous test map scripts.")
