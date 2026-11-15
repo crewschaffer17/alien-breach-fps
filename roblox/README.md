@@ -19,3 +19,14 @@ Full alien types and exact visuals, shop/inventory and weapons, precise balance,
 
 ## Testing status
 Source code committed to GitHub. Roblox Studio execution not tested in this environment. Report any Output errors with line numbers for fixes.
+
+## PUBLIC RELEASE STATUS: NOT READY
+Do not publish this phase-1 prototype as a finished public game. It has not been run in Roblox Studio or tested with multiple players. Known release blockers include:
+- No DataStoreService saving for purchases/progression.
+- Chest rewards are shared and destructible, not per-player; multiplayer rules need redesign.
+- Alien AI is simplistic and can get stuck behind walls; no tested pathfinding.
+- Fire remote requires stronger server-side checks (weapon ownership, ammo, line-of-sight, fire rate, origin).
+- No verified phone/tablet gameplay, accessibility, performance, or cross-device QA.
+- Incomplete weapon/shop/inventory features compared with the browser game.
+
+Before public release, test using Studio's multi-client server simulation, mobile emulator, live private test, and DataStore API configuration. Publish the Roblox experience from Studio only after these checks pass. GitHub commits alone do not publish to Roblox.
