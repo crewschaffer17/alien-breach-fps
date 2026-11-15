@@ -338,7 +338,7 @@ task.spawn(function()
         end
         local flicker=now<flickerUntil and 0.18 or 1
         Lighting.Brightness=2.7*flicker
-        Lighting.ExposureCompensation=0.1+(1-flicker)*(-0.35)
+        Lighting.ExposureCompensation=0.1-(1-flicker)*0.45
         for _,fixture in ipairs(lightingFixtures) do
             fixture.light.Brightness=2.3*flicker
             fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
@@ -438,76 +438,58 @@ local function segment(name,a,b,radius,color,material,parent)
     p.CanCollide=false
     return p
 end
+-- Large containment chambers: grouped in pairs and rows.
 local function specimenTank(x,y,empty)
     local origin=pos(x,y,0)
     local model=Instance.new("Model")
-    model.Name=empty and "Vacant containment chamber" or "Preserved grey specimen chamber"
+    model.Name=empty and "Empty giant containment chamber" or "Alien containment chamber"
     model.Parent=root
     local function disc(name,radius,height,yPos,color,material)
         return cylinder(name,radius,height,CFrame.new(origin+Vector3.new(0,yPos,0)),color,material,model)
     end
-    disc("Wide reinforced bottom pedestal",2.65,0.7,0.45,Color3.fromRGB(55,66,73))
-    disc("Base metallic rim",2.4,0.25,0.95,Color3.fromRGB(133,146,149))
-    disc("Illuminated floor disc",2.05,0.15,1.1,Color3.fromRGB(105,255,206),Enum.Material.Neon)
-    local fluid=disc("Clear teal suspension fluid",2.05,9.5,6.05,Color3.fromRGB(61,184,157),Enum.Material.Glass)
-    fluid.Transparency=0.83;fluid.CanCollide=false;fluid.CanTouch=false
-    local glass=disc("Transparent cylindrical specimen glass",2.25,10.1,6.1,Color3.fromRGB(190,244,235),Enum.Material.Glass)
-    glass.Transparency=0.79;glass.CanCollide=true
-    disc("Upper sealed ring",2.5,0.55,11.4,Color3.fromRGB(73,85,94))
-    disc("Heavy top machinery",2.75,0.65,11.9,Color3.fromRGB(91,100,108))
-    disc("Top glowing examination lamp",2.05,0.12,11.15,Color3.fromRGB(143,255,217),Enum.Material.Neon)
-    for i=1,10 do
-        local theta=i*math.pi/5
-        local px=math.cos(theta)*2.52
-        local pz=math.sin(theta)*2.52
-        local rib=block("Cap locking bolt",Vector3.new(0.26,0.7,0.3),CFrame.new(origin+Vector3.new(px,11.9,pz)),Color3.fromRGB(35,47,53),Enum.Material.Metal,model)
-        rib.CanCollide=false
-    end
+    disc("Heavy chamber foundation",3.55,0.85,0.42,Color3.fromRGB(55,66,73))
+    disc("Lower steel seal",3.4,0.4,1.05,Color3.fromRGB(113,131,136))
+    local fluid=disc("Subdued preservation fluid",3.08,15.2,8.95,Color3.fromRGB(60,109,100),Enum.Material.Glass)
+    fluid.Transparency=0.94;fluid.CanCollide=false;fluid.CanQuery=false
+    local glass=disc("Giant glass cylinder",3.3,15.6,9.0,Color3.fromRGB(151,199,191),Enum.Material.Glass)
+    glass.Transparency=0.84;glass.CanCollide=false;glass.CanQuery=false
+    disc("Upper reinforced steel seal",3.55,0.5,17.0,Color3.fromRGB(77,91,99))
+    disc("Top industrial chamber cap",3.7,0.65,17.5,Color3.fromRGB(79,90,98))
     if not empty then
-        local function specimen(name,size,offset,color,shape)
-            local part=block(name,size,CFrame.new(origin+offset),color,Enum.Material.SmoothPlastic,model)
-            part.CanCollide=false
-            if shape then part.Shape=shape end
-            return part
-        end
-        local skin=Color3.fromRGB(92,181,157)
-        specimen("Slim extraterrestrial torso",Vector3.new(1.05,3.0,0.8),Vector3.new(0,6.1,0),skin)
-        specimen("Elongated grey head",Vector3.new(1.75,2.0,1.45),Vector3.new(0,8.5,0),Color3.fromRGB(105,195,166),Enum.PartType.Ball)
-        for _,side in ipairs({-1,1}) do
-            specimen("Black almond eye",Vector3.new(0.52,0.68,0.18),Vector3.new(side*0.5,8.6,-0.66),Color3.fromRGB(9,22,22),Enum.PartType.Ball)
-            local arm=specimen("Long thin arm",Vector3.new(0.31,3.7,0.35),Vector3.new(side*0.78,5.7,0),skin)
-            arm.CFrame=arm.CFrame*CFrame.Angles(0,0,math.rad(side*11))
-            specimen("Thin suspended leg",Vector3.new(0.38,3.7,0.46),Vector3.new(side*0.3,2.85,0),skin)
-        end
-        -- Dark flexible hoses curve down from the ceiling cap to the specimen.
-        for _,side in ipairs({-1,1}) do
-            local points={origin+Vector3.new(side*1.25,11.2,0.5),origin+Vector3.new(side*1.65,9.8,0.9),origin+Vector3.new(side*1.35,8.0,1.1),origin+Vector3.new(side*0.55,6.8,0.7)}
-            for i=1,#points-1 do segment("Black specimen life-support hose",points[i],points[i+1],0.10,Color3.fromRGB(18,29,31),Enum.Material.SmoothPlastic,model) end
+        local template=game:GetService("ServerStorage"):FindFirstChild("AlienMesh")
+        if template and template:IsA("MeshPart") then
+            local specimen=template:Clone()
+            specimen.Name="Contained AlienBody"
+            specimen.Anchored=true
+            specimen.CanCollide=false
+            specimen.CanTouch=false
+            specimen.CanQuery=false
+            specimen.TextureID=""
+            specimen.Material=Enum.Material.SmoothPlastic
+            specimen.Color=Color3.fromRGB(76,126,61)
+            local size=template.Size
+            local longest=math.max(size.X,size.Y,size.Z)
+            local scale=math.min(12/longest,5.0/math.max(0.01,math.min(size.X,size.Z)))
+            specimen.Size=size*scale
+            local rotation=CFrame.identity
+            if size.X>size.Y and size.X>size.Z then rotation=CFrame.Angles(0,0,math.rad(90))
+            elseif size.Z>size.Y and size.Z>size.X then rotation=CFrame.Angles(math.rad(90),0,0) end
+            specimen.CFrame=CFrame.new(origin+Vector3.new(0,8.0,0))*rotation
+            specimen.Parent=model
+        else
+            warn("AlienMesh MeshPart missing from ServerStorage; containment chamber left empty")
         end
     end
-    local attachment=Instance.new("Attachment")
-    attachment.Position=Vector3.new(0,-3.2,0)
-    attachment.Parent=fluid
-    local bubbles=Instance.new("ParticleEmitter")
-    bubbles.Name="Suspended microbubbles"
-    bubbles.Texture="rbxasset://textures/particles/sparkles_main.dds"
-    bubbles.Rate=12
-    bubbles.Lifetime=NumberRange.new(2.4,4.5)
-    bubbles.Speed=NumberRange.new(0.45,1.1)
-    bubbles.SpreadAngle=Vector2.new(18,18)
-    bubbles.Color=ColorSequence.new(Color3.fromRGB(174,255,230))
-    bubbles.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(1,1)})
-    bubbles.Size=NumberSequence.new(0.11)
-    bubbles.Parent=attachment
-    local glow=Instance.new("PointLight")
-    glow.Color=Color3.fromRGB(90,246,195)
-    glow.Brightness=1.2;glow.Range=16
-    glow.Parent=glass
 end
--- A few deliberate focal points rather than a crowded grid of identical tanks.
-for _,spec in ipairs({{40.5,5.5,false},{51.5,5.5,false},{40.5,9.5,true},
-    {40.5,17.5,false},{51.5,17.5,false},{51.5,23.5,true},
-    {21.5,36.5,false},{31.5,40.5,true}}) do
+-- Rows of oversized chambers, including adjacent pairs.
+for _,spec in ipairs({
+    {40.5,5.5,false},{41.5,5.5,false},{46.5,5.5,false},{51.5,5.5,false},
+    {40.5,9.5,false},{46.5,9.5,true},{51.5,9.5,false},
+    {40.5,17.5,false},{41.5,17.5,false},{46.5,17.5,false},{51.5,17.5,false},
+    {40.5,22.5,true},{46.5,22.5,false},{51.5,22.5,false},
+    {21.5,36.5,false},{26.5,36.5,false},{31.5,36.5,false},
+    {21.5,40.5,false},{26.5,40.5,true},{31.5,40.5,false}
+}) do
     specimenTank(spec[1],spec[2],spec[3])
 end
 -- Industrial yellow pipe networks: elbows, brackets, junction collars and
@@ -1046,11 +1028,11 @@ RunService.Heartbeat:Connect(function(dt)
                 -- Trace to actual walkable ground, ignoring the alien itself.
                 local groundParams=RaycastParams.new()
                 groundParams.FilterType=Enum.RaycastFilterType.Exclude
-                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character}
+                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character,root}
                 local groundHit=workspace:Raycast(
-                    Vector3.new(part.Position.X,part.Position.Y+12,part.Position.Z),
+                    Vector3.new(part.Position.X,60,part.Position.Z),
                     Vector3.new(0,-90,0),groundParams)
-                local groundY=groundHit and groundHit.Position.Y or (alien:GetAttribute("MeshFloorY") or 0)
+                local groundY=groundHit and groundHit.Position.Y or 0
                                 local playerDistance=(hrp.Position-part.Position).Magnitude
                 -- Ranged aliens hold position once they reach firing distance.
                 if delta.Magnitude>0.12 and playerDistance>27 then
