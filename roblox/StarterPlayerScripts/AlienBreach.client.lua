@@ -73,3 +73,111 @@ UserInputService.InputBegan:Connect(function(input,processed)
 end)
 fire.Activated:Connect(shoot)
 update()
+
+-- Interactive facility map: tap the corner radar or press M to enlarge.
+local mapValue=ReplicatedStorage:WaitForChild("AlienBreachMap")
+local rows=string.split(mapValue.Value,"\n")
+local mapHeight=#rows
+local mapWidth=#rows[1]
+local TILE=8
+local radar=Instance.new("TextButton")
+radar.Name="MapToggle"
+radar.Text="MAP  [M]"
+radar.Font=Enum.Font.GothamBold
+radar.TextScaled=true
+radar.TextColor3=Color3.fromRGB(172,255,203)
+radar.BackgroundColor3=Color3.fromRGB(9,28,33)
+radar.Size=UDim2.fromScale(0.13,0.055)
+radar.Position=UDim2.fromScale(0.85,0.04)
+radar.Parent=gui
+local panel=Instance.new("Frame")
+panel.Name="FacilityMap"
+panel.BackgroundColor3=Color3.fromRGB(5,16,20)
+panel.BackgroundTransparency=0.08
+panel.BorderSizePixel=2
+panel.BorderColor3=Color3.fromRGB(64,155,139)
+panel.AnchorPoint=Vector2.new(0.5,0.5)
+panel.Position=UDim2.fromScale(0.5,0.51)
+panel.Size=UDim2.fromScale(0.76,0.76)
+panel.Visible=false
+panel.Parent=gui
+local constraint=Instance.new("UIAspectRatioConstraint")
+constraint.AspectRatio=mapWidth/mapHeight
+constraint.AspectType=Enum.AspectType.FitWithinMaxSize
+constraint.DominantAxis=Enum.DominantAxis.Width
+constraint.Parent=panel
+local cells=Instance.new("Frame")
+cells.Name="MapTiles"
+cells.BackgroundTransparency=1
+cells.Size=UDim2.fromScale(1,1)
+cells.Parent=panel
+for y,row in ipairs(rows) do
+    for x=1,#row do
+        if row:sub(x,x)=="0" then
+            local tile=Instance.new("Frame")
+            tile.Name="HallwayOrRoom"
+            tile.BorderSizePixel=0
+            tile.BackgroundColor3=Color3.fromRGB(73,103,108)
+            tile.Position=UDim2.fromScale((x-1)/mapWidth,(y-1)/mapHeight)
+            tile.Size=UDim2.fromScale(1/mapWidth+0.0002,1/mapHeight+0.0002)
+            tile.Parent=cells
+        end
+    end
+end
+local markerLayer=Instance.new("Frame")
+markerLayer.BackgroundTransparency=1
+markerLayer.Size=UDim2.fromScale(1,1)
+markerLayer.Parent=panel
+local markers={}
+local function marker(color,size)
+    local m=Instance.new("Frame")
+    m.AnchorPoint=Vector2.new(0.5,0.5)
+    m.BorderSizePixel=0
+    m.BackgroundColor3=color
+    m.Size=UDim2.fromScale(size/mapWidth,size/mapHeight)
+    m.Parent=markerLayer
+    local corner=Instance.new("UICorner")
+    corner.CornerRadius=UDim.new(1,0)
+    corner.Parent=m
+    return m
+end
+local playerDot=marker(Color3.fromRGB(70,255,100),1.3)
+local function place(dot,position)
+    local gx=position.X/TILE+mapWidth/2
+    local gy=position.Z/TILE+mapHeight/2
+    dot.Position=UDim2.fromScale(gx/mapWidth,gy/mapHeight)
+end
+local function toggleMap()
+    panel.Visible=not panel.Visible
+    radar.Text=panel.Visible and "CLOSE  [M]" or "MAP  [M]"
+end
+radar.Activated:Connect(toggleMap)
+UserInputService.InputBegan:Connect(function(input,processed)
+    if input.KeyCode==Enum.KeyCode.M and not processed then toggleMap() end
+end)
+local elapsed=0
+RunService.RenderStepped:Connect(function(dt)
+    if not panel.Visible then return end
+    elapsed+=dt
+    if elapsed<0.12 then return end
+    elapsed=0
+    local char=player.Character
+    local hrp=char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then place(playerDot,hrp.Position) end
+    local folder=workspace:FindFirstChild("AlienBreachRoblox")
+    local aliens=folder and folder:FindFirstChild("Aliens")
+    local live={}
+    if aliens then
+        for _,alien in ipairs(aliens:GetChildren()) do
+            local part=alien.PrimaryPart
+            if part then
+                live[alien]=true
+                if not markers[alien] then markers[alien]=marker(Color3.fromRGB(255,61,57),1.1) end
+                place(markers[alien],part.Position)
+            end
+        end
+    end
+    for alien,dot in pairs(markers) do
+        if not live[alien] then dot:Destroy();markers[alien]=nil end
+    end
+end)
