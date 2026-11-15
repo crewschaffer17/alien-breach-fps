@@ -392,6 +392,144 @@ for _,spot in ipairs({{43.5,9.5},{50.5,21.5},{27.5,40.5}}) do
     end
 end
 for _,p in ipairs(props) do furniture(p[1],p[2],p[3]) end
+
+-- AREA 51 SPECIMEN WING: containment tanks, circulating fluid, overhead
+-- yellow utility pipelines, and warning posters. Decorative parts are anchored.
+local function specimenTank(x,y,empty)
+    local base=pos(x,y,0)
+    local shell=Instance.new("Model")
+    shell.Name=empty and "Empty specimen containment tank" or "Alien specimen containment tank"
+    shell.Parent=root
+    local function piece(name,size,offset,color,material)
+        return block(name,size,CFrame.new(base+offset),color,material,shell)
+    end
+    local pedestal=piece("Reinforced tank base",Vector3.new(5.2,1.1,5.2),Vector3.new(0,0.65,0),Color3.fromRGB(51,65,70))
+    local glass=piece("Cylindrical containment glass",Vector3.new(4.5,10,4.5),Vector3.new(0,6.2,0),Color3.fromRGB(92,201,184),Enum.Material.Glass)
+    glass.Shape=Enum.PartType.Cylinder
+    glass.Transparency=0.58
+    glass.CanCollide=true
+    local fluid=piece("Suspended green specimen fluid",Vector3.new(4.15,8.9,4.15),Vector3.new(0,5.85,0),Color3.fromRGB(38,164,129),Enum.Material.Glass)
+    fluid.Shape=Enum.PartType.Cylinder
+    fluid.Transparency=0.67
+    fluid.CanCollide=false
+    fluid.CanTouch=false
+    piece("Containment top",Vector3.new(5.3,0.85,5.3),Vector3.new(0,11.55,0),Color3.fromRGB(57,73,78))
+    for _,dx in ipairs({-2.1,2.1}) do for _,dz in ipairs({-2.1,2.1}) do
+        piece("Containment support",Vector3.new(0.22,10.1,0.22),Vector3.new(dx,6.15,dz),Color3.fromRGB(112,131,132))
+    end end
+    if not empty then
+        local body=piece("Preserved alien torso",Vector3.new(1.35,3.5,1.0),Vector3.new(0,5.3,0),Color3.fromRGB(103,173,151),Enum.Material.SmoothPlastic)
+        body.CanCollide=false
+        local head=piece("Preserved alien head",Vector3.new(2.2,2.3,1.7),Vector3.new(0,8.1,0),Color3.fromRGB(121,194,169),Enum.Material.SmoothPlastic)
+        head.Shape=Enum.PartType.Ball
+        head.CanCollide=false
+        for _,dx in ipairs({-0.62,0.62}) do
+            local eye=piece("Specimen black eye",Vector3.new(0.45,0.75,0.12),Vector3.new(dx,8.15,-0.82),Color3.fromRGB(8,19,21))
+            eye.CanCollide=false
+        end
+        for _,dx in ipairs({-0.6,0.6}) do
+            local arm=piece("Preserved alien arm",Vector3.new(0.45,3.2,0.5),Vector3.new(dx*2,5.1,0),Color3.fromRGB(104,175,150))
+            arm.CanCollide=false
+        end
+    end
+    local emitter=Instance.new("ParticleEmitter")
+    emitter.Name="Floating fluid bubbles"
+    emitter.Texture="rbxasset://textures/particles/sparkles_main.dds"
+    emitter.Rate=7
+    emitter.Lifetime=NumberRange.new(2.2,4.2)
+    emitter.Speed=NumberRange.new(0.7,1.5)
+    emitter.SpreadAngle=Vector2.new(16,16)
+    emitter.Acceleration=Vector3.new(0,0.4,0)
+    emitter.Color=ColorSequence.new(Color3.fromRGB(136,246,212))
+    emitter.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.55),NumberSequenceKeypoint.new(1,1)})
+    emitter.Size=NumberSequence.new(0.15)
+    emitter.LightEmission=0.5
+    emitter.Parent=fluid
+    local glow=Instance.new("PointLight")
+    glow.Color=Color3.fromRGB(55,206,157)
+    glow.Brightness=0.65
+    glow.Range=17
+    glow.Parent=glass
+    return shell
+end
+-- Place tanks near the sides of spacious labs, leaving center routes open.
+for _,spec in ipairs({{39.5,4.5,false},{52.5,4.5,false},{39.5,9.5,true},
+    {52.5,9.5,false},{39.5,16.5,false},{52.5,16.5,true},
+    {39.5,23.5,false},{52.5,23.5,false},{20.5,35.5,true},
+    {32.5,40.5,false}}) do
+    specimenTank(spec[1],spec[2],spec[3])
+end
+-- Massive industrial yellow pipelines run along the high ceilings and turn
+-- around the main laboratory wings. They do not obstruct the walking floor.
+local yellow=Color3.fromRGB(218,164,32)
+local function pipeline(x1,y1,x2,y2,height)
+    local a=pos(x1,y1,height)
+    local b=pos(x2,y2,height)
+    local delta=b-a
+    local pipe=block("Yellow laboratory coolant pipeline",Vector3.new(1.8,1.8,delta.Magnitude),
+        CFrame.lookAt((a+b)/2,b),yellow,Enum.Material.Metal)
+    pipe.Shape=Enum.PartType.Cylinder
+    pipe.CanCollide=false
+    for i=0,math.floor(delta.Magnitude/25) do
+        local p=a+delta*(i/math.max(1,math.floor(delta.Magnitude/25)))
+        local clamp=block("Pipe support collar",Vector3.new(2.25,2.25,0.65),
+            CFrame.lookAt(p,b),Color3.fromRGB(73,77,76))
+        clamp.Shape=Enum.PartType.Cylinder
+        clamp.CanCollide=false
+    end
+end
+pipeline(38,6,53,6,29)
+pipeline(38,9,53,9,29)
+pipeline(40,6,40,23,29)
+pipeline(51,6,51,23,29)
+pipeline(38,19,53,19,29)
+pipeline(38,22,53,22,29)
+pipeline(20,37,32,37,29)
+pipeline(20,40,32,40,29)
+-- Physical wall-mounted safety posters with readable text, not image assets.
+local function wallPoster(x,y,title,subtitle,bg,ink)
+    local origin=pos(x,y,0)
+    local plate=block("Area 51 wall warning poster",Vector3.new(5.5,5.7,0.14),
+        CFrame.new(origin+Vector3.new(0,9,-TILE/2+0.18)),Color3.fromRGB(25,30,33))
+    plate.CanCollide=false
+    local gui=Instance.new("SurfaceGui")
+    gui.Name="Printed warning signage"
+    gui.Face=Enum.NormalId.Front
+    gui.CanvasSize=Vector2.new(520,540)
+    gui.LightInfluence=0
+    gui.Parent=plate
+    local background=Instance.new("Frame")
+    background.Size=UDim2.fromScale(1,1)
+    background.BackgroundColor3=bg
+    background.BorderSizePixel=0
+    background.Parent=gui
+    local heading=Instance.new("TextLabel")
+    heading.BackgroundTransparency=1
+    heading.Position=UDim2.fromScale(0.05,0.08)
+    heading.Size=UDim2.fromScale(0.9,0.55)
+    heading.Text=title
+    heading.TextWrapped=true
+    heading.TextScaled=true
+    heading.Font=Enum.Font.GothamBlack
+    heading.TextColor3=ink
+    heading.Parent=background
+    local sub=Instance.new("TextLabel")
+    sub.BackgroundTransparency=1
+    sub.Position=UDim2.fromScale(0.08,0.7)
+    sub.Size=UDim2.fromScale(0.84,0.22)
+    sub.Text=subtitle
+    sub.TextWrapped=true
+    sub.TextScaled=true
+    sub.Font=Enum.Font.Code
+    sub.TextColor3=ink
+    sub.Parent=background
+end
+wallPoster(43.5,3.5,"AREA 51","CLASSIFIED RESEARCH / LEVEL 5",Color3.fromRGB(219,205,152),Color3.fromRGB(24,39,36))
+wallPoster(47.5,3.5,"KEEP OUT","BIOHAZARD / AUTHORIZED PERSONNEL ONLY",Color3.fromRGB(219,180,38),Color3.fromRGB(40,28,15))
+wallPoster(43.5,15.5,"SPECIMEN 07","GREY TYPE / DO NOT OPEN TANK",Color3.fromRGB(205,218,202),Color3.fromRGB(22,61,51))
+wallPoster(48.5,15.5,"ALIEN ANATOMY","EXTRATERRESTRIAL BIOLOGY DIVISION",Color3.fromRGB(190,216,202),Color3.fromRGB(27,70,62))
+wallPoster(25.5,35.5,"DANGER","CONTAINMENT BREACH PROTOCOL",Color3.fromRGB(211,172,47),Color3.fromRGB(50,24,20))
+
 local spawn = Instance.new("SpawnLocation")
 spawn.Name="Starting Room Spawn"
 spawn.Size=Vector3.new(5,1,5)
