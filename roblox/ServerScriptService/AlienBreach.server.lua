@@ -818,14 +818,34 @@ local function makeAlien(x,y,kind,wave)
         end
         local right,up,back=upright.RightVector,upright.UpVector,upright.LookVector
         local standingHeight=math.abs(right.Y)*size.X+math.abs(up.Y)*size.Y+math.abs(back.Y)*size.Z
-        local centerHeight=standingHeight/2+0.12
+        local centerHeight=standingHeight/2+0.03
         mesh.CFrame=CFrame.new(origin+Vector3.new(0,centerHeight,0))*upright
         mesh.Parent=model
         model.PrimaryPart=mesh
+        -- Two dark eyes fixed to the face of the green alien.
+        -- Their placement assumes the mesh's front is its local -Z face.
+        local eyeY=standingHeight*0.31
+        local eyeSpacing=math.min(size.X,size.Z)*0.17
+        local eyeRadius=math.max(0.16,math.min(size.X,size.Z)*0.13)
+        for side=-1,1,2 do
+            local eye=Instance.new("Part")
+            eye.Name="BlackEye"
+            eye.Shape=Enum.PartType.Ball
+            eye.Size=Vector3.new(eyeRadius*2,eyeRadius*2,eyeRadius*0.7)
+            eye.Color=Color3.fromRGB(8,12,9)
+            eye.Material=Enum.Material.SmoothPlastic
+            eye.Anchored=true
+            eye.CanCollide=false
+            eye.CanTouch=false
+            eye.CanQuery=false
+            eye.CFrame=mesh.CFrame*CFrame.new(side*eyeSpacing,eyeY,-size.Z*0.47)
+            eye.Parent=model
+        end
         model:SetAttribute("MeshAlien",true)
         model:SetAttribute("MeshUprightX",size.X>size.Y and size.X>size.Z)
         model:SetAttribute("MeshUprightZ",size.Z>size.Y and size.Z>size.X)
         model:SetAttribute("MeshCenterHeight",centerHeight)
+        model:SetAttribute("MeshFloorY",origin.Y)
         alienAnimation[model]={phase=math.random()*6.28,mesh=true,upright=upright,centerHeight=centerHeight}
         model.Destroying:Connect(function() alienAnimation[model]=nil end)
         return model
@@ -1031,9 +1051,9 @@ RunService.Heartbeat:Connect(function(dt)
                     if alien:GetAttribute("MeshAlien") then
                         local anim=alienAnimation[alien]
                         local base=anim and anim.upright or CFrame.identity
-                        local floorY=(alien:GetAttribute("MeshCenterHeight") or current.Position.Y)
-                        local bob=math.sin((anim and anim.phase or 0)*2)*0.10
-                        facing=CFrame.new(current.Position.X+step.X,floorY+bob,current.Position.Z+step.Z)*facing.Rotation*base
+                        local floorY=alien:GetAttribute("MeshFloorY") or 0
+                        local centerY=alien:GetAttribute("MeshCenterHeight") or 0
+                        facing=CFrame.new(current.Position.X+step.X,floorY+centerY,current.Position.Z+step.Z)*facing.Rotation*base
                     end
                     alien:PivotTo(facing)
                 end
