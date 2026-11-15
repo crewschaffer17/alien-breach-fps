@@ -855,3 +855,82 @@ task.spawn(function()
     end
 end)
 
+local damageClock={}
+-- Breadth-first flow fields guide every alien through connected corridors.
+-- One field per active player, refreshed at intervals (not per frame).
+local fields={}
+local fieldTimer=0
+local directions={{1,0},{-1,0},{0,1},{0,-1}}
+local function tileKey(x,y) return y*WIDTH+x end
+local function gridOf(v)
+    return math.floor(v.X/TILE+WIDTH/2)+1,math.floor(v.Z/TILE+HEIGHT/2)+1
+end
+local function buildField(hrp)
+    local sx,sy=gridOf(hrp.Position)
+    if not free(sx-0.5,sy-0.5) then return {} end
+    local distances={[tileKey(sx,sy)]=0}
+    local queue={{sx,sy}}
+    local head=1
+    while head<=#queue do
+        local item=queue[head];head+=1
+        local distance=distances[tileKey(item[1],item[2])]
+        for _,d in ipairs(directions) do
+            local nx,ny=item[1]+d[1],item[2]+d[2]
+            local k=tileKey(nx,ny)
+            if distances[k]==nil and free(nx-0.5,ny-0.5) then
+                distances[k]=distance+1
+                table.insert(queue,{nx,ny})
+            end
+        end
+    end
+    return distances
+end
+RunService.Heartbeat:Connect(function(dt)
+    fieldTimer+=dt
+    if fieldTimer>=0.65 then
+        fieldTimer=0
+        for _,player in ipairs(Players:GetPlayers()) do
+            local character=player.Character
+            local hrp=character and character:FindFirstChild("HumanoidRootPart")
+            local hum=character and character:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health>0 then fields[player]=buildField(hrp) else fields[player]=nil end
+        end
+    end
+    for _,alien in ipairs(enemies:GetChildren()) do
+        local part=alien.PrimaryPart
+        if not part then continue end
+        local ax,ay=gridOf(part.Position)
+        local bestPlayer,bestDistance,bestField=nil,math.huge,nil
+        for _,player in ipairs(Players:GetPlayers()) do
+            local field=fields[player]
+            local d=field and field[tileKey(ax,ay)]
+            if d and d<bestDistance then
+                bestDistance=d;bestPlayer=player;bestField=field
+            end
+        end
+        if bestPlayer then
+            local hrp=bestPlayer.Character and bestPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local tx,ty=ax,ay
+                if bestDistance>0 then
+                    for _,d in ipairs(directions) do
+                        local nx,ny=ax+d[1],ay+d[2]
+                        local nd=bestField[tileKey(nx,ny)]
+                        if nd and nd<bestDistance then bestDistance=nd;tx=nx;ty=ny end
+                    end
+                end
+                local target=bestDistance==0 and hrp.Position or pos(tx-0.5,ty-0.5,part.Position.Y)
+                local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
+                if delta.Magnitude>0.12 then
+                    local step=delta.Unit*math.min((alien:GetAttribute("Speed") or 10)*dt,delta.Magnitude)
+                    alien:PivotTo(alien:GetPivot()+step)
+                end
+                if (hrp.Position-part.Position).Magnitude<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
+                    damageClock[alien]=os.clock()
+                    local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if hum then hum:TakeDamage(10) end
+                end
+            end
+        end
+    end
+end)
