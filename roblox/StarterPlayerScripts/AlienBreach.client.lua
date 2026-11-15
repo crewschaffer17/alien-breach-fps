@@ -41,39 +41,68 @@ fire.TextScaled=true
 fire.Text="FIRE"
 fire.Visible=UserInputService.TouchEnabled
 fire.Parent=gui
-local ammo=25
-local maxAmmo=25
+local control=ReplicatedStorage:WaitForChild("AlienBreachControl")
+local breachState=ReplicatedStorage:WaitForChild("AlienBreachState")
+local breachLabel=label("BreachStatus","BREACH LOADING",UDim2.fromScale(0.34,0.025),UDim2.fromScale(0.33,0.06))
+local rewardLabel=label("LootNotification","",UDim2.fromScale(0.27,0.14),UDim2.fromScale(0.46,0.055))
+rewardLabel.Visible=false
 local cooldown=0
-local reloading=false
 local function update()
-    status.Text="PULSE PISTOL | "..ammo.."/"..maxAmmo.." | R: RELOAD"
-end
-local function reload()
-    if reloading or ammo==maxAmmo then return end
-    reloading=true
-    status.Text="RELOADING..."
-    task.wait(1.4)
-    ammo=maxAmmo
-    reloading=false
-    update()
+    local magazine=player:GetAttribute("Magazine") or 25
+    local reserve=player:GetAttribute("ReserveAmmo") or 0
+    local weapon=player:GetAttribute("Weapon")=="laser" and "LEGENDARY LASER" or "PULSE PISTOL"
+    local kits=player:GetAttribute("Medkits") or 0
+    status.Text=weapon.." | "..magazine.." / "..reserve.." | KITS "..kits
+    local remaining=breachState:FindFirstChild("AliensRemaining")
+    local wave=breachState:FindFirstChild("Breach")
+    local timer=breachState:FindFirstChild("NextBreachIn")
+    if timer and timer.Value>0 then
+        breachLabel.Text="NEXT BREACH IN "..timer.Value.."s"
+    else
+        breachLabel.Text="BREACH "..(wave and wave.Value or 0).." | ALIENS "..(remaining and remaining.Value or 0)
+    end
 end
 local function shoot()
-    if reloading or os.clock()<cooldown then return end
-    if ammo<=0 then task.spawn(reload) return end
-    cooldown=os.clock()+0.2
-    ammo-=1
-    update()
+    if os.clock()<cooldown then return end
+    local magazine=player:GetAttribute("Magazine") or 0
+    if magazine<=0 then control:FireServer("reload");return end
+    cooldown=os.clock()+(player:GetAttribute("Weapon")=="laser" and 0.13 or 0.21)
     local camera=workspace.CurrentCamera
     if camera then remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector) end
 end
 UserInputService.InputBegan:Connect(function(input,processed)
     if processed then return end
     if input.UserInputType==Enum.UserInputType.MouseButton1 then shoot() end
-    if input.KeyCode==Enum.KeyCode.R then task.spawn(reload) end
+    if input.KeyCode==Enum.KeyCode.R then control:FireServer("reload") end
+    if input.KeyCode==Enum.KeyCode.H then control:FireServer("heal") end
+    if input.KeyCode==Enum.KeyCode.One then control:FireServer("pulse") end
+    if input.KeyCode==Enum.KeyCode.Two then control:FireServer("laser") end
 end)
 fire.Activated:Connect(shoot)
+for _,name in ipairs({"Magazine","ReserveAmmo","Medkits","Weapon"}) do
+    player:GetAttributeChangedSignal(name):Connect(update)
+end
+for _,v in ipairs(breachState:GetChildren()) do
+    if v:IsA("IntValue") then v.Changed:Connect(update) end
+end
+player:GetAttributeChangedSignal("LastCacheReward"):Connect(function()
+    rewardLabel.Text=player:GetAttribute("LastCacheReward") or ""
+    rewardLabel.Visible=true
+    local stamp=rewardLabel.Text
+    task.delay(5,function() if rewardLabel.Text==stamp then rewardLabel.Visible=false end end)
+    update()
+end)
 update()
-
+local healButton=Instance.new("TextButton")
+healButton.Name="TouchHeal";healButton.Text="MEDKIT"
+healButton.TextScaled=true;healButton.Font=Enum.Font.GothamBold
+healButton.TextColor3=Color3.fromRGB(225,255,225)
+healButton.BackgroundColor3=Color3.fromRGB(28,90,60)
+healButton.Size=UDim2.fromScale(0.14,0.07)
+healButton.Position=UDim2.fromScale(0.83,0.65)
+healButton.Visible=UserInputService.TouchEnabled
+healButton.Parent=gui
+healButton.Activated:Connect(function() control:FireServer("heal") end)
 -- Interactive facility map: tap the corner radar or press M to enlarge.
 local mapValue=ReplicatedStorage:WaitForChild("AlienBreachMap")
 local rows=string.split(mapValue.Value,"\n")
@@ -82,7 +111,7 @@ local mapWidth=#rows[1]
 local TILE=8
 local radar=Instance.new("TextButton")
 radar.Name="MapToggle"
-radar.Text="MAP  [M]"
+radar.Text="EXPAND MAP [M]"
 radar.Font=Enum.Font.GothamBold
 radar.TextScaled=true
 radar.TextColor3=Color3.fromRGB(172,255,203)
@@ -97,9 +126,9 @@ panel.BackgroundTransparency=0.08
 panel.BorderSizePixel=2
 panel.BorderColor3=Color3.fromRGB(64,155,139)
 panel.AnchorPoint=Vector2.new(0.5,0.5)
-panel.Position=UDim2.fromScale(0.5,0.51)
-panel.Size=UDim2.fromScale(0.76,0.76)
-panel.Visible=false
+panel.Position=UDim2.fromScale(0.85,0.20)
+panel.Size=UDim2.fromScale(0.22,0.22)
+panel.Visible=true
 panel.Parent=gui
 local constraint=Instance.new("UIAspectRatioConstraint")
 constraint.AspectRatio=mapWidth/mapHeight
@@ -147,9 +176,12 @@ local function place(dot,position)
     local gy=position.Z/TILE+mapHeight/2
     dot.Position=UDim2.fromScale(gx/mapWidth,gy/mapHeight)
 end
+local expanded=false
 local function toggleMap()
-    panel.Visible=not panel.Visible
-    radar.Text=panel.Visible and "CLOSE  [M]" or "MAP  [M]"
+    expanded=not expanded
+    panel.Size=expanded and UDim2.fromScale(0.76,0.76) or UDim2.fromScale(0.22,0.22)
+    panel.Position=expanded and UDim2.fromScale(0.5,0.51) or UDim2.fromScale(0.85,0.20)
+    radar.Text=expanded and "SMALL MAP [M]" or "EXPAND MAP [M]"
 end
 radar.Activated:Connect(toggleMap)
 UserInputService.InputBegan:Connect(function(input,processed)
