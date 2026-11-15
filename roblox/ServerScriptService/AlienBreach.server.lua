@@ -107,8 +107,8 @@ mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
-Lighting.Brightness=2.7
-Lighting.ExposureCompensation=0.1
+Lighting.Brightness=1.45
+Lighting.ExposureCompensation=-0.35
 Lighting.GlobalShadows=false
 Lighting.Ambient=Color3.fromRGB(124,137,139)
 Lighting.OutdoorAmbient=Color3.fromRGB(100,112,118)
@@ -202,7 +202,7 @@ for y,row in ipairs(map) do
                     Color3.fromRGB(193,245,236),Enum.Material.Neon)
                 local light=Instance.new("PointLight")
                 light.Color=Color3.fromRGB(200,246,238)
-                light.Brightness=2.3
+                light.Brightness=1.0
                 light.Range=tallRoom(x,y) and 65 or 48
                 light.Shadows=false
                 light.Parent=lamp
@@ -337,10 +337,10 @@ task.spawn(function()
             nextFlicker=flickerUntil+math.random(30,40)/10
         end
         local flicker=now<flickerUntil and 0.18 or 1
-        Lighting.Brightness=2.7*flicker
-        Lighting.ExposureCompensation=0.1-(1-flicker)*0.45
+        Lighting.Brightness=1.45*flicker
+        Lighting.ExposureCompensation=-0.35-(1-flicker)*0.5
         for _,fixture in ipairs(lightingFixtures) do
-            fixture.light.Brightness=2.3*flicker
+            fixture.light.Brightness=1.0*flicker
             fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
                 or Color3.fromRGB(193,245,236)
         end
@@ -808,7 +808,7 @@ local function makeAlien(x,y,kind,wave)
         model.PrimaryPart=mesh
         -- Dark eyes are kept facing the target and attached to the head by
         -- the movement loop. Do not assume imported OBJ local forward axis.
-        local eyeRadius=math.clamp(standingHeight*0.085,0.28,0.9)
+        local eyeRadius=math.clamp(standingHeight*0.055,0.22,0.6)
         local eyes={}
         for side=-1,1,2 do
             local eye=Instance.new("Part")
@@ -829,6 +829,9 @@ local function makeAlien(x,y,kind,wave)
         model:SetAttribute("MeshUprightZ",size.Z>size.Y and size.Z>size.X)
         model:SetAttribute("MeshCenterHeight",centerHeight)
         model:SetAttribute("MeshFloorY",origin.Y)
+        -- Imported OBJ visible geometry can be offset from its MeshPart pivot.
+        -- Lower the imported alien relative to its collision bounds.
+        model:SetAttribute("VisualGroundCorrection",math.min(standingHeight*0.36,3.0))
         alienAnimation[model]={phase=math.random()*6.28,mesh=true,upright=upright,centerHeight=centerHeight,eyes=eyes,standingHeight=standingHeight}
         model.Destroying:Connect(function() alienAnimation[model]=nil end)
         return model
@@ -1043,7 +1046,7 @@ RunService.Heartbeat:Connect(function(dt)
                         local anim=alienAnimation[alien]
                         local base=anim and anim.upright or CFrame.identity
                         local floorY=groundY
-                        local centerY=alien:GetAttribute("MeshCenterHeight") or 0
+                        local centerY=(alien:GetAttribute("MeshCenterHeight") or 0)-(alien:GetAttribute("VisualGroundCorrection") or 0)
                         facing=CFrame.new(current.Position.X+step.X,floorY+centerY,current.Position.Z+step.Z)*facing.Rotation*base
                     end
                     alien:PivotTo(facing)
@@ -1052,7 +1055,7 @@ RunService.Heartbeat:Connect(function(dt)
                 if animation and animation.mesh then
                     -- Correct ground height even while stationary.
                     local current=alien:GetPivot()
-                    local desiredY=groundY+(animation.centerHeight or 0)
+                    local desiredY=groundY+(animation.centerHeight or 0)-(alien:GetAttribute("VisualGroundCorrection") or 0)
                     if math.abs(current.Position.Y-desiredY)>0.01 then
                         alien:PivotTo(CFrame.new(current.Position.X,desiredY,current.Position.Z)*current.Rotation)
                     end
@@ -1064,9 +1067,9 @@ RunService.Heartbeat:Connect(function(dt)
                         local forward=look.Unit
                         local right=Vector3.new(-forward.Z,0,forward.X)
                         local h=animation.standingHeight or body.Size.Y
-                        local eyeHeight=groundY+h*0.79
-                        local spread=h*0.13
-                        local depth=math.max(body.Size.X,body.Size.Z)*0.48
+                        local eyeHeight=body.Position.Y+h*0.37
+                        local spread=h*0.09
+                        local depth=math.min(body.Size.X,body.Size.Z)*0.34
                         for _,eyeInfo in ipairs(animation.eyes or {}) do
                             eyeInfo.part.CFrame=CFrame.new(
                                 Vector3.new(body.Position.X,eyeHeight,body.Position.Z)
