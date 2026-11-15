@@ -1,4 +1,4 @@
--- Alien Breach FPS installer: timed light flickers and single-mesh alien support
+-- Alien Breach FPS installer: upright grounded imported aliens
 -- Run in Roblox Studio Command Bar, edit mode only.
 local ss=game:GetService("ServerScriptService")
 local scripts=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
@@ -815,9 +815,27 @@ local function makeAlien(x,y,kind,wave)
         mesh.Material=Enum.Material.SmoothPlastic
         mesh.Color=kind=="armored" and Color3.fromRGB(92,157,46) or Color3.fromRGB(138,204,62)
         mesh.Size=meshTemplate.Size*(kind=="crawler" and 0.85 or kind=="armored" and 1.3 or 1.1)
-        mesh.CFrame=CFrame.new(origin+Vector3.new(0,mesh.Size.Y/2,0))
+        -- OBJ imports can use X or Z as the vertical axis. Rotate the longest
+        -- dimension upright and use the rotated bounds to put feet on the floor.
+        local size=mesh.Size
+        local upright=CFrame.identity
+        if size.X>size.Y and size.X>size.Z then
+            upright=CFrame.Angles(0,0,math.rad(90))
+        elseif size.Z>size.Y and size.Z>size.X then
+            upright=CFrame.Angles(math.rad(90),0,0)
+        end
+        local right,up,back=upright.RightVector,upright.UpVector,upright.LookVector
+        local standingHeight=math.abs(right.Y)*size.X+math.abs(up.Y)*size.Y+math.abs(back.Y)*size.Z
+        local centerHeight=standingHeight/2+0.12
+        mesh.CFrame=CFrame.new(origin+Vector3.new(0,centerHeight,0))*upright
         mesh.Parent=model
         model.PrimaryPart=mesh
+        model:SetAttribute("MeshAlien",true)
+        model:SetAttribute("MeshUprightX",size.X>size.Y and size.X>size.Z)
+        model:SetAttribute("MeshUprightZ",size.Z>size.Y and size.Z>size.X)
+        model:SetAttribute("MeshCenterHeight",centerHeight)
+        alienAnimation[model]={phase=math.random()*6.28,mesh=true,upright=upright,centerHeight=centerHeight}
+        model.Destroying:Connect(function() alienAnimation[model]=nil end)
         return model
     end
     local scale=kind=="crawler" and 0.83 or kind=="armored" and 1.42 or 1.22
@@ -994,12 +1012,19 @@ RunService.Heartbeat:Connect(function(dt)
                     local step=delta.Unit*math.min((alien:GetAttribute("Speed") or 10)*dt,delta.Magnitude)
                     local current=alien:GetPivot()
                     local facing=CFrame.lookAt(current.Position+step,current.Position+step+Vector3.new(step.X,0,step.Z))
+                    if alien:GetAttribute("MeshAlien") then
+                        local anim=alienAnimation[alien]
+                        local base=anim and anim.upright or CFrame.identity
+                        local floorY=(alien:GetAttribute("MeshCenterHeight") or current.Position.Y)
+                        local bob=math.sin((anim and anim.phase or 0)*2)*0.10
+                        facing=CFrame.new(current.Position.X+step.X,floorY+bob,current.Position.Z+step.Z)*facing.Rotation*base
+                    end
                     alien:PivotTo(facing)
                 end
                 local animation=alienAnimation[alien]
                 if animation then
                     animation.phase+=dt*(alien:GetAttribute("Kind")=="crawler" and 14 or 8)
-                    for _,joint in ipairs(animation.joints) do
+                    for _,joint in ipairs(animation.joints or {}) do
                         if joint.part.Parent then
                             local swing=math.sin(animation.phase+ (joint.side==1 and math.pi or 0))*0.34
                             if joint.arm then swing=-swing end
