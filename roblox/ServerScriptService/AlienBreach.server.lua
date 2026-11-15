@@ -107,11 +107,11 @@ mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
-Lighting.Brightness=4
-Lighting.ExposureCompensation=0.65
+Lighting.Brightness=2.7
+Lighting.ExposureCompensation=0.1
 Lighting.GlobalShadows=false
-Lighting.Ambient=Color3.fromRGB(178,185,185)
-Lighting.OutdoorAmbient=Color3.fromRGB(152,161,164)
+Lighting.Ambient=Color3.fromRGB(124,137,139)
+Lighting.OutdoorAmbient=Color3.fromRGB(100,112,118)
 Lighting.FogEnd=320
 Lighting.FogColor=Color3.fromRGB(18,31,36)
 local breachState=ReplicatedStorage:FindFirstChild("AlienBreachState") or Instance.new("Folder")
@@ -320,16 +320,22 @@ for y,row in ipairs(map) do
 end
 -- Lighting never goes fully dark; occasional brief flicker retains safe visibility.
 local breachIntermission=false
+local alarm=Instance.new("Sound")
+alarm.Name="Emergency breach siren"
+alarm.SoundId="rbxasset://sounds/alarm.wav"
+alarm.Volume=1.8
+alarm.Looped=true
+alarm.Parent=root
 task.spawn(function()
     while root.Parent do
         local now=os.clock()
-        local flicker=(math.sin(now*1.7)>0.995) and 0.72 or 1
+        local flicker=(math.sin(now*3.8)>0.965) and 0.48 or 1
         for _,fixture in ipairs(lightingFixtures) do
-            fixture.light.Brightness=2.3*flicker
+            fixture.light.Brightness=2.0*flicker
             fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
                 or Color3.fromRGB(193,245,236)
         end
-        local redPulse=breachIntermission and (math.sin(now*9)>0 and 2.8 or 0.7) or 0
+        local redPulse=breachIntermission and (math.sin(now*11)>0 and 4.2 or 0.3) or 0
         for _,fixture in ipairs(redFixtures) do
             fixture.light.Brightness=redPulse
             fixture.part.Color=redPulse>0 and Color3.fromRGB(255,43,36)
@@ -766,6 +772,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)lastShot[player]=nil end)
 -- Three browser-game species: stalker, armored, crawler.
 -- Every body part belongs to one anchored Model and moves together via PivotTo.
+local alienAnimation={}
 local function makeAlien(x,y,kind,wave)
     kind=kind or "stalker"
     local model=Instance.new("Model")
@@ -775,18 +782,18 @@ local function makeAlien(x,y,kind,wave)
     model:SetAttribute("HP",kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
-    local scale=kind=="crawler" and 0.65 or kind=="armored" and 1.2 or 1
-    local color=kind=="armored" and Color3.fromRGB(66,112,107) or Color3.fromRGB(109,177,155)
+    local scale=kind=="crawler" and 0.83 or kind=="armored" and 1.42 or 1.22
+    local color=kind=="armored" and Color3.fromRGB(100,171,46) or Color3.fromRGB(147,223,67)
     local function body(name,size,offset,shape)
         local p=block(name,size*scale,CFrame.new(origin+offset*scale),color,Enum.Material.SmoothPlastic,model)
-        p.CanCollide=false;p.CanTouch=false
+        p.CanCollide=false;p.CanTouch=false;p.Transparency=0
         if shape then p.Shape=shape end
         return p
     end
-    local torso=body("Organic ribbed torso",Vector3.new(1.55,3.7,1.05),Vector3.new(0,4.15,0),Enum.PartType.Ball)
+    local torso=body("Organic ribbed torso",Vector3.new(1.9,3.7,1.25),Vector3.new(0,4.15,0),Enum.PartType.Ball)
     model.PrimaryPart=torso
     local neck=body("Thin neck",Vector3.new(0.6,0.8,0.7),Vector3.new(0,6.4,0))
-    local head=body("Elongated grey cranium",Vector3.new(2.55,2.6,1.7),Vector3.new(0,7.6,-0.12),Enum.PartType.Ball)
+    local head=body("Elongated grey cranium",Vector3.new(2.8,2.6,1.85),Vector3.new(0,7.6,-0.12),Enum.PartType.Ball)
     for _,side in ipairs({-1,1}) do
         local eye=body("Large slanted black eye",Vector3.new(0.82,1.13,0.18),Vector3.new(side*0.69,7.65,-0.88),Enum.PartType.Ball)
         eye.Color=Color3.fromRGB(6,16,20)
@@ -809,6 +816,14 @@ local function makeAlien(x,y,kind,wave)
     elseif kind=="crawler" then
         model:PivotTo(model:GetPivot()*CFrame.Angles(math.rad(65),0,0))
     end
+    local joints={}
+    for _,part in ipairs(model:GetChildren()) do
+        if part:IsA("BasePart") and (part.Name=="Long slender forearm" or part.Name=="Organic thigh" or part.Name=="Lower leg" or part.Name=="Three fingered hand") then
+            table.insert(joints,{part=part,relative=torso.CFrame:ToObjectSpace(part.CFrame),arm=part.Name=="Long slender forearm" or part.Name=="Three fingered hand",side=part.Position.X>torso.Position.X and 1 or -1})
+        end
+    end
+    alienAnimation[model]={joints=joints,phase=math.random()*6.28}
+    model.Destroying:Connect(function() alienAnimation[model]=nil end)
     return model
 end
 local wave=0
@@ -839,6 +854,7 @@ task.spawn(function()
     while root.Parent do
         if #enemies:GetChildren()==0 then
             breachIntermission=true
+            alarm:Play()
             for remaining=7,1,-1 do
                 timerValue.Value=remaining
                 task.wait(1)
@@ -849,6 +865,7 @@ task.spawn(function()
             waveValue.Value=wave
             spawnWave(wave)
             breachIntermission=false
+            alarm:Stop()
         else
             aliveValue.Value=#enemies:GetChildren()
             task.wait(0.4)
@@ -924,7 +941,20 @@ RunService.Heartbeat:Connect(function(dt)
                 local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
                 if delta.Magnitude>0.12 then
                     local step=delta.Unit*math.min((alien:GetAttribute("Speed") or 10)*dt,delta.Magnitude)
-                    alien:PivotTo(alien:GetPivot()+step)
+                    local current=alien:GetPivot()
+                    local facing=CFrame.lookAt(current.Position+step,current.Position+step+Vector3.new(step.X,0,step.Z))
+                    alien:PivotTo(facing)
+                end
+                local animation=alienAnimation[alien]
+                if animation then
+                    animation.phase+=dt*(alien:GetAttribute("Kind")=="crawler" and 14 or 8)
+                    for _,joint in ipairs(animation.joints) do
+                        if joint.part.Parent then
+                            local swing=math.sin(animation.phase+ (joint.side==1 and math.pi or 0))*0.34
+                            if joint.arm then swing=-swing end
+                            joint.part.CFrame=part.CFrame*joint.relative*CFrame.Angles(swing,0,0)
+                        end
+                    end
                 end
                 if (hrp.Position-part.Position).Magnitude<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
                     damageClock[alien]=os.clock()
