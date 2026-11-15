@@ -1,18 +1,16 @@
--- Alien Breach FPS - ONE-PASTE ROBLOX STUDIO INSTALLER (phase 1)
--- Run ONCE in Studio Command Bar while NOT playing.
--- Creates a ServerScript and LocalScript. Does not edit the browser game.
-local ServerScriptService=game:GetService("ServerScriptService")
-local StarterPlayer=game:GetService("StarterPlayer")
-local scripts=StarterPlayer:WaitForChild("StarterPlayerScripts")
-local function install(parent,name,kind,source)
-    local existing=parent:FindFirstChild(name)
-    if existing then existing:Destroy() end
-    local obj=Instance.new(kind)
-    obj.Name=name
-    obj.Source=source
-    obj.Parent=parent
+-- Alien Breach FPS: one-paste Roblox Studio installer (updated visuals and breach lights)
+-- Paste into Studio Command Bar in EDIT mode, then execute once.
+local ss=game:GetService("ServerScriptService")
+local starter=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
+local function put(parent,name,class,source)
+ local existing=parent:FindFirstChild(name)
+ if existing then existing:Destroy() end
+ local obj=Instance.new(class)
+ obj.Name=name
+ obj.Source=source
+ obj.Parent=parent
 end
-install(ServerScriptService,"AlienBreach","Script",[======[-- Alien Breach FPS - Roblox conversion, phase 1
+put(ss,"AlienBreach","Script",[======[-- Alien Breach FPS - Roblox conversion, phase 1
 -- Put in ServerScriptService as a Script. Generated from the original GitHub map.
 -- Source: index.html; does not modify the browser game.
 local Players = game:GetService("Players")
@@ -101,27 +99,116 @@ for y,row in ipairs(map) do
         else x+=1 end
     end
 end
--- Floor grating accents and light strips in actual open corridors.
+-- Industrial grating copied from the original browser game's floor design:
+-- framed steel panels, dark recessed channels, silver raised ribs.
+-- Use anchored Parts with no collision for decorative details.
+local lightingFixtures = {}
+local redFixtures = {}
+local floorColor = Color3.fromRGB(126,145,151)
+local trimColor = Color3.fromRGB(167,187,192)
+local grooveColor = Color3.fromRGB(35,48,53)
+local function detail(name,size,cf,color,material)
+    local p=block(name,size,cf,color,material)
+    p.CanCollide=false
+    p.CanTouch=false
+    p.CanQuery=false
+    p.CastShadow=false
+    return p
+end
+-- Keep the corridor bright enough to navigate even during flicker.
+Lighting.ClockTime=0
+Lighting.Brightness=2
+Lighting.Ambient=Color3.fromRGB(83,101,106)
+Lighting.OutdoorAmbient=Color3.fromRGB(60,75,82)
+Lighting.FogEnd=300
+Lighting.FogColor=Color3.fromRGB(18,31,36)
 for y,row in ipairs(map) do
     for x=1,#row do
         if row:sub(x,x)=="0" then
             local px,py=x-0.5,y-0.5
-            if (x+y)%3==0 then
-                block("Grated floor seam",Vector3.new(TILE-0.4,0.08,0.15),
-                    CFrame.new(pos(px,py,0.07)),Color3.fromRGB(115,129,133))
+            local center=pos(px,py,0)
+            -- Individual framed panel with a dark channel and three raised ribs.
+            detail("Steel floor panel",Vector3.new(TILE-0.25,0.12,TILE-0.25),
+                CFrame.new(center+Vector3.new(0,0.04,0)),floorColor)
+            detail("Recessed floor channel",Vector3.new(TILE-0.65,0.035,1.05),
+                CFrame.new(center+Vector3.new(0,0.12,0)),grooveColor)
+            for rib=-1,1 do
+                detail("Raised floor rib",Vector3.new(TILE-0.8,0.075,0.13),
+                    CFrame.new(center+Vector3.new(0,0.16,rib*0.27)),trimColor)
             end
-            if x%6==0 and y%5==0 then
-                local lamp=block("Ceiling light",Vector3.new(4,0.4,2),
-                    CFrame.new(pos(px,py,WALL_HEIGHT-1)),neon,Enum.Material.Neon)
+            -- Exposed wall panels: horizontal seams and dark inset metal strips.
+            -- Only decorate faces adjacent to walkable tiles.
+            local sides={
+                {dx=1,dy=0,angle=90},
+                {dx=-1,dy=0,angle=90},
+                {dx=0,dy=1,angle=0},
+                {dx=0,dy=-1,angle=0}
+            }
+            for _,side in ipairs(sides) do
+                if not free(px+side.dx,py+side.dy) then
+                    local face=center+Vector3.new(side.dx*TILE*0.5,0,side.dy*TILE*0.5)
+                    local cf=CFrame.new(face)*CFrame.Angles(0,math.rad(side.angle),0)
+                    detail("Wall steel inset",Vector3.new(TILE-0.6,WALL_HEIGHT-1.4,0.1),
+                        cf*CFrame.new(0,WALL_HEIGHT/2,0),Color3.fromRGB(76,91,99))
+                    for height=4,12,4 do
+                        detail("Wall horizontal seam",Vector3.new(TILE-0.5,0.12,0.18),
+                            cf*CFrame.new(0,height,0),Color3.fromRGB(25,39,45))
+                    end
+                    detail("Wall vertical trim",Vector3.new(0.2,WALL_HEIGHT-1.3,0.2),
+                        cf*CFrame.new(-TILE/2+0.4,WALL_HEIGHT/2,0),trimColor)
+                end
+            end
+            -- Evenly spaced overhead fluorescent lamps and independent red alarms.
+            if x%4==0 and y%4==0 then
+                local lamp=detail("Always-on ceiling light",Vector3.new(4.5,0.35,1.1),
+                    CFrame.new(center+Vector3.new(0,WALL_HEIGHT-0.8,0)),
+                    Color3.fromRGB(193,245,236),Enum.Material.Neon)
                 local light=Instance.new("PointLight")
-                light.Color=neon
-                light.Brightness=1.4
-                light.Range=35
+                light.Color=Color3.fromRGB(200,246,238)
+                light.Brightness=2.3
+                light.Range=42
+                light.Shadows=false
                 light.Parent=lamp
+                table.insert(lightingFixtures,{part=lamp,light=light})
+                local alarm=detail("Breach warning lamp",Vector3.new(1.2,0.35,1.2),
+                    CFrame.new(center+Vector3.new(2.5,WALL_HEIGHT-0.7,0)),
+                    Color3.fromRGB(70,16,17),Enum.Material.Neon)
+                local alarmLight=Instance.new("PointLight")
+                alarmLight.Color=Color3.fromRGB(255,42,37)
+                alarmLight.Brightness=0
+                alarmLight.Range=35
+                alarmLight.Shadows=false
+                alarmLight.Parent=alarm
+                table.insert(redFixtures,{part=alarm,light=alarmLight})
             end
         end
     end
 end
+-- Ceiling tiles (non-collidable so a player's camera is not trapped).
+local ceiling=block("Industrial ceiling",Vector3.new(#map[1]*TILE,0.5,#map*TILE),
+    CFrame.new(pos(#map[1]/2,#map/2,WALL_HEIGHT+0.4)),
+    Color3.fromRGB(58,73,82))
+ceiling.CanCollide=false
+-- Lighting never goes fully dark; occasional brief flicker retains safe visibility.
+local breachIntermission=false
+task.spawn(function()
+    while root.Parent do
+        local now=os.clock()
+        local flicker=(math.sin(now*1.7)>0.995) and 0.72 or 1
+        for _,fixture in ipairs(lightingFixtures) do
+            fixture.light.Brightness=2.3*flicker
+            fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
+                or Color3.fromRGB(193,245,236)
+        end
+        local redPulse=breachIntermission and (math.sin(now*9)>0 and 2.8 or 0.7) or 0
+        for _,fixture in ipairs(redFixtures) do
+            fixture.light.Brightness=redPulse
+            fixture.part.Color=redPulse>0 and Color3.fromRGB(255,43,36)
+                or Color3.fromRGB(70,16,17)
+        end
+        task.wait(0.12)
+    end
+end)
 local function furniture(x,y,kind)
     local at=pos(x,y,0)
     if kind=="table" then
@@ -166,12 +253,6 @@ for i,p in ipairs(chestPoints) do
         chest:Destroy()
     end)
 end
-Lighting.ClockTime=0
-Lighting.Brightness=1.2
-Lighting.Ambient=Color3.fromRGB(23,41,42)
-Lighting.OutdoorAmbient=Color3.fromRGB(12,22,27)
-Lighting.FogEnd=240
-Lighting.FogColor=Color3.fromRGB(8,20,22)
 StarterPlayer.CameraMode=Enum.CameraMode.LockFirstPerson
 Players.PlayerAdded:Connect(function(player)
     local stats=Instance.new("Folder")
@@ -249,6 +330,9 @@ local wave=1
 task.spawn(function()
     while root.Parent do
         if #enemies:GetChildren()==0 then
+            breachIntermission=true
+            task.wait(7) -- Red alarms flash between alien breaches.
+            breachIntermission=false
             for i=1,math.min(3+wave,12) do
                 for attempt=1,60 do
                     local x=math.random(1,#map[1]-2)+0.5
@@ -302,7 +386,7 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 print("Alien Breach: original GitHub map, props, chests and starter alien combat loaded.")
 ]======])
-install(scripts,"AlienBreachClient","LocalScript",[======[-- Alien Breach FPS - starter first-person weapon/HUD
+put(starter,"AlienBreachClient","LocalScript",[======[-- Alien Breach FPS - starter first-person weapon/HUD
 -- Put in StarterPlayer > StarterPlayerScripts as a LocalScript.
 local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
@@ -378,4 +462,4 @@ end)
 fire.Activated:Connect(shoot)
 update()
 ]======])
-print("ALIEN BREACH installed. Delete/disable old lab test scripts; click Play.")
+print("Alien Breach updated! Disable old test lab scripts and press Play.")
