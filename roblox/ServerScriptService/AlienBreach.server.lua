@@ -763,134 +763,95 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
     end
 end)
 Players.PlayerRemoving:Connect(function(player)lastShot[player]=nil end)
-local function makeAlien(x,y)
+-- Three browser-game species: stalker, armored, crawler.
+-- Every body part belongs to one anchored Model and moves together via PivotTo.
+local function makeAlien(x,y,kind,wave)
+    kind=kind or "stalker"
     local model=Instance.new("Model")
-    model.Name="Stalker Alien"
-    model:SetAttribute("HP",50)
+    model.Name=(kind=="armored" and "Armored Alien" or kind=="crawler" and "Crawler Alien" or "Stalker Alien")
+    model:SetAttribute("Kind",kind)
+    model:SetAttribute("Speed",kind=="crawler" and 15 or kind=="armored" and 7.5 or 10.5)
+    model:SetAttribute("HP",kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
-    local torso=block("Torso",Vector3.new(2.2,4.5,1.4),
-        CFrame.new(origin+Vector3.new(0,4.2,0)),Color3.fromRGB(72,174,158),Enum.Material.SmoothPlastic,model)
-    torso.CanCollide=false
+    local scale=kind=="crawler" and 0.65 or kind=="armored" and 1.2 or 1
+    local color=kind=="armored" and Color3.fromRGB(66,112,107) or Color3.fromRGB(109,177,155)
+    local function body(name,size,offset,shape)
+        local p=block(name,size*scale,CFrame.new(origin+offset*scale),color,Enum.Material.SmoothPlastic,model)
+        p.CanCollide=false;p.CanTouch=false
+        if shape then p.Shape=shape end
+        return p
+    end
+    local torso=body("Organic ribbed torso",Vector3.new(1.55,3.7,1.05),Vector3.new(0,4.15,0),Enum.PartType.Ball)
     model.PrimaryPart=torso
-    local head=block("Oversized head",Vector3.new(3.2,3.6,2.2),
-        CFrame.new(origin+Vector3.new(0,7.6,0)),Color3.fromRGB(89,194,177),Enum.Material.SmoothPlastic,model)
-    head.Shape=Enum.PartType.Ball
-    head.CanCollide=false
+    local neck=body("Thin neck",Vector3.new(0.6,0.8,0.7),Vector3.new(0,6.4,0))
+    local head=body("Elongated grey cranium",Vector3.new(2.55,2.6,1.7),Vector3.new(0,7.6,-0.12),Enum.PartType.Ball)
     for _,side in ipairs({-1,1}) do
-        local eye=block("Black eye",Vector3.new(0.9,1.4,0.3),
-            CFrame.new(origin+Vector3.new(side*0.85,7.8,-1.05)),Color3.fromRGB(4,9,12),Enum.Material.SmoothPlastic,model)
-        eye.Shape=Enum.PartType.Ball
-        eye.CanCollide=false
-        for _,kind in ipairs({"Arm","Leg"}) do
-            local h=kind=="Arm" and 3.6 or 3.8
-            local py=kind=="Arm" and 3.8 or 1.9
-            local px=kind=="Arm" and 1.55 or 0.65
-            local limb=block(kind,Vector3.new(0.5,h,0.6),
-                CFrame.new(origin+Vector3.new(side*px,py,0)),Color3.fromRGB(71,168,153),Enum.Material.SmoothPlastic,model)
-            limb.CanCollide=false
+        local eye=body("Large slanted black eye",Vector3.new(0.82,1.13,0.18),Vector3.new(side*0.69,7.65,-0.88),Enum.PartType.Ball)
+        eye.Color=Color3.fromRGB(6,16,20)
+        eye.CFrame=eye.CFrame*CFrame.Angles(0,0,math.rad(side*18))
+        local shoulder=body("Shoulder joint",Vector3.new(0.6,0.7,0.65),Vector3.new(side*1.02,5.45,0),Enum.PartType.Ball)
+        local upper=body("Long slender forearm",Vector3.new(0.45,2.7,0.5),Vector3.new(side*1.35,4.1,0))
+        upper.CFrame=upper.CFrame*CFrame.Angles(0,0,math.rad(side*12))
+        local hand=body("Three fingered hand",Vector3.new(0.48,0.8,0.5),Vector3.new(side*1.55,2.65,0),Enum.PartType.Ball)
+        local thigh=body("Organic thigh",Vector3.new(0.62,2.1,0.72),Vector3.new(side*0.46,2.4,0))
+        local shin=body("Lower leg",Vector3.new(0.46,2,0.55),Vector3.new(side*0.48,0.95,-0.15))
+        body("Alien foot",Vector3.new(0.65,0.35,1.1),Vector3.new(side*0.48,0.2,-0.35))
+    end
+    if kind=="armored" then
+        local armor=body("Heavy chitin chest plate",Vector3.new(2.25,2.8,1.5),Vector3.new(0,4.6,-0.1),Enum.PartType.Ball)
+        armor.Color=Color3.fromRGB(43,75,76)
+        for _,side in ipairs({-1,1}) do
+            local spike=body("Shoulder carapace",Vector3.new(1.1,1.25,1.1),Vector3.new(side*1.3,5.55,0),Enum.PartType.Ball)
+            spike.Color=Color3.fromRGB(40,70,70)
         end
+    elseif kind=="crawler" then
+        model:PivotTo(model:GetPivot()*CFrame.Angles(math.rad(65),0,0))
     end
     return model
 end
-local wave=1
+local wave=0
+local function spawnWave(number)
+    local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
+    local spawned=0
+    for i=1,count do
+        local kind="stalker"
+        if number>=2 then
+            local roll=math.random()
+            if roll<math.min(0.30,0.10+number*0.018) then kind="crawler"
+            elseif i==1 or roll<math.min(0.70,0.40+number*0.035) then kind="armored" end
+        end
+        for attempt=1,100 do
+            local x=math.random(1,#map[1]-2)+0.5
+            local y=math.random(1,#map-2)+0.5
+            if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
+                makeAlien(x,y,kind,number)
+                spawned+=1
+                break
+            end
+        end
+    end
+    aliveValue.Value=spawned
+end
+-- A breach starts only after all aliens from the preceding wave are eliminated.
 task.spawn(function()
     while root.Parent do
         if #enemies:GetChildren()==0 then
             breachIntermission=true
-            task.wait(7) -- Red alarms flash between alien breaches.
-            breachIntermission=false
-            for i=1,math.min(3+wave,12) do
-                for attempt=1,60 do
-                    local x=math.random(1,#map[1]-2)+0.5
-                    local y=math.random(1,#map-2)+0.5
-                    if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
-                        makeAlien(x,y)
-                        break
-                    end
-                end
+            for remaining=7,1,-1 do
+                timerValue.Value=remaining
+                task.wait(1)
+                if not root.Parent then return end
             end
+            timerValue.Value=0
             wave+=1
-        end
-        task.wait(3)
-    end
-end)
-local damageClock={}
--- Breadth-first flow fields guide every alien through connected corridors.
--- One field per active player, refreshed at intervals (not per frame).
-local fields={}
-local fieldTimer=0
-local directions={{1,0},{-1,0},{0,1},{0,-1}}
-local function tileKey(x,y) return y*WIDTH+x end
-local function gridOf(v)
-    return math.floor(v.X/TILE+WIDTH/2)+1,math.floor(v.Z/TILE+HEIGHT/2)+1
-end
-local function buildField(hrp)
-    local sx,sy=gridOf(hrp.Position)
-    if not free(sx-0.5,sy-0.5) then return {} end
-    local distances={[tileKey(sx,sy)]=0}
-    local queue={{sx,sy}}
-    local head=1
-    while head<=#queue do
-        local item=queue[head];head+=1
-        local distance=distances[tileKey(item[1],item[2])]
-        for _,d in ipairs(directions) do
-            local nx,ny=item[1]+d[1],item[2]+d[2]
-            local k=tileKey(nx,ny)
-            if distances[k]==nil and free(nx-0.5,ny-0.5) then
-                distances[k]=distance+1
-                table.insert(queue,{nx,ny})
-            end
-        end
-    end
-    return distances
-end
-RunService.Heartbeat:Connect(function(dt)
-    fieldTimer+=dt
-    if fieldTimer>=0.65 then
-        fieldTimer=0
-        for _,player in ipairs(Players:GetPlayers()) do
-            local character=player.Character
-            local hrp=character and character:FindFirstChild("HumanoidRootPart")
-            local hum=character and character:FindFirstChildOfClass("Humanoid")
-            if hrp and hum and hum.Health>0 then fields[player]=buildField(hrp) else fields[player]=nil end
-        end
-    end
-    for _,alien in ipairs(enemies:GetChildren()) do
-        local part=alien.PrimaryPart
-        if not part then continue end
-        local ax,ay=gridOf(part.Position)
-        local bestPlayer,bestDistance,bestField=nil,math.huge,nil
-        for _,player in ipairs(Players:GetPlayers()) do
-            local field=fields[player]
-            local d=field and field[tileKey(ax,ay)]
-            if d and d<bestDistance then
-                bestDistance=d;bestPlayer=player;bestField=field
-            end
-        end
-        if bestPlayer then
-            local hrp=bestPlayer.Character and bestPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local tx,ty=ax,ay
-                if bestDistance>0 then
-                    for _,d in ipairs(directions) do
-                        local nx,ny=ax+d[1],ay+d[2]
-                        local nd=bestField[tileKey(nx,ny)]
-                        if nd and nd<bestDistance then bestDistance=nd;tx=nx;ty=ny end
-                    end
-                end
-                local target=bestDistance==0 and hrp.Position or pos(tx-0.5,ty-0.5,part.Position.Y)
-                local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
-                if delta.Magnitude>0.12 then
-                    local step=delta.Unit*math.min(10*dt,delta.Magnitude)
-                    alien:PivotTo(alien:GetPivot()+step)
-                end
-                if (hrp.Position-part.Position).Magnitude<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
-                    damageClock[alien]=os.clock()
-                    local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hum then hum:TakeDamage(10) end
-                end
-            end
+            waveValue.Value=wave
+            spawnWave(wave)
+            breachIntermission=false
+        else
+            aliveValue.Value=#enemies:GetChildren()
+            task.wait(0.4)
         end
     end
 end)
+
