@@ -375,7 +375,7 @@ local function furniture(x,y,kind)
             end
         end
         item("Computer monitor",Vector3.new(2.5,1.65,0.24),Vector3.new(-0.4,4.0,0.6),Color3.fromRGB(24,30,34))
-        item("Dim computer screen",Vector3.new(2.2,1.35,0.05),Vector3.new(-0.4,4.0,0.45),Color3.fromRGB(42,91,86),Enum.Material.Neon)
+        item("Dim computer screen",Vector3.new(2.2,1.35,0.05),Vector3.new(-0.4,4.0,0.45),Color3.fromRGB(37,58,54),Enum.Material.SmoothPlastic)
         item("Monitor stand",Vector3.new(0.18,0.8,0.18),Vector3.new(-0.4,3.1,0.65),metal)
         item("Keyboard",Vector3.new(2.0,0.12,0.6),Vector3.new(-0.4,2.96,-0.75),Color3.fromRGB(32,36,39))
         item("Mouse",Vector3.new(0.3,0.13,0.48),Vector3.new(1.1,2.96,-0.8),Color3.fromRGB(36,40,43))
@@ -503,11 +503,12 @@ for _,spec in ipairs({{40.5,5.5,false},{51.5,5.5,false},{40.5,9.5,true},
 end
 -- Industrial yellow pipe networks: elbows, brackets, junction collars and
 -- parallel overhead runs, rather than huge unbroken floating rods.
-local yellow=Color3.fromRGB(210,165,41)
+local yellow=Color3.fromRGB(157,121,48)
 local function pipeRun(points,radius)
     for i=1,#points-1 do
         local a,b=pos(points[i][1],points[i][2],points[i][3]),pos(points[i+1][1],points[i+1][2],points[i+1][3])
-        segment("Yellow coolant pipe",a,b,radius,yellow,Enum.Material.Metal,root)
+        local pipe=segment("Yellow coolant pipe",a,b,radius,yellow,Enum.Material.SmoothPlastic,root)
+        pipe.Reflectance=0
         cylinder("Pipe coupling flange",radius*1.35,0.38,CFrame.new(a)*CFrame.Angles(0,0,0),Color3.fromRGB(89,91,83),Enum.Material.Metal,root).CanCollide=false
         if i==#points-1 then
             cylinder("Pipe end coupling",radius*1.35,0.38,CFrame.new(b),Color3.fromRGB(89,91,83),Enum.Material.Metal,root).CanCollide=false
@@ -552,7 +553,7 @@ for _,p in ipairs({{46.5,10.5},{47.5,23.5},{25.5,40.5}}) do
     local at=pos(p[1],p[2],0)
     block("Research equipment trolley",Vector3.new(3.3,0.35,2.3),CFrame.new(at+Vector3.new(0,2.7,0)),Color3.fromRGB(109,121,126))
     block("Lab diagnostic machine",Vector3.new(1.8,1.6,1.5),CFrame.new(at+Vector3.new(0,3.6,0)),Color3.fromRGB(53,68,74))
-    block("Diagnostic screen",Vector3.new(1.3,0.9,0.06),CFrame.new(at+Vector3.new(0,3.8,-0.78)),Color3.fromRGB(70,188,157),Enum.Material.Neon)
+    block("Diagnostic screen",Vector3.new(1.3,0.9,0.06),CFrame.new(at+Vector3.new(0,3.8,-0.78)),Color3.fromRGB(46,82,76),Enum.Material.SmoothPlastic)
 end
 local function wallPoster(x,y,title,subtitle,bg,ink)
     local origin=pos(x,y,0)
@@ -790,28 +791,41 @@ local function makeAlien(x,y,kind,wave)
         if shape then p.Shape=shape end
         return p
     end
-    local torso=body("Organic ribbed torso",Vector3.new(1.9,3.7,1.25),Vector3.new(0,4.15,0),Enum.PartType.Ball)
+    -- Tall insectoid humanoid: rounded shell, narrow waist, oversized compound eyes,
+    -- long jointed limbs, and a forward-leaning threatening silhouette.
+    local torso=body("Tall insectoid thorax",Vector3.new(2.05,3.4,1.45),Vector3.new(0,4.45,0),Enum.PartType.Ball)
     model.PrimaryPart=torso
-    local neck=body("Thin neck",Vector3.new(0.6,0.8,0.7),Vector3.new(0,6.4,0))
-    local head=body("Elongated grey cranium",Vector3.new(2.8,2.6,1.85),Vector3.new(0,7.6,-0.12),Enum.PartType.Ball)
+    local abdomen=body("Tapered abdomen",Vector3.new(1.45,2.5,1.2),Vector3.new(0,2.95,0.12),Enum.PartType.Ball)
+    abdomen.Color=Color3.fromRGB(96,164,49)
+    local neck=body("Long flexible neck",Vector3.new(0.66,1.2,0.75),Vector3.new(0,6.65,0))
+    local head=body("Broad elongated alien head",Vector3.new(3.0,2.65,2.05),Vector3.new(0,8.0,-0.4),Enum.PartType.Ball)
     for _,side in ipairs({-1,1}) do
-        local eye=body("Large slanted black eye",Vector3.new(0.82,1.13,0.18),Vector3.new(side*0.69,7.65,-0.88),Enum.PartType.Ball)
-        eye.Color=Color3.fromRGB(6,16,20)
-        eye.CFrame=eye.CFrame*CFrame.Angles(0,0,math.rad(side*18))
-        local shoulder=body("Shoulder joint",Vector3.new(0.6,0.7,0.65),Vector3.new(side*1.02,5.45,0),Enum.PartType.Ball)
-        local upper=body("Long slender forearm",Vector3.new(0.45,2.7,0.5),Vector3.new(side*1.35,4.1,0))
-        upper.CFrame=upper.CFrame*CFrame.Angles(0,0,math.rad(side*12))
-        local hand=body("Three fingered hand",Vector3.new(0.48,0.8,0.5),Vector3.new(side*1.55,2.65,0),Enum.PartType.Ball)
-        local thigh=body("Organic thigh",Vector3.new(0.62,2.1,0.72),Vector3.new(side*0.46,2.4,0))
-        local shin=body("Lower leg",Vector3.new(0.46,2,0.55),Vector3.new(side*0.48,0.95,-0.15))
-        body("Alien foot",Vector3.new(0.65,0.35,1.1),Vector3.new(side*0.48,0.2,-0.35))
+        local eye=body("Huge glossy compound eye",Vector3.new(1.15,1.65,0.46),Vector3.new(side*0.83,8.12,-1.28),Enum.PartType.Ball)
+        eye.Color=Color3.fromRGB(16,27,18)
+        eye.Reflectance=0.04
+        eye.CFrame=eye.CFrame*CFrame.Angles(0,0,math.rad(side*14))
+        local eyeGlint=body("Eye reflective speck",Vector3.new(0.18,0.26,0.07),Vector3.new(side*0.77,8.52,-1.55),Enum.PartType.Ball)
+        eyeGlint.Color=Color3.fromRGB(112,142,110)
+        local shoulder=body("Insectoid shoulder joint",Vector3.new(0.95,1.0,0.9),Vector3.new(side*1.1,5.6,0),Enum.PartType.Ball)
+        local upper=body("Long slender forearm",Vector3.new(0.54,3.0,0.62),Vector3.new(side*1.5,4.2,-0.2),Enum.PartType.Ball)
+        upper.CFrame=upper.CFrame*CFrame.Angles(0,0,math.rad(side*10))
+        local hand=body("Three fingered hand",Vector3.new(0.63,1.0,0.65),Vector3.new(side*1.8,2.5,-0.35),Enum.PartType.Ball)
+        for finger=1,3 do
+            local claw=body("Curved finger claw",Vector3.new(0.15,0.8,0.16),Vector3.new(side*(1.58+finger*0.13),1.85,-0.55),Enum.PartType.Ball)
+            claw.Color=Color3.fromRGB(61,105,35)
+        end
+        local thigh=body("Organic thigh",Vector3.new(0.82,2.35,0.82),Vector3.new(side*0.55,2.4,0.1),Enum.PartType.Ball)
+        local shin=body("Lower leg",Vector3.new(0.59,2.0,0.63),Vector3.new(side*0.58,0.95,-0.3),Enum.PartType.Ball)
+        body("Wide alien foot",Vector3.new(0.92,0.35,1.45),Vector3.new(side*0.58,0.2,-0.55),Enum.PartType.Ball)
     end
+    local jaw=body("Small mandible ridge",Vector3.new(0.85,0.36,0.35),Vector3.new(0,6.95,-1.25),Enum.PartType.Ball)
+    jaw.Color=Color3.fromRGB(72,137,39)
     if kind=="armored" then
         local armor=body("Heavy chitin chest plate",Vector3.new(2.25,2.8,1.5),Vector3.new(0,4.6,-0.1),Enum.PartType.Ball)
-        armor.Color=Color3.fromRGB(43,75,76)
+        armor.Color=Color3.fromRGB(65,118,36)
         for _,side in ipairs({-1,1}) do
             local spike=body("Shoulder carapace",Vector3.new(1.1,1.25,1.1),Vector3.new(side*1.3,5.55,0),Enum.PartType.Ball)
-            spike.Color=Color3.fromRGB(40,70,70)
+            spike.Color=Color3.fromRGB(55,103,34)
         end
     elseif kind=="crawler" then
         model:PivotTo(model:GetPivot()*CFrame.Angles(math.rad(65),0,0))
