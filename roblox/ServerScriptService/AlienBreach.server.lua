@@ -326,10 +326,17 @@ alarm.SoundId="rbxasset://sounds/alarm.wav"
 alarm.Volume=1.8
 alarm.Looped=true
 alarm.Parent=root
+local flickerUntil=0
+local nextFlicker=os.clock()+math.random(30,40)/10
 task.spawn(function()
     while root.Parent do
         local now=os.clock()
-        local flicker=(math.sin(now*3.8)>0.965) and 0.48 or 1
+        -- 0.3 second dip, followed by 3-4 seconds of steady full brightness.
+        if now>=nextFlicker then
+            flickerUntil=now+0.3
+            nextFlicker=flickerUntil+math.random(30,40)/10
+        end
+        local flicker=now<flickerUntil and 0.35 or 1
         for _,fixture in ipairs(lightingFixtures) do
             fixture.light.Brightness=2.0*flicker
             fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
@@ -783,6 +790,24 @@ local function makeAlien(x,y,kind,wave)
     model:SetAttribute("HP",kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
+    -- Prefer a single imported MeshPart for a continuous alien silhouette.
+    -- Put an imported MeshPart named AlienMesh in ServerStorage to activate it.
+    local meshTemplate=game:GetService("ServerStorage"):FindFirstChild("AlienMesh")
+    if meshTemplate and meshTemplate:IsA("MeshPart") then
+        local mesh=meshTemplate:Clone()
+        mesh.Name="AlienBody"
+        mesh.Anchored=true
+        mesh.CanCollide=false
+        mesh.CanTouch=false
+        mesh.Transparency=0
+        mesh.Material=Enum.Material.SmoothPlastic
+        mesh.Color=kind=="armored" and Color3.fromRGB(92,157,46) or Color3.fromRGB(138,204,62)
+        mesh.Size=meshTemplate.Size*(kind=="crawler" and 0.85 or kind=="armored" and 1.3 or 1.1)
+        mesh.CFrame=CFrame.new(origin+Vector3.new(0,mesh.Size.Y/2,0))
+        mesh.Parent=model
+        model.PrimaryPart=mesh
+        return model
+    end
     local scale=kind=="crawler" and 0.83 or kind=="armored" and 1.42 or 1.22
     local color=kind=="armored" and Color3.fromRGB(100,171,46) or Color3.fromRGB(147,223,67)
     local function body(name,size,offset,shape)
