@@ -1,4 +1,4 @@
--- Alien Breach FPS one-paste installer: abandoned floor + instant lighting
+-- Alien Breach FPS one-paste installer: expanded map, pathfinding, minimap
 -- Run once in Roblox Studio Command Bar in Edit mode.
 local ss=game:GetService("ServerScriptService")
 local scripts=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
@@ -49,8 +49,62 @@ local map = {
     "11111111111111000000000111111111111",
     "11111111111111111111111111111111111",
 }
+-- Preserve the original 35x27 layout in the northwest corner, then expand
+-- into new east research wings and a south office/maintenance complex.
+local WIDTH,HEIGHT=57,45
+local cells={}
+for y=1,HEIGHT do
+    cells[y]={}
+    for x=1,WIDTH do
+        cells[y][x]=(map[y] and map[y]:sub(x,x)=="0") and "0" or "1"
+    end
+end
+local function carve(x1,y1,x2,y2)
+    for y=y1,y2 do for x=x1,x2 do cells[y][x]="0" end end
+end
+-- Three large laboratories, connecting hallways, small offices and storage.
+carve(34,5,39,5) -- access from original upper storage room
+carve(37,3,54,11) -- advanced research laboratory
+carve(34,18,40,18) -- east central corridor
+carve(37,14,54,25) -- containment laboratory
+carve(38,11,40,15) -- north/south connecting corridor
+carve(42,26,44,29) -- lower east passage
+carve(37,29,54,42) -- operations and office wing
+carve(18,26,19,31) -- original maintenance connection
+carve(3,30,34,32) -- south main hallway
+carve(3,34,15,42) -- west cubicle office
+carve(18,34,34,42) -- south technical lab
+carve(15,31,18,35)
+carve(32,31,38,32)
+-- Thin dividers and doorways make several small rooms off the main corridors.
+for _,x in ipairs({7,11}) do
+    for y=34,42 do if y~=37 then cells[y][x]="1" end end
+end
+for _,x in ipairs({23,29}) do
+    for y=34,42 do if y~=37 then cells[y][x]="1" end end
+end
+for _,x in ipairs({43,49}) do
+    for y=30,42 do if y~=35 then cells[y][x]="1" end end
+end
+-- Ensure the east wing connects to the lower south wing.
+carve(42,24,44,30)
+-- Seal the outside boundary.
+for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
+for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
+map={}
+for y=1,HEIGHT do map[y]=table.concat(cells[y]) end
 local props = {{6.2,3.2,"computer"},{6.4,5.7,"table"},{16.5,3.3,"computer"},{20.0,6.2,"cabinet"},{15.8,6.4,"table"},{29.5,3.2,"cabinet"},{31.5,6.2,"computer"},{3.2,17.0,"computer"},{7.2,19.5,"table"},{5.5,15.8,"cabinet"},{15.5,15.5,"table"},{20.0,19.5,"cabinet"},{29.5,16.2,"computer"},{31.5,19.5,"table"},{16.0,24.8,"cabinet"},{20.0,24.8,"computer"}}
+
+for _,p in ipairs({
+ {40.5,5.5,"table"},{45.5,7.5,"computer"},{51.5,5.5,"cabinet"},
+ {41.5,17.5,"table"},{47.5,19.5,"computer"},{52.5,22.5,"cabinet"},
+ {39.5,33.5,"computer"},{46.5,32.5,"table"},{52.5,38.5,"cabinet"},
+ {5.0,36.5,"computer"},{9.0,39.0,"computer"},{13.0,36.5,"cabinet"},
+ {20.5,36.5,"computer"},{26.5,39.0,"table"},{32.0,36.5,"cabinet"},
+ {5.5,40.0,"table"},{20.0,40.0,"cabinet"},{47.0,39.5,"computer"}
+}) do table.insert(props,p) end
 local chestPoints = {{2.5,2.5},{7.5,6.5},{15.0,2.0},{21.0,7.0},{28.5,2.5},{32.0,7.0},{2.5,20.5},{8.0,15.5},{14.5,20.5},{21.0,14.5},{28.5,20.5},{32.0,14.5},{15.0,24.5},{21.0,24.5}}
+for _,p in ipairs({{42.5,5.5},{52.5,9.5},{40.5,22.5},{51.5,18.5},{40.5,38.5},{52.5,39.5},{5.5,31.5},{24.5,31.5}}) do table.insert(chestPoints,p) end
 local old = workspace:FindFirstChild("AlienBreachRoblox")
 if old then old:Destroy() end
 local oldRemote = ReplicatedStorage:FindFirstChild("AlienBreachFire")
@@ -58,6 +112,10 @@ if oldRemote then oldRemote:Destroy() end
 local remote = Instance.new("RemoteEvent")
 remote.Name = "AlienBreachFire"
 remote.Parent = ReplicatedStorage
+local mapValue=ReplicatedStorage:FindFirstChild("AlienBreachMap") or Instance.new("StringValue")
+mapValue.Name="AlienBreachMap"
+mapValue.Value=table.concat(map,"\n")
+mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=0
 Lighting.Brightness=2.8
@@ -92,7 +150,7 @@ local function free(x,y)
     local row = map[math.floor(y)+1]
     return row ~= nil and row:sub(math.floor(x)+1,math.floor(x)+1) == "0"
 end
--- Exact 35x27 source tile footprint. Runs of walls are combined for performance.
+-- Expanded 57x45 facility, retaining the original 35x27 section. Runs of walls are combined for performance.
 block("Industrial foundation",Vector3.new(#map[1]*TILE,1,#map*TILE),CFrame.new(pos(#map[1]/2,#map/2,-0.5)),metal)
 for y,row in ipairs(map) do
     local x=1
@@ -384,42 +442,84 @@ task.spawn(function()
     end
 end)
 local damageClock={}
+-- Breadth-first flow fields guide every alien through connected corridors.
+-- One field per active player, refreshed at intervals (not per frame).
+local fields={}
+local fieldTimer=0
+local directions={{1,0},{-1,0},{0,1},{0,-1}}
+local function tileKey(x,y) return y*WIDTH+x end
+local function gridOf(v)
+    return math.floor(v.X/TILE+WIDTH/2)+1,math.floor(v.Z/TILE+HEIGHT/2)+1
+end
+local function buildField(hrp)
+    local sx,sy=gridOf(hrp.Position)
+    if not free(sx-0.5,sy-0.5) then return {} end
+    local distances={[tileKey(sx,sy)]=0}
+    local queue={{sx,sy}}
+    local head=1
+    while head<=#queue do
+        local item=queue[head];head+=1
+        local distance=distances[tileKey(item[1],item[2])]
+        for _,d in ipairs(directions) do
+            local nx,ny=item[1]+d[1],item[2]+d[2]
+            local k=tileKey(nx,ny)
+            if distances[k]==nil and free(nx-0.5,ny-0.5) then
+                distances[k]=distance+1
+                table.insert(queue,{nx,ny})
+            end
+        end
+    end
+    return distances
+end
 RunService.Heartbeat:Connect(function(dt)
+    fieldTimer+=dt
+    if fieldTimer>=0.65 then
+        fieldTimer=0
+        for _,player in ipairs(Players:GetPlayers()) do
+            local character=player.Character
+            local hrp=character and character:FindFirstChild("HumanoidRootPart")
+            local hum=character and character:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health>0 then fields[player]=buildField(hrp) else fields[player]=nil end
+        end
+    end
     for _,alien in ipairs(enemies:GetChildren()) do
         local part=alien.PrimaryPart
         if not part then continue end
-        local closest,dist=nil,math.huge
+        local ax,ay=gridOf(part.Position)
+        local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local char=player.Character
-            local hrp=char and char:FindFirstChild("HumanoidRootPart")
-            local hum=char and char:FindFirstChildOfClass("Humanoid")
-            if hrp and hum and hum.Health>0 then
-                local d=(hrp.Position-part.Position).Magnitude
-                if d<dist then closest=player;dist=d end
+            local field=fields[player]
+            local d=field and field[tileKey(ax,ay)]
+            if d and d<bestDistance then
+                bestDistance=d;bestPlayer=player;bestField=field
             end
         end
-        if closest and dist<85 then
-            local hrp=closest.Character.HumanoidRootPart
-            local delta=hrp.Position-part.Position
-            local flat=Vector3.new(delta.X,0,delta.Z)
-            if flat.Magnitude>0.1 then
-                local movement=flat.Unit*math.min(9*dt,flat.Magnitude)
-                local target=part.Position+movement
-                local gx=target.X/TILE+#map[1]/2
-                local gy=target.Z/TILE+#map/2
-                if free(gx,gy) then
-                    alien:PivotTo(alien:GetPivot()+movement)
+        if bestPlayer then
+            local hrp=bestPlayer.Character and bestPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local tx,ty=ax,ay
+                if bestDistance>0 then
+                    for _,d in ipairs(directions) do
+                        local nx,ny=ax+d[1],ay+d[2]
+                        local nd=bestField[tileKey(nx,ny)]
+                        if nd and nd<bestDistance then bestDistance=nd;tx=nx;ty=ny end
+                    end
                 end
-            end
-            if dist<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
-                damageClock[alien]=os.clock()
-                local hum=closest.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum:TakeDamage(10) end
+                local target=bestDistance==0 and hrp.Position or pos(tx-0.5,ty-0.5,part.Position.Y)
+                local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
+                if delta.Magnitude>0.12 then
+                    local step=delta.Unit*math.min(10*dt,delta.Magnitude)
+                    alien:PivotTo(alien:GetPivot()+step)
+                end
+                if (hrp.Position-part.Position).Magnitude<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
+                    damageClock[alien]=os.clock()
+                    local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if hum then hum:TakeDamage(10) end
+                end
             end
         end
     end
 end)
-print("Alien Breach: original GitHub map, props, chests and starter alien combat loaded.")
 ]======])
 put(scripts,"AlienBreachClient","LocalScript",[======[-- Alien Breach FPS - starter first-person weapon/HUD
 -- Put in StarterPlayer > StarterPlayerScripts as a LocalScript.
@@ -496,5 +596,113 @@ UserInputService.InputBegan:Connect(function(input,processed)
 end)
 fire.Activated:Connect(shoot)
 update()
+
+-- Interactive facility map: tap the corner radar or press M to enlarge.
+local mapValue=ReplicatedStorage:WaitForChild("AlienBreachMap")
+local rows=string.split(mapValue.Value,"\n")
+local mapHeight=#rows
+local mapWidth=#rows[1]
+local TILE=8
+local radar=Instance.new("TextButton")
+radar.Name="MapToggle"
+radar.Text="MAP  [M]"
+radar.Font=Enum.Font.GothamBold
+radar.TextScaled=true
+radar.TextColor3=Color3.fromRGB(172,255,203)
+radar.BackgroundColor3=Color3.fromRGB(9,28,33)
+radar.Size=UDim2.fromScale(0.13,0.055)
+radar.Position=UDim2.fromScale(0.85,0.04)
+radar.Parent=gui
+local panel=Instance.new("Frame")
+panel.Name="FacilityMap"
+panel.BackgroundColor3=Color3.fromRGB(5,16,20)
+panel.BackgroundTransparency=0.08
+panel.BorderSizePixel=2
+panel.BorderColor3=Color3.fromRGB(64,155,139)
+panel.AnchorPoint=Vector2.new(0.5,0.5)
+panel.Position=UDim2.fromScale(0.5,0.51)
+panel.Size=UDim2.fromScale(0.76,0.76)
+panel.Visible=false
+panel.Parent=gui
+local constraint=Instance.new("UIAspectRatioConstraint")
+constraint.AspectRatio=mapWidth/mapHeight
+constraint.AspectType=Enum.AspectType.FitWithinMaxSize
+constraint.DominantAxis=Enum.DominantAxis.Width
+constraint.Parent=panel
+local cells=Instance.new("Frame")
+cells.Name="MapTiles"
+cells.BackgroundTransparency=1
+cells.Size=UDim2.fromScale(1,1)
+cells.Parent=panel
+for y,row in ipairs(rows) do
+    for x=1,#row do
+        if row:sub(x,x)=="0" then
+            local tile=Instance.new("Frame")
+            tile.Name="HallwayOrRoom"
+            tile.BorderSizePixel=0
+            tile.BackgroundColor3=Color3.fromRGB(73,103,108)
+            tile.Position=UDim2.fromScale((x-1)/mapWidth,(y-1)/mapHeight)
+            tile.Size=UDim2.fromScale(1/mapWidth+0.0002,1/mapHeight+0.0002)
+            tile.Parent=cells
+        end
+    end
+end
+local markerLayer=Instance.new("Frame")
+markerLayer.BackgroundTransparency=1
+markerLayer.Size=UDim2.fromScale(1,1)
+markerLayer.Parent=panel
+local markers={}
+local function marker(color,size)
+    local m=Instance.new("Frame")
+    m.AnchorPoint=Vector2.new(0.5,0.5)
+    m.BorderSizePixel=0
+    m.BackgroundColor3=color
+    m.Size=UDim2.fromScale(size/mapWidth,size/mapHeight)
+    m.Parent=markerLayer
+    local corner=Instance.new("UICorner")
+    corner.CornerRadius=UDim.new(1,0)
+    corner.Parent=m
+    return m
+end
+local playerDot=marker(Color3.fromRGB(70,255,100),1.3)
+local function place(dot,position)
+    local gx=position.X/TILE+mapWidth/2
+    local gy=position.Z/TILE+mapHeight/2
+    dot.Position=UDim2.fromScale(gx/mapWidth,gy/mapHeight)
+end
+local function toggleMap()
+    panel.Visible=not panel.Visible
+    radar.Text=panel.Visible and "CLOSE  [M]" or "MAP  [M]"
+end
+radar.Activated:Connect(toggleMap)
+UserInputService.InputBegan:Connect(function(input,processed)
+    if input.KeyCode==Enum.KeyCode.M and not processed then toggleMap() end
+end)
+local elapsed=0
+RunService.RenderStepped:Connect(function(dt)
+    if not panel.Visible then return end
+    elapsed+=dt
+    if elapsed<0.12 then return end
+    elapsed=0
+    local char=player.Character
+    local hrp=char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then place(playerDot,hrp.Position) end
+    local folder=workspace:FindFirstChild("AlienBreachRoblox")
+    local aliens=folder and folder:FindFirstChild("Aliens")
+    local live={}
+    if aliens then
+        for _,alien in ipairs(aliens:GetChildren()) do
+            local part=alien.PrimaryPart
+            if part then
+                live[alien]=true
+                if not markers[alien] then markers[alien]=marker(Color3.fromRGB(255,61,57),1.1) end
+                place(markers[alien],part.Position)
+            end
+        end
+    end
+    for alien,dot in pairs(markers) do
+        if not live[alien] then dot:Destroy();markers[alien]=nil end
+    end
+end)
 ]======])
 print("Alien Breach installed. Disable any previous test map scripts.")
