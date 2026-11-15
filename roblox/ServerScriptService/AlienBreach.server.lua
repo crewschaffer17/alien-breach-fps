@@ -194,20 +194,21 @@ for y,row in ipairs(map) do
     for x=1,#row do
         if row:sub(x,x)=="0" and x%4==0 and y%4==0 then
             local center=pos(x-0.5,y-0.5,0)
+            local fixtureHeight=tallRoom(x,y) and 34 or WALL_HEIGHT
             -- Evenly spaced overhead fluorescent lamps and independent red alarms.
             if x%4==0 and y%4==0 then
                 local lamp=detail("Always-on ceiling light",Vector3.new(4.5,0.35,1.1),
-                    CFrame.new(center+Vector3.new(0,WALL_HEIGHT-0.8,0)),
+                    CFrame.new(center+Vector3.new(0,fixtureHeight+0.05,0)),
                     Color3.fromRGB(193,245,236),Enum.Material.Neon)
                 local light=Instance.new("PointLight")
                 light.Color=Color3.fromRGB(200,246,238)
                 light.Brightness=2.3
-                light.Range=42
+                light.Range=tallRoom(x,y) and 65 or 48
                 light.Shadows=false
                 light.Parent=lamp
                 table.insert(lightingFixtures,{part=lamp,light=light})
                 local alarm=detail("Breach warning lamp",Vector3.new(1.2,0.35,1.2),
-                    CFrame.new(center+Vector3.new(2.5,WALL_HEIGHT-0.7,0)),
+                    CFrame.new(center+Vector3.new(2.5,fixtureHeight+0.05,0)),
                     Color3.fromRGB(70,16,17),Enum.Material.Neon)
                 local alarmLight=Instance.new("PointLight")
                 alarmLight.Color=Color3.fromRGB(255,42,37)
