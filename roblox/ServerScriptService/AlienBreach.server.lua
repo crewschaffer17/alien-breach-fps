@@ -336,9 +336,11 @@ task.spawn(function()
             flickerUntil=now+0.3
             nextFlicker=flickerUntil+math.random(30,40)/10
         end
-        local flicker=now<flickerUntil and 0.35 or 1
+        local flicker=now<flickerUntil and 0.18 or 1
+        Lighting.Brightness=2.7*flicker
+        Lighting.ExposureCompensation=0.1+(1-flicker)*(-0.35)
         for _,fixture in ipairs(lightingFixtures) do
-            fixture.light.Brightness=2.0*flicker
+            fixture.light.Brightness=2.3*flicker
             fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
                 or Color3.fromRGB(193,245,236)
         end
@@ -818,35 +820,34 @@ local function makeAlien(x,y,kind,wave)
         end
         local right,up,back=upright.RightVector,upright.UpVector,upright.LookVector
         local standingHeight=math.abs(right.Y)*size.X+math.abs(up.Y)*size.Y+math.abs(back.Y)*size.Z
-        local centerHeight=standingHeight/2+0.03
+        local centerHeight=standingHeight/2
         mesh.CFrame=CFrame.new(origin+Vector3.new(0,centerHeight,0))*upright
         mesh.Parent=model
         model.PrimaryPart=mesh
-        -- Two dark eyes fixed to the face of the green alien.
-        -- Their placement assumes the mesh's front is its local -Z face.
-        local eyeY=standingHeight*0.31
-        local eyeSpacing=math.min(size.X,size.Z)*0.17
-        local eyeRadius=math.max(0.16,math.min(size.X,size.Z)*0.13)
+        -- Dark eyes are kept facing the target and attached to the head by
+        -- the movement loop. Do not assume imported OBJ local forward axis.
+        local eyeRadius=math.clamp(standingHeight*0.085,0.28,0.9)
+        local eyes={}
         for side=-1,1,2 do
             local eye=Instance.new("Part")
             eye.Name="BlackEye"
             eye.Shape=Enum.PartType.Ball
-            eye.Size=Vector3.new(eyeRadius*2,eyeRadius*2,eyeRadius*0.7)
-            eye.Color=Color3.fromRGB(8,12,9)
+            eye.Size=Vector3.new(eyeRadius*2,eyeRadius*2,eyeRadius*0.8)
+            eye.Color=Color3.fromRGB(5,7,5)
             eye.Material=Enum.Material.SmoothPlastic
             eye.Anchored=true
             eye.CanCollide=false
             eye.CanTouch=false
             eye.CanQuery=false
-            eye.CFrame=mesh.CFrame*CFrame.new(side*eyeSpacing,eyeY,-size.Z*0.47)
             eye.Parent=model
+            table.insert(eyes,{part=eye,side=side})
         end
         model:SetAttribute("MeshAlien",true)
         model:SetAttribute("MeshUprightX",size.X>size.Y and size.X>size.Z)
         model:SetAttribute("MeshUprightZ",size.Z>size.Y and size.Z>size.X)
         model:SetAttribute("MeshCenterHeight",centerHeight)
         model:SetAttribute("MeshFloorY",origin.Y)
-        alienAnimation[model]={phase=math.random()*6.28,mesh=true,upright=upright,centerHeight=centerHeight}
+        alienAnimation[model]={phase=math.random()*6.28,mesh=true,upright=upright,centerHeight=centerHeight,eyes=eyes,standingHeight=standingHeight}
         model.Destroying:Connect(function() alienAnimation[model]=nil end)
         return model
     end
@@ -1042,7 +1043,15 @@ RunService.Heartbeat:Connect(function(dt)
                 end
                 local target=bestDistance==0 and hrp.Position or pos(tx-0.5,ty-0.5,part.Position.Y)
                 local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
-                local playerDistance=(hrp.Position-part.Position).Magnitude
+                -- Trace to actual walkable ground, ignoring the alien itself.
+                local groundParams=RaycastParams.new()
+                groundParams.FilterType=Enum.RaycastFilterType.Exclude
+                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character}
+                local groundHit=workspace:Raycast(
+                    Vector3.new(part.Position.X,part.Position.Y+12,part.Position.Z),
+                    Vector3.new(0,-90,0),groundParams)
+                local groundY=groundHit and groundHit.Position.Y or (alien:GetAttribute("MeshFloorY") or 0)
+                                local playerDistance=(hrp.Position-part.Position).Magnitude
                 -- Ranged aliens hold position once they reach firing distance.
                 if delta.Magnitude>0.12 and playerDistance>27 then
                     local step=delta.Unit*math.min((alien:GetAttribute("Speed") or 10)*dt,delta.Magnitude)
@@ -1051,13 +1060,38 @@ RunService.Heartbeat:Connect(function(dt)
                     if alien:GetAttribute("MeshAlien") then
                         local anim=alienAnimation[alien]
                         local base=anim and anim.upright or CFrame.identity
-                        local floorY=alien:GetAttribute("MeshFloorY") or 0
+                        local floorY=groundY
                         local centerY=alien:GetAttribute("MeshCenterHeight") or 0
                         facing=CFrame.new(current.Position.X+step.X,floorY+centerY,current.Position.Z+step.Z)*facing.Rotation*base
                     end
                     alien:PivotTo(facing)
                 end
                 local animation=alienAnimation[alien]
+                if animation and animation.mesh then
+                    -- Correct ground height even while stationary.
+                    local current=alien:GetPivot()
+                    local desiredY=groundY+(animation.centerHeight or 0)
+                    if math.abs(current.Position.Y-desiredY)>0.01 then
+                        alien:PivotTo(CFrame.new(current.Position.X,desiredY,current.Position.Z)*current.Rotation)
+                    end
+                    -- Position black eyes on the visible front of the head,
+                    -- looking toward the player rather than OBJ's arbitrary axes.
+                    local body=alien.PrimaryPart
+                    local look=Vector3.new(hrp.Position.X-body.Position.X,0,hrp.Position.Z-body.Position.Z)
+                    if look.Magnitude>0.1 then
+                        local forward=look.Unit
+                        local right=Vector3.new(-forward.Z,0,forward.X)
+                        local h=animation.standingHeight or body.Size.Y
+                        local eyeHeight=groundY+h*0.79
+                        local spread=h*0.13
+                        local depth=math.max(body.Size.X,body.Size.Z)*0.48
+                        for _,eyeInfo in ipairs(animation.eyes or {}) do
+                            eyeInfo.part.CFrame=CFrame.new(
+                                Vector3.new(body.Position.X,eyeHeight,body.Position.Z)
+                                +right*(eyeInfo.side*spread)+forward*depth)
+                        end
+                    end
+                end
                 if animation then
                     animation.phase+=dt*(alien:GetAttribute("Kind")=="crawler" and 14 or 8)
                     for _,joint in ipairs(animation.joints or {}) do
