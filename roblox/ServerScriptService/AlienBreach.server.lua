@@ -134,6 +134,11 @@ local neon = Color3.fromRGB(85, 255, 166)
 local function pos(x,y,h)
     return Vector3.new((x - #map[1]/2)*TILE, h, (y - #map/2)*TILE)
 end
+local function tallRoom(x,y)
+    return (x>=38 and x<=53 and y>=3 and y<=10)
+        or (x>=38 and x<=53 and y>=15 and y<=24)
+        or (x>=19 and x<=33 and y>=35 and y<=41)
+end
 local function free(x,y)
     local row = map[math.floor(y)+1]
     return row ~= nil and row:sub(math.floor(x)+1,math.floor(x)+1) == "0"
@@ -266,10 +271,38 @@ for y,row in ipairs(map) do
     end
 end
 -- Ceiling tiles (non-collidable so a player's camera is not trapped).
-local ceiling=block("Industrial ceiling",Vector3.new(#map[1]*TILE,0.5,#map*TILE),
-    CFrame.new(pos(#map[1]/2,#map/2,WALL_HEIGHT+0.4)),
-    Color3.fromRGB(58,73,82))
-ceiling.CanCollide=false
+-- Separate ceiling panels allow the three major labs to have soaring 34-stud ceilings.
+-- Their raised upper wall sections remain visible above the regular corridor height.
+for y,row in ipairs(map) do
+    local x=1
+    while x<=#row do
+        if row:sub(x,x)=="0" then
+            local first=x
+            local high=tallRoom(x,y)
+            while x<=#row and row:sub(x,x)=="0" and tallRoom(x,y)==high do x+=1 end
+            local count=x-first
+            local h=high and 34 or WALL_HEIGHT
+            local ceiling=block(high and "High laboratory ceiling" or "Corridor ceiling",
+                Vector3.new(count*TILE,0.5,TILE),
+                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),Color3.fromRGB(49,61,68))
+            ceiling.CanCollide=false
+        else x+=1 end
+    end
+end
+for y,row in ipairs(map) do
+    for x=1,#row do
+        if row:sub(x,x)=="0" and tallRoom(x,y) then
+            local center=pos(x-0.5,y-0.5,0)
+            for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+                if not tallRoom(x+d[1],y+d[2]) then
+                    local edge=center+Vector3.new(d[1]*TILE/2,26,d[2]*TILE/2)
+                    local size=d[1]~=0 and Vector3.new(0.45,16,TILE) or Vector3.new(TILE,16,0.45)
+                    block("Tall lab upper wall",size,CFrame.new(edge),Color3.fromRGB(68,78,85))
+                end
+            end
+        end
+    end
+end
 -- Lighting never goes fully dark; occasional brief flicker retains safe visibility.
 local breachIntermission=false
 task.spawn(function()
@@ -292,20 +325,70 @@ task.spawn(function()
 end)
 local function furniture(x,y,kind)
     local at=pos(x,y,0)
+    local inLab=tallRoom(math.floor(x)+1,math.floor(y)+1)
+    local function item(name,size,offset,color,material)
+        return block(name,size,CFrame.new(at+offset),color,material)
+    end
     if kind=="table" then
-        block("Research table",Vector3.new(5,0.6,3),CFrame.new(at+Vector3.new(0,3,0)),Color3.fromRGB(105,115,119))
-        for dx=-1,1,2 do
-            for dz=-1,1,2 do
-                block("Table leg",Vector3.new(0.35,3,0.35),
-                    CFrame.new(at+Vector3.new(dx*2,1.5,dz)),metal)
-            end
+        local topp=item("Stainless laboratory bench",Vector3.new(6,0.38,3),Vector3.new(0,3.2,0),Color3.fromRGB(123,131,132))
+        for dx=-1,1,2 do for dz=-1,1,2 do
+            item("Bench leg",Vector3.new(0.28,3,0.28),Vector3.new(dx*2.5,1.5,dz),metal)
+        end end
+        if inLab then
+            item("Abandoned specimen tray",Vector3.new(1.7,0.15,1.1),Vector3.new(1,3.52,0),Color3.fromRGB(71,87,85))
         end
     elseif kind=="cabinet" then
-        block("Storage cabinet",Vector3.new(4,7,2.4),CFrame.new(at+Vector3.new(0,3.5,0)),Color3.fromRGB(71,84,91))
+        item("Metal filing cabinet",Vector3.new(3.6,6.2,2.5),Vector3.new(0,3.1,0),Color3.fromRGB(78,86,91))
+        for h=1,5,2 do
+            item("Cabinet drawer front",Vector3.new(3.35,1.7,0.12),Vector3.new(0,h+0.1,-1.3),Color3.fromRGB(104,111,112))
+            item("Drawer handle",Vector3.new(0.9,0.12,0.16),Vector3.new(0,h+0.2,-1.4),Color3.fromRGB(28,36,40))
+        end
     else
-        block("Computer desk",Vector3.new(5,3,2.5),CFrame.new(at+Vector3.new(0,1.5,0)),metal)
-        block("Glowing terminal",Vector3.new(3,2,0.25),
-            CFrame.new(at+Vector3.new(0,4,0)),neon,Enum.Material.Neon)
+        -- Real workstation: thin desktop, two pedestal drawers, monitor, keyboard,
+        -- mouse, paper stack and a separate office chair.
+        item("Office desk top",Vector3.new(6.2,0.35,3.2),Vector3.new(0,2.7,0),Color3.fromRGB(115,100,83),Enum.Material.Wood)
+        for _,dx in ipairs({-2.65,2.65}) do
+            item("Desk pedestal",Vector3.new(0.9,2.45,2.5),Vector3.new(dx,1.25,0.15),Color3.fromRGB(71,78,82))
+            for h=0.7,2.0,0.65 do
+                item("Desk drawer",Vector3.new(0.75,0.48,0.09),Vector3.new(dx,h,-1.17),Color3.fromRGB(100,107,109))
+            end
+        end
+        item("Computer monitor",Vector3.new(2.5,1.65,0.24),Vector3.new(-0.4,4.0,0.6),Color3.fromRGB(24,30,34))
+        item("Dim computer screen",Vector3.new(2.2,1.35,0.05),Vector3.new(-0.4,4.0,0.45),Color3.fromRGB(42,91,86),Enum.Material.Neon)
+        item("Monitor stand",Vector3.new(0.18,0.8,0.18),Vector3.new(-0.4,3.1,0.65),metal)
+        item("Keyboard",Vector3.new(2.0,0.12,0.6),Vector3.new(-0.4,2.96,-0.75),Color3.fromRGB(32,36,39))
+        item("Mouse",Vector3.new(0.3,0.13,0.48),Vector3.new(1.1,2.96,-0.8),Color3.fromRGB(36,40,43))
+        item("Paperwork",Vector3.new(0.9,0.06,0.8),Vector3.new(1.7,2.96,0.7),Color3.fromRGB(192,188,166),Enum.Material.SmoothPlastic)
+        item("Office chair seat",Vector3.new(2.0,0.35,1.9),Vector3.new(0,1.8,-3.1),Color3.fromRGB(44,53,59))
+        item("Office chair back",Vector3.new(2.0,2.5,0.3),Vector3.new(0,3,-4),Color3.fromRGB(42,51,57))
+        item("Chair post",Vector3.new(0.22,1.5,0.22),Vector3.new(0,0.8,-3.1),metal)
+    end
+end
+-- Scattered abandoned laboratory debris only; offices stay relatively tidy.
+local function labDebris(x,y,seed)
+    local at=pos(x,y,0)
+    local rng=Random.new(seed)
+    for i=1,rng:NextInteger(3,7) do
+        local dx=rng:NextNumber(-2.7,2.7)
+        local dz=rng:NextNumber(-2.7,2.7)
+        local sheet=block("Discarded laboratory report",Vector3.new(rng:NextNumber(0.8,1.5),0.025,rng:NextNumber(1,1.9)),
+            CFrame.new(at+Vector3.new(dx,0.24,dz))*CFrame.Angles(0,rng:NextNumber(-3.1,3.1),0),
+            Color3.fromRGB(rng:NextInteger(160,209),rng:NextInteger(156,201),rng:NextInteger(140,185)),Enum.Material.SmoothPlastic)
+        sheet.CanCollide=false;sheet.CanTouch=false;sheet.CastShadow=false
+    end
+end
+for _,spot in ipairs({{40.5,4.5},{46.5,6.5},{51.5,8.5},{41.5,20.5},{48.5,17.5},{52.5,23.5},{22.5,37.5},{30.5,39.5}}) do
+    labDebris(spot[1],spot[2],math.floor(spot[1]*101+spot[2]*79))
+end
+-- Several toppled workbenches, angled onto their sides with scattered equipment.
+for _,spot in ipairs({{43.5,9.5},{50.5,21.5},{27.5,40.5}}) do
+    local at=pos(spot[1],spot[2],0)
+    local tipped=block("Overturned lab table",Vector3.new(5.5,0.45,3),
+        CFrame.new(at+Vector3.new(0,1.7,0))*CFrame.Angles(0,0,math.rad(73)),
+        Color3.fromRGB(107,114,116))
+    for _,dx in ipairs({-2,2}) do
+        block("Bent table leg",Vector3.new(0.3,2.6,0.3),
+            tipped.CFrame*CFrame.new(dx,-1.45,0),Color3.fromRGB(63,72,76))
     end
 end
 for _,p in ipairs(props) do furniture(p[1],p[2],p[3]) end
