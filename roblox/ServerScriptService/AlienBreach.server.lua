@@ -93,6 +93,7 @@ for _,p in ipairs({
 }) do table.insert(props,p) end
 local chestPoints = {{2.5,2.5},{7.5,6.5},{15.0,2.0},{21.0,7.0},{28.5,2.5},{32.0,7.0},{2.5,20.5},{8.0,15.5},{14.5,20.5},{21.0,14.5},{28.5,20.5},{32.0,14.5},{15.0,24.5},{21.0,24.5}}
 for _,p in ipairs({{42.5,5.5},{52.5,9.5},{40.5,22.5},{51.5,18.5},{40.5,38.5},{52.5,39.5},{5.5,31.5},{24.5,31.5}}) do table.insert(chestPoints,p) end
+for _,p in ipairs({{40.5,7.5},{48.5,5.5},{39.5,19.5},{49.5,23.5},{43.5,34.5},{51.5,35.5},{6.5,37.5},{12.5,40.5},{20.5,38.5},{31.5,37.5},{15.5,31.5},{29.5,30.5}}) do table.insert(chestPoints,p) end
 local old = workspace:FindFirstChild("AlienBreachRoblox")
 if old then old:Destroy() end
 local oldRemote = ReplicatedStorage:FindFirstChild("AlienBreachFire")
@@ -105,12 +106,25 @@ mapValue.Name="AlienBreachMap"
 mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
-Lighting.ClockTime=0
-Lighting.Brightness=2.8
-Lighting.Ambient=Color3.fromRGB(115,126,126)
-Lighting.OutdoorAmbient=Color3.fromRGB(88,100,104)
+Lighting.ClockTime=14
+Lighting.Brightness=4
+Lighting.ExposureCompensation=0.65
+Lighting.GlobalShadows=false
+Lighting.Ambient=Color3.fromRGB(178,185,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(152,161,164)
 Lighting.FogEnd=320
 Lighting.FogColor=Color3.fromRGB(18,31,36)
+local breachState=ReplicatedStorage:FindFirstChild("AlienBreachState") or Instance.new("Folder")
+breachState.Name="AlienBreachState"
+breachState.Parent=ReplicatedStorage
+local function state(name,initial)
+    local v=breachState:FindFirstChild(name) or Instance.new("IntValue")
+    v.Name=name;v.Value=initial;v.Parent=breachState
+    return v
+end
+local waveValue=state("Breach",0)
+local aliveValue=state("AliensRemaining",0)
+local timerValue=state("NextBreachIn",0)
 local root = Instance.new("Folder")
 root.Name = "AlienBreachRoblox"
 root.Parent = workspace
@@ -585,22 +599,81 @@ spawn.Neutral=true
 spawn.Transparency=0.5
 spawn.Color=neon
 spawn.Parent=root
-for i,p in ipairs(chestPoints) do
-    local chest=block("Supply chest "..i,Vector3.new(3,2,2),CFrame.new(pos(p[1],p[2],1)),
-        Color3.fromRGB(95,114,78))
-    chest:SetAttribute("Credits",50)
+-- Original browser game: 90-second supply rotation, laser 1/150,
+-- medkit probability (1/20 + 1/7 - 1/150), otherwise 15-35 ammo.
+-- The larger facility deploys 12 caches per rotation instead of 5.
+local activeChests=Instance.new("Folder")
+activeChests.Name="SupplyCaches"
+activeChests.Parent=root
+local function newChest(x,y,index)
+    local base=pos(x,y,0)
+    local model=Instance.new("Model")
+    model.Name="Armored supply cache "..index
+    model.Parent=activeChests
+    local box=block("Heavy reinforced storage case",Vector3.new(5.5,2.8,3.8),CFrame.new(base+Vector3.new(0,1.5,0)),Color3.fromRGB(62,83,77),Enum.Material.Metal,model)
+    local lid=block("Hinged steel lid",Vector3.new(5.8,0.6,4.0),CFrame.new(base+Vector3.new(0,3.15,0)),Color3.fromRGB(95,117,97),Enum.Material.Metal,model)
+    for _,dx in ipairs({-2.2,2.2}) do
+        local strap=block("Armored locking band",Vector3.new(0.45,3.25,4.1),CFrame.new(base+Vector3.new(dx,1.85,0)),Color3.fromRGB(38,48,53),Enum.Material.Metal,model)
+        strap.CanCollide=false
+    end
+    local emblem=block("Illuminated medical supply insignia",Vector3.new(1.8,0.12,1),CFrame.new(base+Vector3.new(0,3.52,0)),Color3.fromRGB(115,231,163),Enum.Material.Neon,model)
+    emblem.CanCollide=false
     local prompt=Instance.new("ProximityPrompt")
-    prompt.ActionText="Collect 50 credits"
-    prompt.ObjectText="Supply Chest"
-    prompt.HoldDuration=0.35
-    prompt.Parent=chest
+    prompt.ActionText="OPEN CACHE"
+    prompt.ObjectText="AREA 51 SUPPLY CHEST"
+    prompt.HoldDuration=0.6
+    prompt.MaxActivationDistance=12
+    prompt.RequiresLineOfSight=false
+    prompt.Parent=box
+    local claimed=false
     prompt.Triggered:Connect(function(player)
-        local stats=player:FindFirstChild("leaderstats")
-        local credits=stats and stats:FindFirstChild("Credits")
-        if credits then credits.Value+=50 end
-        chest:Destroy()
+        if claimed then return end
+        local character=player.Character
+        local hrp=character and character:FindFirstChild("HumanoidRootPart")
+        if not hrp or (hrp.Position-box.Position).Magnitude>16 then return end
+        claimed=true
+        prompt.Enabled=false
+        local roll=math.random()
+        local message=""
+        if roll<1/150 then
+            player:SetAttribute("HasLegendaryLaser",true)
+            message="LEGENDARY LASER UNLOCKED! Press 2 to equip."
+        elseif roll<1/20+1/7 then
+            player:SetAttribute("Medkits",(player:GetAttribute("Medkits") or 0)+1)
+            message="MEDKIT FOUND! Press H to heal."
+        else
+            local count=math.random(15,35)
+            player:SetAttribute("ReserveAmmo",(player:GetAttribute("ReserveAmmo") or 0)+count)
+            message="AMMO FOUND: +"..count.." charges"
+        end
+        player:SetAttribute("LastCacheReward",message)
+        lid.CFrame=lid.CFrame*CFrame.new(0,0.7,1.3)*CFrame.Angles(math.rad(35),0,0)
+        task.delay(2,function() if model.Parent then model:Destroy() end end)
     end)
 end
+local function rotateChests()
+    activeChests:ClearAllChildren()
+    local shuffled=table.clone(chestPoints)
+    for i=#shuffled,2,-1 do
+        local j=math.random(1,i)
+        shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
+    end
+    local count=0
+    for _,p in ipairs(shuffled) do
+        if free(p[1],p[2]) then
+            count+=1
+            newChest(p[1],p[2],count)
+            if count>=12 then break end
+        end
+    end
+end
+rotateChests()
+task.spawn(function()
+    while root.Parent do
+        task.wait(90)
+        if root.Parent then rotateChests() end
+    end
+end)
 StarterPlayer.CameraMode=Enum.CameraMode.LockFirstPerson
 Players.PlayerAdded:Connect(function(player)
     local stats=Instance.new("Folder")
@@ -614,6 +687,49 @@ Players.PlayerAdded:Connect(function(player)
     kills.Parent=stats
 end)
 local lastShot={}
+local shotAmmo={}
+local lastReload={}
+local lastHeal={}
+Players.PlayerAdded:Connect(function(player)
+    player:SetAttribute("ReserveAmmo",100)
+    player:SetAttribute("Medkits",0)
+    player:SetAttribute("HasLegendaryLaser",false)
+    player:SetAttribute("Weapon","pulse")
+    player:SetAttribute("Magazine",25)
+end)
+local control=ReplicatedStorage:FindFirstChild("AlienBreachControl") or Instance.new("RemoteEvent")
+control.Name="AlienBreachControl";control.Parent=ReplicatedStorage
+control.OnServerEvent:Connect(function(player,action)
+    if action=="reload" then
+        local last=lastReload[player] or 0
+        if os.clock()-last<1.4 then return end
+        lastReload[player]=os.clock()
+        local magazine=player:GetAttribute("Magazine") or 0
+        local capacity=player:GetAttribute("Weapon")=="laser" and 40 or 25
+        local reserve=player:GetAttribute("ReserveAmmo") or 0
+        local amount=math.min(capacity-magazine,reserve)
+        if amount>0 then
+            player:SetAttribute("Magazine",magazine+amount)
+            player:SetAttribute("ReserveAmmo",reserve-amount)
+        end
+    elseif action=="laser" and player:GetAttribute("HasLegendaryLaser") then
+        player:SetAttribute("Weapon","laser")
+        player:SetAttribute("Magazine",math.min(40,player:GetAttribute("Magazine") or 25))
+    elseif action=="pulse" then
+        player:SetAttribute("Weapon","pulse")
+        player:SetAttribute("Magazine",math.min(25,player:GetAttribute("Magazine") or 25))
+    elseif action=="heal" then
+        if os.clock()-(lastHeal[player] or 0)<1 then return end
+        local char=player.Character
+        local hum=char and char:FindFirstChildOfClass("Humanoid")
+        local kits=player:GetAttribute("Medkits") or 0
+        if hum and hum.Health>0 and hum.Health<hum.MaxHealth and kits>0 then
+            lastHeal[player]=os.clock()
+            player:SetAttribute("Medkits",kits-1)
+            hum.Health=math.min(hum.MaxHealth,hum.Health+35)
+        end
+    end
+end)
 remote.OnServerEvent:Connect(function(player,origin,direction)
     if typeof(origin)~="Vector3" or typeof(direction)~="Vector3" then return end
     if direction.Magnitude<0.9 or direction.Magnitude>1.1 then return end
@@ -623,6 +739,9 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
     local now=os.clock()
     if now-(lastShot[player] or 0)<0.18 then return end
     lastShot[player]=now
+    local mag=player:GetAttribute("Magazine") or 0
+    if mag<=0 then return end
+    player:SetAttribute("Magazine",mag-1)
     local params=RaycastParams.new()
     params.FilterType=Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances={character}
@@ -630,7 +749,7 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
     if hit and hit.Instance:IsDescendantOf(enemies) then
         local alien=hit.Instance:FindFirstAncestorOfClass("Model")
         if alien and alien.Parent==enemies then
-            local hp=(alien:GetAttribute("HP") or 50)-25
+            local hp=(alien:GetAttribute("HP") or 50)-(player:GetAttribute("Weapon")=="laser" and 100 or 25)
             alien:SetAttribute("HP",hp)
             if hp<=0 then
                 alien:Destroy()
