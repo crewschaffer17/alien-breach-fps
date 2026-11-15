@@ -393,100 +393,146 @@ for _,spot in ipairs({{43.5,9.5},{50.5,21.5},{27.5,40.5}}) do
 end
 for _,p in ipairs(props) do furniture(p[1],p[2],p[3]) end
 
--- AREA 51 SPECIMEN WING: containment tanks, circulating fluid, overhead
--- yellow utility pipelines, and warning posters. Decorative parts are anchored.
-local function specimenTank(x,y,empty)
-    local base=pos(x,y,0)
-    local shell=Instance.new("Model")
-    shell.Name=empty and "Empty specimen containment tank" or "Alien specimen containment tank"
-    shell.Parent=root
-    local function piece(name,size,offset,color,material)
-        return block(name,size,CFrame.new(base+offset),color,material,shell)
-    end
-    local pedestal=piece("Reinforced tank base",Vector3.new(5.2,1.1,5.2),Vector3.new(0,0.65,0),Color3.fromRGB(51,65,70))
-    local glass=piece("Cylindrical containment glass",Vector3.new(4.5,10,4.5),Vector3.new(0,6.2,0),Color3.fromRGB(92,201,184),Enum.Material.Glass)
-    glass.Shape=Enum.PartType.Cylinder
-    glass.Transparency=0.58
-    glass.CanCollide=true
-    local fluid=piece("Suspended green specimen fluid",Vector3.new(4.15,8.9,4.15),Vector3.new(0,5.85,0),Color3.fromRGB(38,164,129),Enum.Material.Glass)
-    fluid.Shape=Enum.PartType.Cylinder
-    fluid.Transparency=0.67
-    fluid.CanCollide=false
-    fluid.CanTouch=false
-    piece("Containment top",Vector3.new(5.3,0.85,5.3),Vector3.new(0,11.55,0),Color3.fromRGB(57,73,78))
-    for _,dx in ipairs({-2.1,2.1}) do for _,dz in ipairs({-2.1,2.1}) do
-        piece("Containment support",Vector3.new(0.22,10.1,0.22),Vector3.new(dx,6.15,dz),Color3.fromRGB(112,131,132))
-    end end
-    if not empty then
-        local body=piece("Preserved alien torso",Vector3.new(1.35,3.5,1.0),Vector3.new(0,5.3,0),Color3.fromRGB(103,173,151),Enum.Material.SmoothPlastic)
-        body.CanCollide=false
-        local head=piece("Preserved alien head",Vector3.new(2.2,2.3,1.7),Vector3.new(0,8.1,0),Color3.fromRGB(121,194,169),Enum.Material.SmoothPlastic)
-        head.Shape=Enum.PartType.Ball
-        head.CanCollide=false
-        for _,dx in ipairs({-0.62,0.62}) do
-            local eye=piece("Specimen black eye",Vector3.new(0.45,0.75,0.12),Vector3.new(dx,8.15,-0.82),Color3.fromRGB(8,19,21))
-            eye.CanCollide=false
-        end
-        for _,dx in ipairs({-0.6,0.6}) do
-            local arm=piece("Preserved alien arm",Vector3.new(0.45,3.2,0.5),Vector3.new(dx*2,5.1,0),Color3.fromRGB(104,175,150))
-            arm.CanCollide=false
-        end
-    end
-    local emitter=Instance.new("ParticleEmitter")
-    emitter.Name="Floating fluid bubbles"
-    emitter.Texture="rbxasset://textures/particles/sparkles_main.dds"
-    emitter.Rate=7
-    emitter.Lifetime=NumberRange.new(2.2,4.2)
-    emitter.Speed=NumberRange.new(0.7,1.5)
-    emitter.SpreadAngle=Vector2.new(16,16)
-    emitter.Acceleration=Vector3.new(0,0.4,0)
-    emitter.Color=ColorSequence.new(Color3.fromRGB(136,246,212))
-    emitter.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.55),NumberSequenceKeypoint.new(1,1)})
-    emitter.Size=NumberSequence.new(0.15)
-    emitter.LightEmission=0.5
-    emitter.Parent=fluid
-    local glow=Instance.new("PointLight")
-    glow.Color=Color3.fromRGB(55,206,157)
-    glow.Brightness=0.65
-    glow.Range=17
-    glow.Parent=glass
-    return shell
+-- AREA 51 containment wing: slimmer transparent cylinders, suspended specimens,
+-- hanging umbilical hoses, illuminated caps, and realistic segmented utilities.
+local function cylinder(name,radius,height,cf,color,material,parent,transparency)
+    local p=block(name,Vector3.new(height,radius*2,radius*2),cf*CFrame.Angles(0,0,math.rad(90)),color,material,parent)
+    p.Shape=Enum.PartType.Cylinder
+    p.Transparency=transparency or 0
+    return p
 end
--- Place tanks near the sides of spacious labs, leaving center routes open.
-for _,spec in ipairs({{39.5,4.5,false},{52.5,4.5,false},{39.5,9.5,true},
-    {52.5,9.5,false},{39.5,16.5,false},{52.5,16.5,true},
-    {39.5,23.5,false},{52.5,23.5,false},{20.5,35.5,true},
-    {32.5,40.5,false}}) do
+local function segment(name,a,b,radius,color,material,parent)
+    local mid=(a+b)*0.5
+    local delta=b-a
+    local p=cylinder(name,radius,delta.Magnitude,CFrame.lookAt(mid,b)*CFrame.Angles(math.rad(90),0,0),color,material,parent)
+    p.CanCollide=false
+    return p
+end
+local function specimenTank(x,y,empty)
+    local origin=pos(x,y,0)
+    local model=Instance.new("Model")
+    model.Name=empty and "Vacant containment chamber" or "Preserved grey specimen chamber"
+    model.Parent=root
+    local function disc(name,radius,height,yPos,color,material)
+        return cylinder(name,radius,height,CFrame.new(origin+Vector3.new(0,yPos,0)),color,material,model)
+    end
+    disc("Wide reinforced bottom pedestal",2.65,0.7,0.45,Color3.fromRGB(55,66,73))
+    disc("Base metallic rim",2.4,0.25,0.95,Color3.fromRGB(133,146,149))
+    disc("Illuminated floor disc",2.05,0.15,1.1,Color3.fromRGB(105,255,206),Enum.Material.Neon)
+    local fluid=disc("Clear teal suspension fluid",2.05,9.5,6.05,Color3.fromRGB(61,184,157),Enum.Material.Glass)
+    fluid.Transparency=0.83;fluid.CanCollide=false;fluid.CanTouch=false
+    local glass=disc("Transparent cylindrical specimen glass",2.25,10.1,6.1,Color3.fromRGB(190,244,235),Enum.Material.Glass)
+    glass.Transparency=0.79;glass.CanCollide=true
+    disc("Upper sealed ring",2.5,0.55,11.4,Color3.fromRGB(73,85,94))
+    disc("Heavy top machinery",2.75,0.65,11.9,Color3.fromRGB(91,100,108))
+    disc("Top glowing examination lamp",2.05,0.12,11.15,Color3.fromRGB(143,255,217),Enum.Material.Neon)
+    for i=1,10 do
+        local theta=i*math.pi/5
+        local px=math.cos(theta)*2.52
+        local pz=math.sin(theta)*2.52
+        local rib=block("Cap locking bolt",Vector3.new(0.26,0.7,0.3),CFrame.new(origin+Vector3.new(px,11.9,pz)),Color3.fromRGB(35,47,53),Enum.Material.Metal,model)
+        rib.CanCollide=false
+    end
+    if not empty then
+        local function specimen(name,size,offset,color,shape)
+            local part=block(name,size,CFrame.new(origin+offset),color,Enum.Material.SmoothPlastic,model)
+            part.CanCollide=false
+            if shape then part.Shape=shape end
+            return part
+        end
+        local skin=Color3.fromRGB(92,181,157)
+        specimen("Slim extraterrestrial torso",Vector3.new(1.05,3.0,0.8),Vector3.new(0,6.1,0),skin)
+        specimen("Elongated grey head",Vector3.new(1.75,2.0,1.45),Vector3.new(0,8.5,0),Color3.fromRGB(105,195,166),Enum.PartType.Ball)
+        for _,side in ipairs({-1,1}) do
+            specimen("Black almond eye",Vector3.new(0.52,0.68,0.18),Vector3.new(side*0.5,8.6,-0.66),Color3.fromRGB(9,22,22),Enum.PartType.Ball)
+            local arm=specimen("Long thin arm",Vector3.new(0.31,3.7,0.35),Vector3.new(side*0.78,5.7,0),skin)
+            arm.CFrame=arm.CFrame*CFrame.Angles(0,0,math.rad(side*11))
+            specimen("Thin suspended leg",Vector3.new(0.38,3.7,0.46),Vector3.new(side*0.3,2.85,0),skin)
+        end
+        -- Dark flexible hoses curve down from the ceiling cap to the specimen.
+        for _,side in ipairs({-1,1}) do
+            local points={origin+Vector3.new(side*1.25,11.2,0.5),origin+Vector3.new(side*1.65,9.8,0.9),origin+Vector3.new(side*1.35,8.0,1.1),origin+Vector3.new(side*0.55,6.8,0.7)}
+            for i=1,#points-1 do segment("Black specimen life-support hose",points[i],points[i+1],0.10,Color3.fromRGB(18,29,31),Enum.Material.SmoothPlastic,model) end
+        end
+    end
+    local attachment=Instance.new("Attachment")
+    attachment.Position=Vector3.new(0,-3.2,0)
+    attachment.Parent=fluid
+    local bubbles=Instance.new("ParticleEmitter")
+    bubbles.Name="Suspended microbubbles"
+    bubbles.Texture="rbxasset://textures/particles/sparkles_main.dds"
+    bubbles.Rate=12
+    bubbles.Lifetime=NumberRange.new(2.4,4.5)
+    bubbles.Speed=NumberRange.new(0.45,1.1)
+    bubbles.SpreadAngle=Vector2.new(18,18)
+    bubbles.Color=ColorSequence.new(Color3.fromRGB(174,255,230))
+    bubbles.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5),NumberSequenceKeypoint.new(1,1)})
+    bubbles.Size=NumberSequence.new(0.11)
+    bubbles.Parent=attachment
+    local glow=Instance.new("PointLight")
+    glow.Color=Color3.fromRGB(90,246,195)
+    glow.Brightness=1.2;glow.Range=16
+    glow.Parent=glass
+end
+-- A few deliberate focal points rather than a crowded grid of identical tanks.
+for _,spec in ipairs({{40.5,5.5,false},{51.5,5.5,false},{40.5,9.5,true},
+    {40.5,17.5,false},{51.5,17.5,false},{51.5,23.5,true},
+    {21.5,36.5,false},{31.5,40.5,true}}) do
     specimenTank(spec[1],spec[2],spec[3])
 end
--- Massive industrial yellow pipelines run along the high ceilings and turn
--- around the main laboratory wings. They do not obstruct the walking floor.
-local yellow=Color3.fromRGB(218,164,32)
-local function pipeline(x1,y1,x2,y2,height)
-    local a=pos(x1,y1,height)
-    local b=pos(x2,y2,height)
-    local delta=b-a
-    local pipe=block("Yellow laboratory coolant pipeline",Vector3.new(1.8,1.8,delta.Magnitude),
-        CFrame.lookAt((a+b)/2,b),yellow,Enum.Material.Metal)
-    pipe.Shape=Enum.PartType.Cylinder
-    pipe.CanCollide=false
-    for i=0,math.floor(delta.Magnitude/25) do
-        local p=a+delta*(i/math.max(1,math.floor(delta.Magnitude/25)))
-        local clamp=block("Pipe support collar",Vector3.new(2.25,2.25,0.65),
-            CFrame.lookAt(p,b),Color3.fromRGB(73,77,76))
-        clamp.Shape=Enum.PartType.Cylinder
-        clamp.CanCollide=false
+-- Industrial yellow pipe networks: elbows, brackets, junction collars and
+-- parallel overhead runs, rather than huge unbroken floating rods.
+local yellow=Color3.fromRGB(210,165,41)
+local function pipeRun(points,radius)
+    for i=1,#points-1 do
+        local a,b=pos(points[i][1],points[i][2],points[i][3]),pos(points[i+1][1],points[i+1][2],points[i+1][3])
+        segment("Yellow coolant pipe",a,b,radius,yellow,Enum.Material.Metal,root)
+        cylinder("Pipe coupling flange",radius*1.35,0.38,CFrame.new(a)*CFrame.Angles(0,0,0),Color3.fromRGB(89,91,83),Enum.Material.Metal,root).CanCollide=false
+        if i==#points-1 then
+            cylinder("Pipe end coupling",radius*1.35,0.38,CFrame.new(b),Color3.fromRGB(89,91,83),Enum.Material.Metal,root).CanCollide=false
+        end
     end
 end
-pipeline(38,6,53,6,29)
-pipeline(38,9,53,9,29)
-pipeline(40,6,40,23,29)
-pipeline(51,6,51,23,29)
-pipeline(38,19,53,19,29)
-pipeline(38,22,53,22,29)
-pipeline(20,37,32,37,29)
-pipeline(20,40,32,40,29)
--- Physical wall-mounted safety posters with readable text, not image assets.
+pipeRun({{38.5,6,29},{43,6,29},{47,6,29},{52.5,6,29},{52.5,10,29}},0.58)
+pipeRun({{38.5,8,30},{44,8,30},{50,8,30},{50,15,30},{50,20,30},{52.5,20,30}},0.42)
+pipeRun({{38.5,19,29},{44,19,29},{48,19,29},{53,19,29}},0.58)
+pipeRun({{39,22,30},{44,22,30},{49,22,30},{53,22,30}},0.4)
+pipeRun({{20,37,29},{25,37,29},{31,37,29},{31,40,29}},0.5)
+-- Distinctive hazard-striped bulkhead frames around lab entries.
+local function bulkhead(x,y,axis)
+    local base=pos(x,y,0)
+    local frame=Instance.new("Model")
+    frame.Name="Hazard striped laboratory airlock"
+    frame.Parent=root
+    local horizontal=axis=="x"
+    local function bar(name,size,offset,color)
+        local p=block(name,size,CFrame.new(base+offset),color,Enum.Material.Metal,frame)
+        p.CanCollide=false
+        return p
+    end
+    local sideSize=horizontal and Vector3.new(0.8,15,1.3) or Vector3.new(1.3,15,0.8)
+    for _,side in ipairs({-1,1}) do
+        local off=horizontal and Vector3.new(0,7.5,side*3.5) or Vector3.new(side*3.5,7.5,0)
+        bar("Reinforced airlock jamb",sideSize,off,Color3.fromRGB(47,58,65))
+        for j=0,4 do
+            local stripe=bar("Yellow caution stripe",horizontal and Vector3.new(0.86,1.15,1.34) or Vector3.new(1.34,1.15,0.86),off+Vector3.new(0,-5.5+j*2.8,0),yellow)
+            stripe.CFrame=stripe.CFrame*CFrame.Angles(0,0,math.rad(25))
+        end
+    end
+    bar("Airlock header",horizontal and Vector3.new(0.8,1.5,8) or Vector3.new(8,1.5,0.8),Vector3.new(0,15,0),Color3.fromRGB(43,53,61))
+    local lamp=bar("Airlock status light",horizontal and Vector3.new(0.85,0.4,2) or Vector3.new(2,0.4,0.85),Vector3.new(0,14.1,0),Color3.fromRGB(160,244,211))
+    lamp.Material=Enum.Material.Neon
+end
+bulkhead(38.5,5.5,"x")
+bulkhead(38.5,18.5,"x")
+bulkhead(25.5,34.5,"z")
+-- Extra laboratory set dressing: machinery, specimen carts, cable trays.
+for _,p in ipairs({{46.5,10.5},{47.5,23.5},{25.5,40.5}}) do
+    local at=pos(p[1],p[2],0)
+    block("Research equipment trolley",Vector3.new(3.3,0.35,2.3),CFrame.new(at+Vector3.new(0,2.7,0)),Color3.fromRGB(109,121,126))
+    block("Lab diagnostic machine",Vector3.new(1.8,1.6,1.5),CFrame.new(at+Vector3.new(0,3.6,0)),Color3.fromRGB(53,68,74))
+    block("Diagnostic screen",Vector3.new(1.3,0.9,0.06),CFrame.new(at+Vector3.new(0,3.8,-0.78)),Color3.fromRGB(70,188,157),Enum.Material.Neon)
+end
 local function wallPoster(x,y,title,subtitle,bg,ink)
     local origin=pos(x,y,0)
     local plate=block("Area 51 wall warning poster",Vector3.new(5.5,5.7,0.14),
