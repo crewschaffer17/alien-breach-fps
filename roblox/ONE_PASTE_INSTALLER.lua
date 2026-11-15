@@ -1,4 +1,4 @@
--- Alien Breach FPS installer: upright grounded imported aliens
+-- Alien Breach FPS installer: muted aliens with ranged attacks
 -- Run in Roblox Studio Command Bar, edit mode only.
 local ss=game:GetService("ServerScriptService")
 local scripts=game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
@@ -813,7 +813,11 @@ local function makeAlien(x,y,kind,wave)
         mesh.CanTouch=false
         mesh.Transparency=0
         mesh.Material=Enum.Material.SmoothPlastic
-        mesh.Color=kind=="armored" and Color3.fromRGB(92,157,46) or Color3.fromRGB(138,204,62)
+        mesh.Reflectance=0
+        mesh.CastShadow=true
+        -- Imported mesh textures can override part color; remove glowing texture overrides.
+        mesh.TextureID=""
+        mesh.Color=kind=="armored" and Color3.fromRGB(57,100,48) or Color3.fromRGB(76,126,61)
         mesh.Size=meshTemplate.Size*(kind=="crawler" and 0.85 or kind=="armored" and 1.3 or 1.1)
         -- OBJ imports can use X or Z as the vertical axis. Rotate the longest
         -- dimension upright and use the rotated bounds to put feet on the floor.
@@ -943,6 +947,28 @@ task.spawn(function()
 end)
 
 local damageClock={}
+local function alienShoot(alien,origin,target,hum)
+    local direction=target-origin
+    if direction.Magnitude<1 then return end
+    local rayParams=RaycastParams.new()
+    rayParams.FilterType=Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances={alien}
+    local result=workspace:Raycast(origin,direction,rayParams)
+    local hit=result and result.Position or target
+    local beam=Instance.new("Part")
+    beam.Name="Alien projectile tracer"
+    beam.Anchored=true;beam.CanCollide=false;beam.CanTouch=false;beam.CanQuery=false
+    beam.Material=Enum.Material.SmoothPlastic
+    beam.Color=Color3.fromRGB(135,170,86)
+    beam.Transparency=0.22
+    beam.Size=Vector3.new(0.17,0.17,(hit-origin).Magnitude)
+    beam.CFrame=CFrame.lookAt((origin+hit)/2,hit)
+    beam.Parent=root
+    game:GetService("Debris"):AddItem(beam,0.15)
+    if result and hum and result.Instance:IsDescendantOf(hum.Parent) then
+        hum:TakeDamage(alien:GetAttribute("Kind")=="armored" and 13 or 8)
+    end
+end
 -- Breadth-first flow fields guide every alien through connected corridors.
 -- One field per active player, refreshed at intervals (not per frame).
 local fields={}
@@ -1008,7 +1034,9 @@ RunService.Heartbeat:Connect(function(dt)
                 end
                 local target=bestDistance==0 and hrp.Position or pos(tx-0.5,ty-0.5,part.Position.Y)
                 local delta=Vector3.new(target.X-part.Position.X,0,target.Z-part.Position.Z)
-                if delta.Magnitude>0.12 then
+                local playerDistance=(hrp.Position-part.Position).Magnitude
+                -- Ranged aliens hold position once they reach firing distance.
+                if delta.Magnitude>0.12 and playerDistance>27 then
                     local step=delta.Unit*math.min((alien:GetAttribute("Speed") or 10)*dt,delta.Magnitude)
                     local current=alien:GetPivot()
                     local facing=CFrame.lookAt(current.Position+step,current.Position+step+Vector3.new(step.X,0,step.Z))
@@ -1032,10 +1060,14 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                 end
-                if (hrp.Position-part.Position).Magnitude<6 and os.clock()-(damageClock[alien] or 0)>1.2 then
+                if playerDistance<=75 and os.clock()-(damageClock[alien] or 0)>1.8 then
                     damageClock[alien]=os.clock()
                     local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if hum then hum:TakeDamage(10) end
+                    if hum and hum.Health>0 then
+                        local muzzle=part.Position+Vector3.new(0,1.0,0)
+                        local aim=hrp.Position+Vector3.new(0,1.2,0)
+                        alienShoot(alien,muzzle,aim,hum)
+                    end
                 end
             end
         end
