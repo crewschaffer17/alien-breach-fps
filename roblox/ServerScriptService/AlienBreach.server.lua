@@ -629,7 +629,7 @@ local function newChest(x,y,index)
         if claimed then return end
         local character=player.Character
         local hrp=character and character:FindFirstChild("HumanoidRootPart")
-        if not hrp or (hrp.Position-box.Position).Magnitude>16 then return end
+        if not player:GetAttribute("AlienBreachDeployed") or not hrp or (hrp.Position-box.Position).Magnitude>16 then return end
         claimed=true
         prompt.Enabled=false
         local roll=math.random()
@@ -699,6 +699,7 @@ end)
 local control=ReplicatedStorage:FindFirstChild("AlienBreachControl") or Instance.new("RemoteEvent")
 control.Name="AlienBreachControl";control.Parent=ReplicatedStorage
 control.OnServerEvent:Connect(function(player,action)
+    if not player:GetAttribute("AlienBreachDeployed") then return end
     if action=="reload" then
         local last=lastReload[player] or 0
         if os.clock()-last<1.4 then return end
@@ -730,6 +731,7 @@ control.OnServerEvent:Connect(function(player,action)
     end
 end)
 remote.OnServerEvent:Connect(function(player,origin,direction)
+    if not player:GetAttribute("AlienBreachDeployed") then return end
     if typeof(origin)~="Vector3" or typeof(direction)~="Vector3" then return end
     if direction.Magnitude<0.9 or direction.Magnitude>1.1 then return end
     local character=player.Character
@@ -959,7 +961,7 @@ local function alienShoot(alien,origin,target,hum)
     beam.CFrame=CFrame.lookAt((origin+hit)/2,hit)
     beam.Parent=root
     game:GetService("Debris"):AddItem(beam,0.15)
-    if result and hum and result.Instance:IsDescendantOf(hum.Parent) then
+    if result and hum and result.Instance:IsDescendantOf(hum.Parent) and Players:GetPlayerFromCharacter(hum.Parent) and Players:GetPlayerFromCharacter(hum.Parent):GetAttribute("AlienBreachDeployed") then
         hum:TakeDamage(alien:GetAttribute("Kind")=="armored" and 13 or 8)
     end
 end
@@ -1000,7 +1002,7 @@ RunService.Heartbeat:Connect(function(dt)
             local character=player.Character
             local hrp=character and character:FindFirstChild("HumanoidRootPart")
             local hum=character and character:FindFirstChildOfClass("Humanoid")
-            if hrp and hum and hum.Health>0 then fields[player]=buildField(hrp) else fields[player]=nil end
+            if player:GetAttribute("AlienBreachDeployed") and hrp and hum and hum.Health>0 then fields[player]=buildField(hrp) else fields[player]=nil end
         end
     end
     for _,alien in ipairs(enemies:GetChildren()) do
@@ -1009,7 +1011,7 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local field=fields[player]
+            local field=player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
                 bestDistance=d;bestPlayer=player;bestField=field
