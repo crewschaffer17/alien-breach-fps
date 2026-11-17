@@ -213,7 +213,14 @@ round(saveButton,6);saveButton.Activated:Connect(function()event:FireServer("sav
 local notice=text(backdrop,"",14,C.gold,true);notice.Position=UDim2.fromScale(0.35,0.93);notice.Size=UDim2.fromScale(0.4,0.04);notice.TextXAlignment=Enum.TextXAlignment.Center
 event.OnClientEvent:Connect(function(action,payload)
  if action=="state" then state=payload;render()
- elseif action=="notice" then notice.Text=tostring(payload) end
+ elseif action=="notice" then notice.Text=tostring(payload)
+ elseif action=="returnHome" then
+  notice.Text=""
+  backdrop.Visible=true
+  show("Home")
+  player.CameraMode=Enum.CameraMode.Classic
+  UIS.MouseIconEnabled=true
+ end
 end)
 local function hideHUD()
  for _,item in ipairs(player.PlayerGui:GetChildren()) do
