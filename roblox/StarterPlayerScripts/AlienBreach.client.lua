@@ -13,6 +13,15 @@ local function syncDeploymentCamera()
 end
 player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(syncDeploymentCamera)
 syncDeploymentCamera()
+-- Roblox's default camera can re-lock the cursor after a character dies.
+-- Run after the camera update so home and death screens keep a free mouse.
+RunService:BindToRenderStep("AlienBreachMenuCursor",Enum.RenderPriority.Camera.Value+2,function()
+ if player:GetAttribute("AlienBreachDeployed")~=true then
+  player.CameraMode=Enum.CameraMode.Classic
+  UserInputService.MouseBehavior=Enum.MouseBehavior.Default
+  UserInputService.MouseIconEnabled=true
+ end
+end)
 local remote=ReplicatedStorage:WaitForChild("AlienBreachFire")
 local gui=Instance.new("ScreenGui")
 gui.Name="AlienBreachHUD"
