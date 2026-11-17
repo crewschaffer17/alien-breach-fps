@@ -128,9 +128,9 @@ for _,p in ipairs(catalog) do
  buyButtons[p[1]]=buy
 end
 local loadCredits=topbar(load,"AREA 51  /  YOUR LOADOUT")
-local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,66),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
+local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,58),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
 make("UIListLayout",tabs,{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,9)})
-local content=make("ScrollingFrame",load,{Position=UDim2.fromScale(0,0.17),Size=UDim2.fromScale(0.72,0.67),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.fromScale(0,0)})
+local content=make("ScrollingFrame",load,{Position=UDim2.new(0,0,0,114),Size=UDim2.new(0.72,0,1,-178),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.fromScale(0,0)})
 -- Build exactly one layout at a time; multiple layouts can break UI initialization.
 local activeContentLayout=nil
 local statsPanel=make("Frame",load,{Position=UDim2.fromScale(0.75,0.17),Size=UDim2.fromScale(0.25,0.65),BackgroundColor3=C.panel})
@@ -178,30 +178,30 @@ render=function()
   activeContentLayout=make("UIGridLayout",content,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.035,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder})
  end
  if selected=="guns" or selected=="equipment" then
-  local function ownedCard(id,count)
+  local function ownedCard(id,count,isOwned)
    local card=make("Frame",content,{BackgroundColor3=C.panel,BorderSizePixel=0})
    round(card,9);stroke(card)
    gunArt(card,id,UDim2.fromScale(.05,.07),UDim2.fromScale(.39,.54))
    local nameLabel=text(card,names[id] or string.upper(id),16,C.white,true)
    nameLabel.Position=UDim2.fromScale(.44,.10)
    nameLabel.Size=UDim2.fromScale(.53,.37)
-   local detail=text(card,count and ("OWNED: "..count) or "OWNED",14,C.green,true)
+   local detail=text(card,isOwned and (count and ("OWNED: "..count) or "OWNED") or (id=="laser" and "CHESTS ONLY" or "NOT OWNED"),14,isOwned and C.green or C.muted,true)
    detail.Position=UDim2.fromScale(.07,.59)
    detail.Size=UDim2.fromScale(.86,.18)
    local equipped=false
    for _,slotId in ipairs(state.slots or {}) do if slotId==id then equipped=true end end
-   local status=text(card,equipped and "IN LOADOUT" or "IN INVENTORY",12,equipped and C.gold or C.muted,true)
+   local status=text(card,not isOwned and "LOCKED" or (equipped and "IN LOADOUT" or "IN INVENTORY"),12,equipped and C.gold or C.muted,true)
    status.Position=UDim2.fromScale(.07,.80)
    status.Size=UDim2.fromScale(.88,.16)
   end
   local count=0
   if selected=="guns" then
    for _,id in ipairs(weaponOrder) do
-    if state.owned[id] then ownedCard(id);count+=1 end
+    ownedCard(id,nil,state.owned[id]==true);count+=1
    end
   else
    for _,id in ipairs({"medkit","speed"}) do
-    if (state[id] or 0)>0 then ownedCard(id,state[id]);count+=1 end
+    ownedCard(id,state[id] or 0,(state[id] or 0)>0);count+=1
    end
   end
   if count==0 then
