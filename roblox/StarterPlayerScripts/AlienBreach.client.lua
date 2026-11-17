@@ -5,7 +5,14 @@ local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local UserInputService=game:GetService("UserInputService")
 local RunService=game:GetService("RunService")
 local player=Players.LocalPlayer
-player.CameraMode=Enum.CameraMode.LockFirstPerson
+local function syncDeploymentCamera()
+ local deployed=player:GetAttribute("AlienBreachDeployed")==true
+ player.CameraMode=deployed and Enum.CameraMode.LockFirstPerson or Enum.CameraMode.Classic
+ UserInputService.MouseBehavior=deployed and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
+ UserInputService.MouseIconEnabled=not deployed
+end
+player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(syncDeploymentCamera)
+syncDeploymentCamera()
 local remote=ReplicatedStorage:WaitForChild("AlienBreachFire")
 local gui=Instance.new("ScreenGui")
 gui.Name="AlienBreachHUD"
