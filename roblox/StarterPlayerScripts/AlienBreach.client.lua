@@ -34,7 +34,7 @@ local function label(name,text,position,size)
     l.BackgroundTransparency=0.35
     l.BackgroundColor3=Color3.fromRGB(4,16,20)
     l.TextColor3=Color3.fromRGB(118,255,186)
-    l.Font=Enum.Font.Code
+    l.Font=Enum.Font.SciFi
     l.TextScaled=true
     l.Text=text
     l.Size=size
@@ -42,9 +42,9 @@ local function label(name,text,position,size)
     l.Parent=gui
     return l
 end
-label("Title","ALIEN BREACH | AREA 51",UDim2.fromScale(0.02,0.03),UDim2.fromScale(0.29,0.06))
+label("Title","ALIEN BREACH FPS",UDim2.fromScale(0.02,0.03),UDim2.fromScale(0.29,0.06))
 local status=label("Status","AMMO 125",UDim2.fromScale(0.35,0.91),UDim2.fromScale(0.30,0.065))
-status.Font=Enum.Font.GothamBold
+status.Font=Enum.Font.SciFi
 status.TextColor3=Color3.fromRGB(215,255,225)
 local cross=label("Crosshair","+",UDim2.fromScale(0.49,0.47),UDim2.fromScale(0.02,0.05))
 cross.BackgroundTransparency=1
@@ -54,7 +54,7 @@ fire.Size=UDim2.fromScale(0.14,0.18)
 fire.Position=UDim2.fromScale(0.83,0.74)
 fire.BackgroundColor3=Color3.fromRGB(16,57,49)
 fire.TextColor3=Color3.fromRGB(175,255,209)
-fire.Font=Enum.Font.GothamBold
+fire.Font=Enum.Font.SciFi
 fire.TextScaled=true
 fire.Text="FIRE"
 fire.Visible=UserInputService.TouchEnabled
@@ -66,7 +66,7 @@ local rewardLabel=label("LootNotification","",UDim2.fromScale(0.27,0.14),UDim2.f
 rewardLabel.Visible=false
 rewardLabel.BackgroundTransparency=1
 rewardLabel.BorderSizePixel=0
-rewardLabel.Font=Enum.Font.GothamBlack
+rewardLabel.Font=Enum.Font.SciFi
 rewardLabel.TextScaled=false
 rewardLabel.TextSize=34
 rewardLabel.TextStrokeTransparency=.25
@@ -343,7 +343,7 @@ end)
 update()
 local healButton=Instance.new("TextButton")
 healButton.Name="TouchHeal";healButton.Text="MEDKIT"
-healButton.TextScaled=true;healButton.Font=Enum.Font.GothamBold
+healButton.TextScaled=true;healButton.Font=Enum.Font.SciFi
 healButton.TextColor3=Color3.fromRGB(225,255,225)
 healButton.BackgroundColor3=Color3.fromRGB(28,90,60)
 healButton.Size=UDim2.fromScale(0.14,0.07)
@@ -360,7 +360,7 @@ local TILE=8
 local radar=Instance.new("TextButton")
 radar.Name="MapToggle"
 radar.Text="EXPAND MAP [M]"
-radar.Font=Enum.Font.GothamBold
+radar.Font=Enum.Font.SciFi
 radar.TextScaled=true
 radar.TextColor3=Color3.fromRGB(172,255,203)
 radar.BackgroundColor3=Color3.fromRGB(9,28,33)
