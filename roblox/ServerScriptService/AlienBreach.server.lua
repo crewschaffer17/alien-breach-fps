@@ -103,7 +103,8 @@ remote.Name = "AlienBreachFire"
 remote.Parent = ReplicatedStorage
 local mapValue=ReplicatedStorage:FindFirstChild("AlienBreachMap") or Instance.new("StringValue")
 mapValue.Name="AlienBreachMap"
-mapValue.Value=table.concat(map,"\n")
+mapValue.Value=table.concat(map,"
+")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
@@ -699,7 +700,8 @@ local weaponStats={
  laser={range=60,delay=.18,cost=5,damage=4}
 }
 local tracerColors={pulse=Color3.fromRGB(100,245,189),shotgun=Color3.fromRGB(230,164,108),rifle=Color3.fromRGB(129,198,237),viper=Color3.fromRGB(110,255,169),ar51=Color3.fromRGB(144,180,200),phantom=Color3.fromRGB(97,228,255),titan=Color3.fromRGB(255,180,91),plasma=Color3.fromRGB(178,122,255),obliterator=Color3.fromRGB(255,91,99),laser=Color3.fromRGB(72,223,255)}
-\nlocal lastShot={}
+
+local lastShot={}
 local shotAmmo={}
 local lastReload={}
 local lastHeal={}
