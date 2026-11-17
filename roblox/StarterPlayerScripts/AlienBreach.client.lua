@@ -192,6 +192,20 @@ end)
 UserInputService.InputEnded:Connect(function(input)
  if input.UserInputType==Enum.UserInputType.MouseButton1 then holdingFire=false end
 end)
+-- Scroll through purchased weapons without requiring a separate hotkey for each gun.
+UserInputService.InputChanged:Connect(function(input,processed)
+ if processed or player:GetAttribute("AlienBreachDeployed")~=true then return end
+ if input.UserInputType~=Enum.UserInputType.MouseWheel then return end
+ local list={}
+ for id in string.gmatch(player:GetAttribute("AlienBreachAllowedWeapons") or "pulse","[^,]+") do
+  if weaponStats[id] then table.insert(list,id) end
+ end
+ if player:GetAttribute("HasLegendaryLaser") then table.insert(list,"laser") end
+ if #list<2 then return end
+ local current=table.find(list,player:GetAttribute("Weapon") or "pulse") or 1
+ local step=input.Position.Z>0 and -1 or 1
+ control:FireServer(list[((current-1+step)%#list)+1])
+end)
 fire.Activated:Connect(shoot)
 for _,name in ipairs({"Magazine","ReserveAmmo","Medkits","Weapon"}) do
     player:GetAttributeChangedSignal(name):Connect(update)
