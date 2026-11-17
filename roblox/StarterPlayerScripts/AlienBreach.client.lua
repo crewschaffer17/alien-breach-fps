@@ -140,7 +140,7 @@ player:GetAttributeChangedSignal("Weapon"):Connect(refreshWeaponArt)
 RunService.RenderStepped:Connect(function(dt)
  recoil=math.max(0,recoil-dt*5)
  weaponFrame.Position=UDim2.fromScale(.99,.99+recoil*.08)
- weaponFrame.Visible=player:GetAttribute("AlienBreachDeployed")==true
+ weaponFrame.Visible=false -- 3D viewmodel is the only visible weapon
 end)
 -- 3D first-person weapon built from local Roblox Parts (no external assets).
 local viewModel=Instance.new("Model")
@@ -244,7 +244,7 @@ RunService.RenderStepped:Connect(function(dt)
  gunKick=math.max(0,gunKick-dt*7)
  for _,item in ipairs(weaponPieces) do
   item.part.Transparency=deployed and 0 or 1
-  item.part.CFrame=camera.CFrame*CFrame.new(.65,-.55,-2.3+gunKick*.25)*CFrame.new(0,0,0)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
+  item.part.CFrame=camera.CFrame*CFrame.new(.88,-.64,-2.3+gunKick*.25)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
  end
 end)
 local weaponStats={
