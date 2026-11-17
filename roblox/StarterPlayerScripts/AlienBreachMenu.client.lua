@@ -131,7 +131,8 @@ local loadCredits=topbar(load,"AREA 51  /  YOUR LOADOUT")
 local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,66),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
 make("UIListLayout",tabs,{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,9)})
 local content=make("ScrollingFrame",load,{Position=UDim2.fromScale(0,0.17),Size=UDim2.fromScale(0.72,0.67),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.fromScale(0,0)})
-vertical(content,8)
+local contentList=make("UIListLayout",content,{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder,Enabled=false})
+local contentGrid=make("UIGridLayout",content,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.035,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder,Enabled=true})
 local statsPanel=make("Frame",load,{Position=UDim2.fromScale(0.75,0.17),Size=UDim2.fromScale(0.25,0.65),BackgroundColor3=C.panel})
 round(statsPanel,8);stroke(statsPanel)
 local statsText=text(statsPanel,"PLAYER STATS",17,C.green,true);statsText.Position=UDim2.fromOffset(12,12);statsText.Size=UDim2.new(1,-24,0,40)
@@ -150,7 +151,7 @@ local function choices(index)
  return a
 end
 local function clearContent()
- for _,child in ipairs(content:GetChildren()) do if not child:IsA("UIListLayout") then child:Destroy() end end
+ for _,child in ipairs(content:GetChildren()) do if not child:IsA("UIListLayout") and not child:IsA("UIGridLayout") then child:Destroy() end end
 end
 local function line(labelValue,color)
  local frame=make("Frame",content,{Size=UDim2.new(1,-12,0,57),BackgroundColor3=C.panel,BorderSizePixel=0})
@@ -171,21 +172,38 @@ render=function()
   b.Active=not owned;b.BackgroundColor3=owned and C.muted or C.green
  end
  clearContent()
- if selected=="guns" then
-  for _,id in ipairs(weaponOrder) do
-   local owned=state.owned[id]
-   local labelValue="▰  "..names[id].."    •    "..(owned and "OWNED" or id=="laser" and "CHESTS ONLY" or "LOCKED")
-   local gunLine=line(labelValue,owned and C.green or C.muted)
-   local gunLabel=gunLine:FindFirstChildOfClass("TextLabel")
-   if gunLabel then gunLabel.Position=UDim2.fromScale(.20,.1);gunLabel.Size=UDim2.fromScale(.78,.8) end
-   gunArt(gunLine,id,UDim2.fromScale(.01,.06),UDim2.fromScale(.18,.88))
+ contentGrid.Enabled=selected~="inventory"
+ contentList.Enabled=selected=="inventory"
+ if selected=="guns" or selected=="equipment" then
+  local function ownedCard(id,count)
+   local card=make("Frame",content,{BackgroundColor3=C.panel,BorderSizePixel=0})
+   round(card,9);stroke(card)
+   gunArt(card,id,UDim2.fromScale(.05,.07),UDim2.fromScale(.39,.54))
+   local nameLabel=text(card,names[id] or string.upper(id),16,C.white,true)
+   nameLabel.Position=UDim2.fromScale(.44,.10)
+   nameLabel.Size=UDim2.fromScale(.53,.37)
+   local detail=text(card,count and ("OWNED: "..count) or "OWNED",14,C.green,true)
+   detail.Position=UDim2.fromScale(.07,.59)
+   detail.Size=UDim2.fromScale(.86,.18)
+   local equipped=false
+   for _,slotId in ipairs(state.slots or {}) do if slotId==id then equipped=true end end
+   local status=text(card,equipped and "IN LOADOUT" or "IN INVENTORY",12,equipped and C.gold or C.muted,true)
+   status.Position=UDim2.fromScale(.07,.80)
+   status.Size=UDim2.fromScale(.88,.16)
   end
- elseif selected=="equipment" then
-  for _,id in ipairs({"medkit","speed"}) do
-   local equipLine=line(names[id].."    •    OWNED: "..tostring(state[id] or 0),C.green)
-   local equipLabel=equipLine:FindFirstChildOfClass("TextLabel")
-   if equipLabel then equipLabel.Position=UDim2.fromScale(.20,.1);equipLabel.Size=UDim2.fromScale(.78,.8) end
-   gunArt(equipLine,id,UDim2.fromScale(.02,.04),UDim2.fromScale(.16,.90))
+  local count=0
+  if selected=="guns" then
+   for _,id in ipairs(weaponOrder) do
+    if state.owned[id] then ownedCard(id);count+=1 end
+   end
+  else
+   for _,id in ipairs({"medkit","speed"}) do
+    if (state[id] or 0)>0 then ownedCard(id,state[id]);count+=1 end
+   end
+  end
+  if count==0 then
+   local empty=make("TextLabel",content,{Text="NOTHING OWNED YET  •  VISIT THE SHOP",Font=Enum.Font.GothamBold,TextSize=16,TextWrapped=true,TextColor3=C.muted,BackgroundColor3=C.panel})
+   round(empty,9)
   end
  elseif selected=="inventory" then
   for i=1,5 do
