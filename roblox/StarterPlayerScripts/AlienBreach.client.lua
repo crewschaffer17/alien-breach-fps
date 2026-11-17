@@ -34,7 +34,9 @@ local function label(name,text,position,size)
     return l
 end
 label("Title","ALIEN BREACH | AREA 51",UDim2.fromScale(0.02,0.03),UDim2.fromScale(0.29,0.06))
-local status=label("Status","PULSE PISTOL",UDim2.fromScale(0.02,0.91),UDim2.fromScale(0.25,0.06))
+local status=label("Status","AMMO 125",UDim2.fromScale(0.35,0.91),UDim2.fromScale(0.30,0.065))
+status.Font=Enum.Font.GothamBold
+status.TextColor3=Color3.fromRGB(215,255,225)
 local cross=label("Crosshair","+",UDim2.fromScale(0.49,0.47),UDim2.fromScale(0.02,0.05))
 cross.BackgroundTransparency=1
 local fire=Instance.new("TextButton")
@@ -53,6 +55,21 @@ local breachState=ReplicatedStorage:WaitForChild("AlienBreachState")
 local breachLabel=label("BreachStatus","BREACH LOADING",UDim2.fromScale(0.34,0.025),UDim2.fromScale(0.33,0.06))
 local rewardLabel=label("LootNotification","",UDim2.fromScale(0.27,0.14),UDim2.fromScale(0.46,0.055))
 rewardLabel.Visible=false
+local function update()
+ local magazine=player:GetAttribute("Magazine") or 0
+ local reserve=player:GetAttribute("ReserveAmmo") or 0
+ local weapon=string.upper(player:GetAttribute("Weapon") or "pulse")
+ -- The total is uncapped; chest pickups increase ReserveAmmo.
+ status.Text=weapon.."  |  AMMO "..tostring(magazine+reserve).."  (LOADED "..tostring(magazine)..")"
+ local remaining=breachState:FindFirstChild("AliensRemaining")
+ local wave=breachState:FindFirstChild("Breach")
+ local timer=breachState:FindFirstChild("NextBreachIn")
+ if timer and timer.Value>0 then
+  breachLabel.Text="NEXT BREACH IN "..timer.Value.."s"
+ else
+  breachLabel.Text="BREACH "..(wave and wave.Value or 0).." | ALIENS "..(remaining and remaining.Value or 0)
+ end
+end
 local function gunArt(parent,id,pos,size)
  local art=Instance.new("Frame")
  art.Name="WeaponArt_"..id;art.BackgroundTransparency=1;art.Position=pos;art.Size=size;art.ClipsDescendants=false;art.Parent=parent
@@ -112,6 +129,7 @@ player:GetAttributeChangedSignal("Weapon"):Connect(refreshWeaponArt)
 RunService.RenderStepped:Connect(function(dt)
  recoil=math.max(0,recoil-dt*5)
  weaponFrame.Position=UDim2.fromScale(.99,.99+recoil*.08)
+ weaponFrame.Visible=player:GetAttribute("AlienBreachDeployed")==true
 end)
 -- 3D first-person weapon built from local Roblox Parts (no external assets).
 local viewModel=Instance.new("Model")
@@ -152,7 +170,7 @@ RunService.RenderStepped:Connect(function(dt)
  gunKick=math.max(0,gunKick-dt*7)
  for _,item in ipairs(weaponPieces) do
   item.part.Transparency=deployed and 0 or 1
-  item.part.CFrame=camera.CFrame*CFrame.new(.95,-.82,-1.25+gunKick*.38)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
+  item.part.CFrame=camera.CFrame*CFrame.new(.68,-.53,-1.65+gunKick*.25)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
  end
 end)
 local weaponStats={
