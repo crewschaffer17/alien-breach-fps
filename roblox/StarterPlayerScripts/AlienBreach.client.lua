@@ -55,12 +55,23 @@ local breachState=ReplicatedStorage:WaitForChild("AlienBreachState")
 local breachLabel=label("BreachStatus","BREACH LOADING",UDim2.fromScale(0.34,0.025),UDim2.fromScale(0.33,0.06))
 local rewardLabel=label("LootNotification","",UDim2.fromScale(0.27,0.14),UDim2.fromScale(0.46,0.055))
 rewardLabel.Visible=false
+rewardLabel.BackgroundTransparency=1
+rewardLabel.BorderSizePixel=0
+rewardLabel.Font=Enum.Font.GothamBlack
+rewardLabel.TextScaled=false
+rewardLabel.TextSize=34
+rewardLabel.TextStrokeTransparency=.25
+rewardLabel.TextStrokeColor3=Color3.fromRGB(0,0,0)
+rewardLabel.TextColor3=Color3.fromRGB(160,255,205)
+rewardLabel.Size=UDim2.fromScale(.65,.095)
+rewardLabel.Position=UDim2.fromScale(.175,.18)
+rewardLabel.ZIndex=25
 local function update()
  local magazine=player:GetAttribute("Magazine") or 0
  local reserve=player:GetAttribute("ReserveAmmo") or 0
  local weapon=string.upper(player:GetAttribute("Weapon") or "pulse")
  -- The total is uncapped; chest pickups increase ReserveAmmo.
- status.Text=weapon.."  |  AMMO "..tostring(magazine+reserve).."  (LOADED "..tostring(magazine)..")"
+ status.Text=weapon.."  |  AMMO "..tostring(magazine+reserve)
  local remaining=breachState:FindFirstChild("AliensRemaining")
  local wave=breachState:FindFirstChild("Breach")
  local timer=breachState:FindFirstChild("NextBreachIn")
@@ -109,7 +120,7 @@ weaponFrame.Name="FirstPersonWeapon"
 weaponFrame.BackgroundTransparency=1
 weaponFrame.AnchorPoint=Vector2.new(1,1)
 weaponFrame.Position=UDim2.fromScale(.99,.99)
-weaponFrame.Size=UDim2.fromScale(.37,.32)
+weaponFrame.Size=UDim2.fromScale(.22,.19)
 weaponFrame.ZIndex=10
 weaponFrame.Parent=gui
 local currentArt
@@ -150,14 +161,77 @@ local function rebuildGun()
  local id=player:GetAttribute("Weapon") or "pulse"
  local colors={pulse=Color3.fromRGB(80,245,178),shotgun=Color3.fromRGB(224,148,82),rifle=Color3.fromRGB(109,194,242),viper=Color3.fromRGB(95,255,133),ar51=Color3.fromRGB(140,187,210),phantom=Color3.fromRGB(77,221,255),titan=Color3.fromRGB(255,171,75),plasma=Color3.fromRGB(184,106,255),obliterator=Color3.fromRGB(255,73,91),laser=Color3.fromRGB(74,223,255)}
  local glow=colors[id] or colors.pulse
- local heavy=id=="titan" or id=="plasma" or id=="obliterator"
- local long=id=="phantom" or id=="rifle" or id=="ar51"
- gunPart("Receiver",Vector3.new(.7,.45,heavy and 1.7 or 1.35),CFrame.new(0,0,0),Color3.fromRGB(47,58,66))
- gunPart("Barrel",Vector3.new(heavy and .28 or .18,heavy and .28 or .18,long and 2.3 or 1.4),CFrame.new(0,.06,-1.25),Color3.fromRGB(110,122,135))
- gunPart("MuzzleGlow",Vector3.new(.25,.25,.15),CFrame.new(0,.06,long and -2.45 or -1.95),glow,Enum.Material.Neon)
- gunPart("Grip",Vector3.new(.25,.65,.35),CFrame.new(0,-.47,.37)*CFrame.Angles(math.rad(-16),0,0),Color3.fromRGB(25,32,39))
- gunPart("Sight",Vector3.new(.14,.18,.22),CFrame.new(0,.33,-.42),glow,Enum.Material.Neon)
- gunPart("SideRail",Vector3.new(.1,.13,.7),CFrame.new(.39,.06,-.15),glow,Enum.Material.Neon)
+ local metal=Color3.fromRGB(47,58,66)
+ local dark=Color3.fromRGB(25,32,39)
+ local steel=Color3.fromRGB(112,124,136)
+ local function p(name,x,y,z,sx,sy,sz,color,material)
+  return gunPart(name,Vector3.new(sx,sy,sz),CFrame.new(x,y,z),color or metal,material)
+ end
+ if id=="pulse" then
+  p("CompactPistolSlide",0,0,0,.42,.25,.8)
+  p("PistolMuzzle",0,.02,-.52,.17,.16,.32,steel)
+  p("PistolGrip",0,-.32,.22,.25,.52,.27,dark)
+  p("GreenSight",0,.18,-.28,.12,.09,.12,glow,Enum.Material.Neon)
+ elseif id=="shotgun" then
+  p("PumpShotgunReceiver",0,0,0,.54,.34,1.05)
+  p("WideBore",0,.05,-1.02,.30,.30,1.25,steel)
+  p("PumpForegrip",0,-.17,-.88,.49,.24,.56,dark)
+  p("WoodStock",0,-.12,.75,.34,.36,.90,Color3.fromRGB(116,70,44))
+  p("ShotgunShellRack",.30,.12,.06,.12,.20,.55,glow)
+ elseif id=="rifle" then
+  p("AssaultReceiver",0,0,0,.54,.34,1.1)
+  p("RifleLongBarrel",0,.06,-1.14,.17,.17,1.75,steel)
+  p("RifleMagazine",0,-.43,-.15,.28,.64,.31,dark)
+  p("RifleStock",0,-.12,.86,.36,.36,.80,dark)
+  p("RifleCarryHandle",0,.34,-.12,.32,.14,.58,glow)
+ elseif id=="viper" then
+  p("ViperCompactSMG",0,0,0,.60,.39,.82,dark)
+  p("ViperTwinBarrelLeft",-.15,.02,-.68,.13,.14,.65,steel)
+  p("ViperTwinBarrelRight",.15,.02,-.68,.13,.14,.65,steel)
+  p("ViperDrumMagazine",0,-.36,-.12,.49,.47,.37,glow)
+  p("ViperFoldStock",0,.04,.60,.20,.15,.55,steel)
+ elseif id=="ar51" then
+  p("AR51Upper",0,.08,0,.55,.31,1.24,metal)
+  p("AR51Rail",0,.33,-.37,.45,.11,1.0,glow)
+  p("AR51PrecisionBarrel",0,.07,-1.23,.16,.16,1.85,steel)
+  p("AR51AngledMagazine",0,-.38,-.08,.27,.62,.38,dark)
+  p("AR51SkeletonStock",0,-.1,.95,.28,.23,.95,steel)
+  p("AR51Scope",0,.52,-.35,.26,.23,.48,dark)
+ elseif id=="phantom" then
+  p("PhantomSniperBody",0,0,0,.43,.29,1.5,dark)
+  p("PhantomLongBarrel",0,.04,-1.70,.12,.12,2.65,steel)
+  p("PhantomScope",0,.46,-.35,.28,.26,.9,glow)
+  p("PhantomScopeMount",0,.26,-.35,.14,.25,.23,steel)
+  p("PhantomButtstock",0,-.13,1.18,.35,.38,1.0,metal)
+  p("PhantomBipod",0,-.31,-1.55,.48,.55,.12,steel)
+ elseif id=="titan" then
+  p("TitanMotorHousing",0,0,0,.85,.75,1.15,dark)
+  for n=-1,1 do p("TitanRotaryBarrel"..n,n*.22,.12,-1.32,.17,.17,1.70,steel) end
+  p("TitanAmmoDrum",.53,-.25,.08,.65,.72,.68,glow)
+  p("TitanHandle",0,.57,.33,.55,.18,.38,steel)
+  p("TitanHeavyStock",0,-.08,.85,.50,.50,.65,metal)
+ elseif id=="plasma" then
+  p("PlasmaEnergyBody",0,0,0,.74,.57,1.35,dark)
+  p("PlasmaCore",0,.08,-.25,.43,.43,.55,glow,Enum.Material.Neon)
+  p("PlasmaEmitter",0,.06,-1.1,.48,.48,.8,metal)
+  p("PlasmaEmitterGlow",0,.06,-1.58,.30,.30,.17,glow,Enum.Material.Neon)
+  p("PlasmaSideCoilLeft",-.43,.1,-.65,.15,.32,.9,glow)
+  p("PlasmaSideCoilRight",.43,.1,-.65,.15,.32,.9,glow)
+ elseif id=="obliterator" then
+  p("ObliteratorHeavyCore",0,0,0,.94,.72,1.48,dark)
+  p("ObliteratorCannon",0,.06,-1.30,.54,.50,1.5,metal)
+  p("ObliteratorRedMuzzle",0,.06,-2.12,.47,.47,.20,glow,Enum.Material.Neon)
+  p("ObliteratorLeftShield",-.55,.05,-.65,.16,.63,1.15,metal)
+  p("ObliteratorRightShield",.55,.05,-.65,.16,.63,1.15,metal)
+  p("ObliteratorWarningStripe",0,.48,-.3,.62,.11,.72,glow)
+ elseif id=="laser" then
+  p("LegendaryLaserBody",0,0,0,.54,.40,1.55,dark)
+  p("LaserBeamChannel",0,.06,-1.38,.24,.24,2.0,glow,Enum.Material.Neon)
+  p("LaserFocusLens",0,.06,-2.48,.34,.34,.19,glow,Enum.Material.Neon)
+  p("LaserLeftProng",-.32,.04,-1.78,.15,.20,.88,steel)
+  p("LaserRightProng",.32,.04,-1.78,.15,.20,.88,steel)
+  p("LaserBattery",0,-.36,.20,.37,.42,.49,glow)
+ end
 end
 rebuildGun()
 player:GetAttributeChangedSignal("Weapon"):Connect(rebuildGun)
@@ -170,7 +244,7 @@ RunService.RenderStepped:Connect(function(dt)
  gunKick=math.max(0,gunKick-dt*7)
  for _,item in ipairs(weaponPieces) do
   item.part.Transparency=deployed and 0 or 1
-  item.part.CFrame=camera.CFrame*CFrame.new(.68,-.53,-1.65+gunKick*.25)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
+  item.part.CFrame=camera.CFrame*CFrame.new(.65,-.55,-2.3+gunKick*.25)*CFrame.new(0,0,0)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
  end
 end)
 local weaponStats={
@@ -254,7 +328,7 @@ player:GetAttributeChangedSignal("LastCacheReward"):Connect(function()
     rewardLabel.Text=player:GetAttribute("LastCacheReward") or ""
     rewardLabel.Visible=true
     local stamp=rewardLabel.Text
-    task.delay(5,function() if rewardLabel.Text==stamp then rewardLabel.Visible=false end end)
+    task.delay(2.3,function() if rewardLabel.Text==stamp then rewardLabel.Visible=false end end)
     update()
 end)
 update()
