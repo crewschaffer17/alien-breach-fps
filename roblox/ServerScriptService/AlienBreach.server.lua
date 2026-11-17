@@ -705,7 +705,7 @@ local shotAmmo={}
 local lastReload={}
 local lastHeal={}
 Players.PlayerAdded:Connect(function(player)
-    player:SetAttribute("ReserveAmmo",100)
+    player:SetAttribute("ReserveAmmo",0) -- Start with exactly 25 total rounds (25 in magazine)
     player:SetAttribute("Medkits",0)
     player:SetAttribute("HasLegendaryLaser",false)
     player:SetAttribute("Weapon","pulse")
