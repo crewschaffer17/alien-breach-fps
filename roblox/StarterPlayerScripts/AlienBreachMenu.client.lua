@@ -131,8 +131,8 @@ local loadCredits=topbar(load,"AREA 51  /  YOUR LOADOUT")
 local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,66),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
 make("UIListLayout",tabs,{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,9)})
 local content=make("ScrollingFrame",load,{Position=UDim2.fromScale(0,0.17),Size=UDim2.fromScale(0.72,0.67),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.fromScale(0,0)})
-local contentList=make("UIListLayout",content,{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder,Enabled=false})
-local contentGrid=make("UIGridLayout",content,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.035,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder,Enabled=true})
+-- Build exactly one layout at a time; multiple layouts can break UI initialization.
+local activeContentLayout=nil
 local statsPanel=make("Frame",load,{Position=UDim2.fromScale(0.75,0.17),Size=UDim2.fromScale(0.25,0.65),BackgroundColor3=C.panel})
 round(statsPanel,8);stroke(statsPanel)
 local statsText=text(statsPanel,"PLAYER STATS",17,C.green,true);statsText.Position=UDim2.fromOffset(12,12);statsText.Size=UDim2.new(1,-24,0,40)
@@ -151,7 +151,7 @@ local function choices(index)
  return a
 end
 local function clearContent()
- for _,child in ipairs(content:GetChildren()) do if not child:IsA("UIListLayout") and not child:IsA("UIGridLayout") then child:Destroy() end end
+ for _,child in ipairs(content:GetChildren()) do child:Destroy() end
 end
 local function line(labelValue,color)
  local frame=make("Frame",content,{Size=UDim2.new(1,-12,0,57),BackgroundColor3=C.panel,BorderSizePixel=0})
@@ -172,8 +172,11 @@ render=function()
   b.Active=not owned;b.BackgroundColor3=owned and C.muted or C.green
  end
  clearContent()
- contentGrid.Enabled=selected~="inventory"
- contentList.Enabled=selected=="inventory"
+ if selected=="inventory" then
+  activeContentLayout=make("UIListLayout",content,{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder})
+ else
+  activeContentLayout=make("UIGridLayout",content,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.035,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder})
+ end
  if selected=="guns" or selected=="equipment" then
   local function ownedCard(id,count)
    local card=make("Frame",content,{BackgroundColor3=C.panel,BorderSizePixel=0})
