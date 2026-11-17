@@ -71,6 +71,12 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   local ok=save(p)
   event:FireClient(p,"notice",ok and "LOADOUT SAVED" or "SAVE FAILED - ENABLE API SERVICES")
  elseif action=="deploy" then
+  local allowed={"pulse"}
+  for id,owned in pairs(d.owned) do if owned and id~="pulse" and id~="laser" then table.insert(allowed,id) end end
+  p:SetAttribute("AlienBreachAllowedWeapons",table.concat(allowed,","))
+  local chosen=d.slots[1]
+  if not d.owned[chosen] then chosen="pulse" end
+  p:SetAttribute("Weapon",chosen)
   p:SetAttribute("AlienBreachDeployed",true)
   d.stats.games+=1
   save(p)
