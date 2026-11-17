@@ -27,7 +27,20 @@ local function snapshot(p)
  local d=state(p)
  event:FireClient(p,"state",{credits=d.credits,owned=d.owned,medkit=d.medkit,speed=d.speed,slots=d.slots,stats=d.stats})
 end
+local function watchCharacter(p,character)
+ local humanoid=character:WaitForChild("Humanoid",10)
+ if not humanoid then return end
+ humanoid.Died:Connect(function()
+  -- Death ends this deployment. The menu LocalScript observes this attribute.
+  p:SetAttribute("AlienBreachDeployed",false)
+  p:SetAttribute("HasLegendaryLaser",false)
+  p:SetAttribute("Weapon","pulse")
+  event:FireClient(p,"returnHome")
+ end)
+end
 Players.PlayerAdded:Connect(function(p)
+ p.CharacterAdded:Connect(function(character) watchCharacter(p,character) end)
+ if p.Character then task.spawn(watchCharacter,p,p.Character) end
  local d=state(p)
  local ok,saved=pcall(function()return store:GetAsync("player_"..p.UserId)end)
  if ok and type(saved)=="table" then
