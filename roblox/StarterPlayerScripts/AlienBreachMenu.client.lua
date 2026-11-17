@@ -21,20 +21,40 @@ end
 local function round(o,r) make("UICorner",o,{CornerRadius=UDim.new(0,r or 9)}) end
 local function stroke(o) make("UIStroke",o,{Color=C.edge,Thickness=1,Transparency=0.15}) end
 local function text(parent,value,size,color,bold)
- return make("TextLabel",parent,{BackgroundTransparency=1,Text=value,Font=bold and Enum.Font.ArialBold or Enum.Font.Arial,TextColor3=color or C.white,TextSize=size or 16,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,size and size+14 or 34)})
+ return make("TextLabel",parent,{BackgroundTransparency=1,Text=value,Font=bold and Enum.Font.SciFi or Enum.Font.SciFi,TextColor3=color or C.white,TextSize=size or 16,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,size and size+14 or 34)})
 end
 local function button(parent,value,fn)
- local b=make("TextButton",parent,{Text=value,Font=Enum.Font.ArialBold,TextSize=15,TextColor3=C.bg,BackgroundColor3=C.green,Size=UDim2.new(1,0,0,39),AutoButtonColor=true})
+ local b=make("TextButton",parent,{Text=value,Font=Enum.Font.SciFi,TextSize=15,TextColor3=C.bg,BackgroundColor3=C.green,Size=UDim2.new(1,0,0,39),AutoButtonColor=true})
  round(b,6);b.Activated:Connect(fn);return b
 end
 local function vertical(parent,gap)
  make("UIListLayout",parent,{Padding=UDim.new(0,gap or 8),SortOrder=Enum.SortOrder.LayoutOrder})
 end
 local backdrop=make("Frame",gui,{Size=UDim2.fromScale(1,1),BackgroundColor3=C.bg,BorderSizePixel=0})
-local title=text(backdrop,"ALIEN BREACH FPS  /  AREA 51",30,C.green,true)
-title.Position=UDim2.fromScale(0.045,0.035);title.Size=UDim2.fromScale(0.91,0.075)
-local subtitle=text(backdrop,"DEPLOYMENT COMMAND  •  SELECT YOUR NEXT MOVE",13,C.muted,true)
-subtitle.Position=UDim2.fromScale(0.045,0.115)
+-- Sci-fi command deck: center-aligned branding and subtle radar styling.
+local glow=make("Frame",backdrop,{Name="HeaderGlow",Position=UDim2.fromScale(.13,.012),Size=UDim2.fromScale(.74,.19),BackgroundColor3=Color3.fromRGB(9,39,37),BackgroundTransparency=.28,BorderSizePixel=0})
+round(glow,18)
+make("UIGradient",glow,{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(20,70,61),Color3.fromRGB(4,14,19)),Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,.1),NumberSequenceKeypoint.new(1,1)})})
+local title=text(backdrop,"ALIEN BREACH FPS",52,C.green,true)
+title.Name="GameTitle"
+title.TextScaled=true
+title.TextXAlignment=Enum.TextXAlignment.Center
+title.Position=UDim2.fromScale(.12,.035)
+title.Size=UDim2.fromScale(.76,.105)
+title.TextStrokeColor3=Color3.fromRGB(16,98,70)
+title.TextStrokeTransparency=.38
+local subtitle=text(backdrop,"SURVIVE THE BREACH  //  SECURE THE FACILITY",17,C.white,true)
+subtitle.TextXAlignment=Enum.TextXAlignment.Center
+subtitle.Position=UDim2.fromScale(.15,.147)
+subtitle.Size=UDim2.fromScale(.70,.038)
+local leftStatus=text(backdrop,"●  SYSTEM ONLINE",13,C.green,true)
+leftStatus.Position=UDim2.fromScale(.035,.035)
+leftStatus.Size=UDim2.fromScale(.20,.04)
+local rightStatus=text(backdrop,"CLASSIFIED  //  COMMAND",13,C.gold,true)
+rightStatus.TextXAlignment=Enum.TextXAlignment.Right
+rightStatus.Position=UDim2.fromScale(.765,.035)
+rightStatus.Size=UDim2.fromScale(.20,.04)
+local bottomLine=make("Frame",backdrop,{Position=UDim2.fromScale(.12,.193),Size=UDim2.fromScale(.76,.002),BackgroundColor3=C.edge,BorderSizePixel=0})
 
 -- Full-screen home navigation; only one panel is visible at a time.
 local names={pulse="PULSE SMG",shotgun="SHOTGUN",rifle="ASSAULT RIFLE",viper="VIPER SMG",ar51="AR-51 ASSAULT RIFLE",phantom="PHANTOM SNIPER",titan="TITAN MINIGUN",plasma="PLASMA BLASTER",obliterator="OBLITERATOR X",laser="LEGENDARY LASER",medkit="MED-KIT",speed="SPEED BOOST"}
@@ -73,7 +93,7 @@ end
 
 local catalog={{"shotgun",500,"▰"},{"rifle",750,"▰"},{"viper",1000,"▰"},{"ar51",1250,"▰"},{"phantom",1750,"⌖"},{"titan",2500,"▤"},{"plasma",3500,"✦"},{"obliterator",5000,"✹"},{"medkit",150,"✚"},{"speed",250,"⚡"}}
 local weaponOrder={"pulse","shotgun","rifle","viper","ar51","phantom","titan","plasma","obliterator","laser"}
-local root=make("Frame",backdrop,{BackgroundTransparency=1,Position=UDim2.fromScale(0.05,0.21),Size=UDim2.fromScale(0.9,0.72)})
+local root=make("Frame",backdrop,{BackgroundTransparency=1,Position=UDim2.fromScale(0.05,0.235),Size=UDim2.fromScale(0.9,0.70)})
 local pages={}
 local function page(id)
  local p=make("Frame",root,{Name=id,BackgroundTransparency=1,Size=UDim2.fromScale(1,1),Visible=false})
@@ -90,30 +110,32 @@ local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Hori
 local function homeCard(heading,description,action)
  local card=make("Frame",home,{Size=UDim2.new(0.3,0,0.62,0),BackgroundColor3=C.panel,BorderSizePixel=0})
  round(card,12);stroke(card)
+ make("UIGradient",card,{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,58,57),C.panel)})
+ local accentBar=make("Frame",card,{Size=UDim2.new(1,0,0,4),BackgroundColor3=C.green,BorderSizePixel=0})
  local pad=make("UIPadding",card,{PaddingTop=UDim.new(0,22),PaddingLeft=UDim.new(0,16),PaddingRight=UDim.new(0,16)})
  vertical(card,18)
- local h=text(card,heading,24,C.green,true);h.TextXAlignment=Enum.TextXAlignment.Center
+ local h=text(card,heading,26,C.green,true);h.TextXAlignment=Enum.TextXAlignment.Center
  local desc=text(card,description,15,C.muted);desc.Size=UDim2.new(1,0,0,82);desc.TextXAlignment=Enum.TextXAlignment.Center
- button(card,"OPEN  ▶",action)
+ button(card,"ACCESS  ▶",action)
 end
-homeCard("▶  PLAY NOW","Enter the facility and start the breach.",function()
+homeCard("▶  DEPLOY","Enter the breach. Survive the unknown.",function()
  event:FireServer("deploy")
  backdrop.Visible=false
  player.CameraMode=Enum.CameraMode.LockFirstPerson
  UIS.MouseIconEnabled=false
 end)
-homeCard("▣  SHOP","Purchase guns and field supplies.",function()show("Shop")end)
-homeCard("▤  LOADOUT","Weapons, equipment and inventory.",function()show("Loadout")end)
+homeCard("▣  ARMORY","Upgrade weapons and stock your supplies.",function()show("Shop")end)
+homeCard("▤  LOADOUT","Prepare your gear before the next breach.",function()show("Loadout")end)
 local function topbar(parent,heading)
  local bar=make("Frame",parent,{Size=UDim2.new(1,0,0,62),BackgroundTransparency=1})
  local headingText=text(bar,heading,25,C.green,true);headingText.Size=UDim2.new(0.6,0,1,0)
  local credits=text(bar,"CREDITS: 500",17,C.gold,true)
  credits.Name="CreditsDisplay";credits.Position=UDim2.fromScale(0.65,0);credits.Size=UDim2.fromScale(0.35,1);credits.TextXAlignment=Enum.TextXAlignment.Right
- local back=make("TextButton",parent,{Text="◀  BACK TO HOME",Font=Enum.Font.ArialBold,TextSize=15,BackgroundColor3=C.edge,TextColor3=C.white,Position=UDim2.new(0,0,1,-43),Size=UDim2.fromOffset(195,38)})
+ local back=make("TextButton",parent,{Text="◀  BACK TO HOME",Font=Enum.Font.SciFi,TextSize=15,BackgroundColor3=C.edge,TextColor3=C.white,Position=UDim2.new(0,0,1,-43),Size=UDim2.fromOffset(195,38)})
  round(back,6);back.Activated:Connect(function()show("Home")end)
  return credits
 end
-local shopCredits=topbar(shop,"AREA 51  /  FIELD SUPPLIES")
+local shopCredits=topbar(shop,"ALIEN BREACH  /  ARMORY")
 local shopScroll=make("ScrollingFrame",shop,{Position=UDim2.fromOffset(0,72),Size=UDim2.new(1,0,1,-128),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=7,CanvasSize=UDim2.fromScale(0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
 make("UIGridLayout",shopScroll,{CellSize=UDim2.new(0.31,0,0,155),CellPadding=UDim2.new(0.02,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder})
 local buyButtons={}
@@ -123,11 +145,11 @@ for _,p in ipairs(catalog) do
  gunArt(item,p[1],UDim2.fromScale(0.04,0.04),UDim2.fromScale(0.28,0.38))
  local n=text(item,names[p[1]],16,C.white,true);n.Position=UDim2.fromScale(0.3,0.07);n.Size=UDim2.fromScale(0.66,0.28)
  local cost=text(item,p[2].." CREDITS",14,C.gold,true);cost.Position=UDim2.fromScale(0.06,0.44)
- local buy=make("TextButton",item,{Text="BUY",Font=Enum.Font.ArialBold,TextSize=14,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(0.06,0.72),Size=UDim2.fromScale(0.88,0.23)})
+ local buy=make("TextButton",item,{Text="BUY",Font=Enum.Font.SciFi,TextSize=14,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(0.06,0.72),Size=UDim2.fromScale(0.88,0.23)})
  round(buy,5);buy.Activated:Connect(function()event:FireServer("buy",p[1])end)
  buyButtons[p[1]]=buy
 end
-local loadCredits=topbar(load,"AREA 51  /  YOUR LOADOUT")
+local loadCredits=topbar(load,"ALIEN BREACH  /  LOADOUT")
 local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,58),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
 make("UIListLayout",tabs,{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,9)})
 local content=make("ScrollingFrame",load,{Position=UDim2.new(0,0,0,114),Size=UDim2.new(0.72,0,1,-178),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.fromScale(0,0)})
@@ -205,7 +227,7 @@ render=function()
    end
   end
   if count==0 then
-   local empty=make("TextLabel",content,{Text="NOTHING OWNED YET  •  VISIT THE SHOP",Font=Enum.Font.GothamBold,TextSize=16,TextWrapped=true,TextColor3=C.muted,BackgroundColor3=C.panel})
+   local empty=make("TextLabel",content,{Text="NOTHING OWNED YET  •  VISIT THE SHOP",Font=Enum.Font.SciFi,TextSize=16,TextWrapped=true,TextColor3=C.muted,BackgroundColor3=C.panel})
    round(empty,9)
   end
  elseif selected=="inventory" then
@@ -215,7 +237,7 @@ render=function()
    local frame=line("SLOT "..i.."  /  "..kind.."  /  "..(names[item] or "EMPTY"),C.white)
    local l=frame:FindFirstChildOfClass("TextLabel")
    if l then l.Size=UDim2.new(1,-130,1,-16) end
-   local b=make("TextButton",frame,{Text="CHANGE",Font=Enum.Font.ArialBold,TextSize=13,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.new(1,-110,0,12),Size=UDim2.fromOffset(100,34)})
+   local b=make("TextButton",frame,{Text="CHANGE",Font=Enum.Font.SciFi,TextSize=13,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.new(1,-110,0,12),Size=UDim2.fromOffset(100,34)})
    round(b,5)
    b.Activated:Connect(function()
     local opts=choices(i)
@@ -226,19 +248,19 @@ render=function()
  end
 end
 for _,tab in ipairs({"guns","equipment","inventory"}) do
- local b=make("TextButton",tabs,{Text=string.upper(tab),Size=UDim2.new(0.3,0,1,0),BackgroundColor3=C.edge,TextColor3=C.white,Font=Enum.Font.ArialBold,TextSize=14})
+ local b=make("TextButton",tabs,{Text=string.upper(tab),Size=UDim2.new(0.3,0,1,0),BackgroundColor3=C.edge,TextColor3=C.white,Font=Enum.Font.SciFi,TextSize=14})
  round(b,6);b.Activated:Connect(function()selected=tab;render()end)
 end
-local saveButton=make("TextButton",load,{Text="SAVE LOADOUT",Font=Enum.Font.ArialBold,TextSize=15,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.new(1,-195,1,-43),Size=UDim2.fromOffset(195,38)})
+local saveButton=make("TextButton",load,{Text="SAVE LOADOUT",Font=Enum.Font.SciFi,TextSize=15,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.new(1,-195,1,-43),Size=UDim2.fromOffset(195,38)})
 round(saveButton,6);saveButton.Activated:Connect(function()event:FireServer("save")end)
 -- Death report is a separate cinematic overlay; the player chooses when to return.
 local deathOverlay=make("Frame",gui,{Name="MissionFailedOverlay",Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.fromRGB(3,8,13),BackgroundTransparency=.08,BorderSizePixel=0,Visible=false,ZIndex=200})
 local deathPanel=make("Frame",deathOverlay,{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(.56,.43),BackgroundColor3=Color3.fromRGB(12,27,32),BorderSizePixel=0,ZIndex=201})
 round(deathPanel,16);stroke(deathPanel)
-local deathEyebrow=make("TextLabel",deathPanel,{Text="AREA 51  //  EMERGENCY TRANSMISSION",Font=Enum.Font.GothamBold,TextSize=16,TextColor3=C.gold,BackgroundTransparency=1,Position=UDim2.fromScale(.06,.10),Size=UDim2.fromScale(.88,.12),ZIndex=202})
-local deathTitle=make("TextLabel",deathPanel,{Text="SIGNAL LOST.",Font=Enum.Font.GothamBlack,TextScaled=true,TextColor3=Color3.fromRGB(255,112,105),BackgroundTransparency=1,Position=UDim2.fromScale(.08,.27),Size=UDim2.fromScale(.84,.22),ZIndex=202})
-local deathMessage=make("TextLabel",deathPanel,{Text="The facility swallowed another soldier.\nCommand is waiting for your next move.",Font=Enum.Font.GothamMedium,TextScaled=true,TextWrapped=true,TextColor3=C.white,BackgroundTransparency=1,Position=UDim2.fromScale(.11,.52),Size=UDim2.fromScale(.78,.17),ZIndex=202})
-local returnButton=make("TextButton",deathPanel,{Text="RETURN TO COMMAND  ▶",Font=Enum.Font.GothamBlack,TextScaled=true,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.fromScale(.19,.77),Size=UDim2.fromScale(.62,.15),ZIndex=203})
+local deathEyebrow=make("TextLabel",deathPanel,{Text="ALIEN BREACH  //  EMERGENCY TRANSMISSION",Font=Enum.Font.SciFi,TextSize=16,TextColor3=C.gold,BackgroundTransparency=1,Position=UDim2.fromScale(.06,.10),Size=UDim2.fromScale(.88,.12),ZIndex=202})
+local deathTitle=make("TextLabel",deathPanel,{Text="SIGNAL LOST.",Font=Enum.Font.SciFi,TextScaled=true,TextColor3=Color3.fromRGB(255,112,105),BackgroundTransparency=1,Position=UDim2.fromScale(.08,.27),Size=UDim2.fromScale(.84,.22),ZIndex=202})
+local deathMessage=make("TextLabel",deathPanel,{Text="The facility swallowed another soldier.\nCommand is waiting for your next move.",Font=Enum.Font.SciFi,TextScaled=true,TextWrapped=true,TextColor3=C.white,BackgroundTransparency=1,Position=UDim2.fromScale(.11,.52),Size=UDim2.fromScale(.78,.17),ZIndex=202})
+local returnButton=make("TextButton",deathPanel,{Text="RETURN TO COMMAND  ▶",Font=Enum.Font.SciFi,TextScaled=true,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.fromScale(.19,.77),Size=UDim2.fromScale(.62,.15),ZIndex=203})
 round(returnButton,9)
 local function freeMenuMouse()
  player.CameraMode=Enum.CameraMode.Classic
