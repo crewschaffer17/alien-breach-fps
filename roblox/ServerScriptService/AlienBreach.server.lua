@@ -685,7 +685,21 @@ Players.PlayerAdded:Connect(function(player)
     kills.Name="Kills"
     kills.Parent=stats
 end)
-local lastShot={}
+-- Browser game weapon balancing: one map unit = TILE (8 Roblox studs).
+local weaponStats={
+ pulse={range=12,delay=.30,cost=1,damage=1},
+ shotgun={range=12,delay=.72,cost=1,damage=1,pellets=4},
+ rifle={range=15.6,delay=.60,cost=1,damage=1},
+ viper={range=12,delay=.12,cost=1,damage=1},
+ ar51={range=19,delay=.34,cost=1,damage=1},
+ phantom={range=48,delay=1.35,cost=1,damage=4},
+ titan={range=15,delay=.085,cost=2,damage=1},
+ plasma={range=17,delay=.68,cost=3,damage=4},
+ obliterator={range=48,delay=.85,cost=4,damage=4},
+ laser={range=60,delay=.18,cost=5,damage=4}
+}
+local tracerColors={pulse=Color3.fromRGB(100,245,189),shotgun=Color3.fromRGB(230,164,108),rifle=Color3.fromRGB(129,198,237),viper=Color3.fromRGB(110,255,169),ar51=Color3.fromRGB(144,180,200),phantom=Color3.fromRGB(97,228,255),titan=Color3.fromRGB(255,180,91),plasma=Color3.fromRGB(178,122,255),obliterator=Color3.fromRGB(255,91,99),laser=Color3.fromRGB(72,223,255)}
+\nlocal lastShot={}
 local shotAmmo={}
 local lastReload={}
 local lastHeal={}
@@ -698,70 +712,128 @@ Players.PlayerAdded:Connect(function(player)
 end)
 local control=ReplicatedStorage:FindFirstChild("AlienBreachControl") or Instance.new("RemoteEvent")
 control.Name="AlienBreachControl";control.Parent=ReplicatedStorage
+local function equip(player,id)
+ local allowed=player:GetAttribute("AlienBreachAllowedWeapons") or "pulse"
+ if id=="laser" then
+  if not player:GetAttribute("HasLegendaryLaser") then return end
+ elseif not string.find(","..allowed..",",","..id..",",1,true) then return end
+ if not weaponStats[id] then return end
+ player:SetAttribute("Weapon",id)
+ player:SetAttribute("Magazine",math.min(25,player:GetAttribute("Magazine") or 25))
+end
 control.OnServerEvent:Connect(function(player,action)
-    if not player:GetAttribute("AlienBreachDeployed") then return end
-    if action=="reload" then
-        local last=lastReload[player] or 0
-        if os.clock()-last<1.4 then return end
-        lastReload[player]=os.clock()
-        local magazine=player:GetAttribute("Magazine") or 0
-        local capacity=player:GetAttribute("Weapon")=="laser" and 40 or 25
-        local reserve=player:GetAttribute("ReserveAmmo") or 0
-        local amount=math.min(capacity-magazine,reserve)
-        if amount>0 then
-            player:SetAttribute("Magazine",magazine+amount)
-            player:SetAttribute("ReserveAmmo",reserve-amount)
-        end
-    elseif action=="laser" and player:GetAttribute("HasLegendaryLaser") then
-        player:SetAttribute("Weapon","laser")
-        player:SetAttribute("Magazine",math.min(40,player:GetAttribute("Magazine") or 25))
-    elseif action=="pulse" then
-        player:SetAttribute("Weapon","pulse")
-        player:SetAttribute("Magazine",math.min(25,player:GetAttribute("Magazine") or 25))
-    elseif action=="heal" then
-        if os.clock()-(lastHeal[player] or 0)<1 then return end
-        local char=player.Character
-        local hum=char and char:FindFirstChildOfClass("Humanoid")
-        local kits=player:GetAttribute("Medkits") or 0
-        if hum and hum.Health>0 and hum.Health<hum.MaxHealth and kits>0 then
-            lastHeal[player]=os.clock()
-            player:SetAttribute("Medkits",kits-1)
-            hum.Health=math.min(hum.MaxHealth,hum.Health+35)
-        end
-    end
+ if not player:GetAttribute("AlienBreachDeployed") then return end
+ if action=="reload" then
+  local last=lastReload[player] or 0
+  if os.clock()-last<1.4 then return end
+  lastReload[player]=os.clock()
+  local magazine=player:GetAttribute("Magazine") or 0
+  local reserve=player:GetAttribute("ReserveAmmo") or 0
+  local amount=math.min(25-magazine,reserve)
+  if amount>0 then
+   player:SetAttribute("Magazine",magazine+amount)
+   player:SetAttribute("ReserveAmmo",reserve-amount)
+  end
+ elseif type(action)=="string" and weaponStats[action] then
+  equip(player,action)
+ elseif action=="heal" then
+  if os.clock()-(lastHeal[player] or 0)<1 then return end
+  local char=player.Character
+  local hum=char and char:FindFirstChildOfClass("Humanoid")
+  local kits=player:GetAttribute("Medkits") or 0
+  if hum and hum.Health>0 and hum.Health<hum.MaxHealth and kits>0 then
+   lastHeal[player]=os.clock()
+   player:SetAttribute("Medkits",kits-1)
+   hum.Health=math.min(hum.MaxHealth,hum.Health+35)
+  end
+ end
 end)
+local Debris=game:GetService("Debris")
+local function tracer(startPos,endPos,id)
+ local delta=endPos-startPos
+ if delta.Magnitude<.1 then return end
+ local beam=Instance.new("Part")
+ beam.Name="Player_"..id.."_Projectile"
+ beam.Anchored=true;beam.CanCollide=false;beam.CanTouch=false;beam.CanQuery=false
+ beam.Material=Enum.Material.Neon
+ beam.Color=tracerColors[id] or tracerColors.pulse
+ beam.Size=Vector3.new(id=="laser" and .25 or .11,id=="laser" and .25 or .11,math.min(delta.Magnitude,id=="laser" and 20 or 4))
+ beam.CFrame=CFrame.lookAt(endPos-delta.Unit*(beam.Size.Z/2),endPos)
+ beam.Parent=workspace
+ Debris:AddItem(beam,id=="laser" and .17 or .11)
+end
+local function hurtAlien(player,alien,amount)
+ if not alien or alien.Parent~=enemies then return end
+ local hp=(alien:GetAttribute("HP") or 50)-amount*25
+ alien:SetAttribute("HP",hp)
+ if hp<=0 then
+  alien:Destroy()
+  local stats=player:FindFirstChild("leaderstats")
+  if stats then
+   stats.Kills.Value+=1
+   stats.Credits.Value+=20
+  end
+ end
+end
 remote.OnServerEvent:Connect(function(player,origin,direction)
-    if not player:GetAttribute("AlienBreachDeployed") then return end
-    if typeof(origin)~="Vector3" or typeof(direction)~="Vector3" then return end
-    if direction.Magnitude<0.9 or direction.Magnitude>1.1 then return end
-    local character=player.Character
-    local head=character and character:FindFirstChild("Head")
-    if not head or (origin-head.Position).Magnitude>12 then return end
-    local now=os.clock()
-    if now-(lastShot[player] or 0)<0.18 then return end
-    lastShot[player]=now
-    local mag=player:GetAttribute("Magazine") or 0
-    if mag<=0 then return end
-    player:SetAttribute("Magazine",mag-1)
-    local params=RaycastParams.new()
-    params.FilterType=Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances={character}
-    local hit=workspace:Raycast(origin,direction*240,params)
-    if hit and hit.Instance:IsDescendantOf(enemies) then
-        local alien=hit.Instance:FindFirstAncestorOfClass("Model")
-        if alien and alien.Parent==enemies then
-            local hp=(alien:GetAttribute("HP") or 50)-(player:GetAttribute("Weapon")=="laser" and 100 or 25)
-            alien:SetAttribute("HP",hp)
-            if hp<=0 then
-                alien:Destroy()
-                local stats=player:FindFirstChild("leaderstats")
-                if stats then
-                    stats.Kills.Value+=1
-                    stats.Credits.Value+=15
-                end
-            end
-        end
+ if not player:GetAttribute("AlienBreachDeployed") then return end
+ if typeof(origin)~="Vector3" or typeof(direction)~="Vector3" then return end
+ if direction.Magnitude<.9 or direction.Magnitude>1.1 then return end
+ local character=player.Character
+ local head=character and character:FindFirstChild("Head")
+ if not head or (origin-head.Position).Magnitude>12 then return end
+ local id=player:GetAttribute("Weapon") or "pulse"
+ local w=weaponStats[id] or weaponStats.pulse
+ local now=os.clock()
+ if now-(lastShot[player] or 0)<w.delay-.012 then return end
+ local mag=player:GetAttribute("Magazine") or 0
+ if mag<w.cost then return end
+ lastShot[player]=now
+ player:SetAttribute("Magazine",mag-w.cost)
+ local params=RaycastParams.new()
+ params.FilterType=Enum.RaycastFilterType.Exclude
+ params.FilterDescendantsInstances={character}
+ local maxDist=w.range*TILE
+ local hits={}
+ local pellets=w.pellets or 1
+ for i=1,pellets do
+  local angle=pellets==1 and 0 or (i-2.5)*.045
+  local dir=(CFrame.lookAt(Vector3.zero,direction)*CFrame.Angles(0,angle,0)).LookVector
+  local result=workspace:Raycast(origin,dir*maxDist,params)
+  local endPos=result and result.Position or origin+dir*maxDist
+  tracer(origin+dir*2,endPos,id)
+  if result and result.Instance:IsDescendantOf(enemies) then
+   local alien=result.Instance:FindFirstAncestorOfClass("Model")
+   if alien and alien.Parent==enemies then hits[alien]=(hits[alien] or 0)+1 end
+  end
+ end
+ for alien,count in pairs(hits) do
+  if id=="laser" then
+   hurtAlien(player,alien,alien:GetAttribute("Kind")=="armored" and 2 or 100)
+  else
+   hurtAlien(player,alien,w.damage*count)
+  end
+ end
+ if id=="plasma" then
+  for target in pairs(hits) do
+   local center=target.PrimaryPart
+   if center then
+    for _,alien in ipairs(enemies:GetChildren()) do
+     if alien~=target and alien.PrimaryPart and (alien.PrimaryPart.Position-center.Position).Magnitude<1.8*TILE then hurtAlien(player,alien,1.8) end
     end
+   end
+  end
+ elseif id=="obliterator" then
+  for _,alien in ipairs(enemies:GetChildren()) do
+   if not hits[alien] and alien.PrimaryPart then
+    local delta=alien.PrimaryPart.Position-origin
+    if delta.Magnitude<maxDist and delta.Magnitude>0 and direction:Dot(delta.Unit)>math.cos(.075) then
+     local r=workspace:Raycast(origin,delta,params)
+     if r and r.Instance:IsDescendantOf(alien) then hurtAlien(player,alien,6) end
+    end
+   end
+  end
+ end
 end)
 Players.PlayerRemoving:Connect(function(player)lastShot[player]=nil end)
 -- Three browser-game species: stalker, armored, crawler.
