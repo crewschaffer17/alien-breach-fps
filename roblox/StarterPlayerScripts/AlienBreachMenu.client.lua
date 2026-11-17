@@ -210,16 +210,35 @@ for _,tab in ipairs({"guns","equipment","inventory"}) do
 end
 local saveButton=make("TextButton",load,{Text="SAVE LOADOUT",Font=Enum.Font.ArialBold,TextSize=15,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.new(1,-195,1,-43),Size=UDim2.fromOffset(195,38)})
 round(saveButton,6);saveButton.Activated:Connect(function()event:FireServer("save")end)
+-- Death report is a separate cinematic overlay; the player chooses when to return.
+local deathOverlay=make("Frame",gui,{Name="MissionFailedOverlay",Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.fromRGB(3,8,13),BackgroundTransparency=.08,BorderSizePixel=0,Visible=false,ZIndex=200})
+local deathPanel=make("Frame",deathOverlay,{AnchorPoint=Vector2.new(.5,.5),Position=UDim2.fromScale(.5,.5),Size=UDim2.fromScale(.56,.43),BackgroundColor3=Color3.fromRGB(12,27,32),BorderSizePixel=0,ZIndex=201})
+round(deathPanel,16);stroke(deathPanel)
+local deathEyebrow=make("TextLabel",deathPanel,{Text="AREA 51  //  EMERGENCY TRANSMISSION",Font=Enum.Font.GothamBold,TextSize=16,TextColor3=C.gold,BackgroundTransparency=1,Position=UDim2.fromScale(.06,.10),Size=UDim2.fromScale(.88,.12),ZIndex=202})
+local deathTitle=make("TextLabel",deathPanel,{Text="SIGNAL LOST.",Font=Enum.Font.GothamBlack,TextScaled=true,TextColor3=Color3.fromRGB(255,112,105),BackgroundTransparency=1,Position=UDim2.fromScale(.08,.27),Size=UDim2.fromScale(.84,.22),ZIndex=202})
+local deathMessage=make("TextLabel",deathPanel,{Text="The facility swallowed another soldier.\nCommand is waiting for your next move.",Font=Enum.Font.GothamMedium,TextScaled=true,TextWrapped=true,TextColor3=C.white,BackgroundTransparency=1,Position=UDim2.fromScale(.11,.52),Size=UDim2.fromScale(.78,.17),ZIndex=202})
+local returnButton=make("TextButton",deathPanel,{Text="RETURN TO COMMAND  ▶",Font=Enum.Font.GothamBlack,TextScaled=true,TextColor3=C.bg,BackgroundColor3=C.green,Position=UDim2.fromScale(.19,.77),Size=UDim2.fromScale(.62,.15),ZIndex=203})
+round(returnButton,9)
+local function freeMenuMouse()
+ player.CameraMode=Enum.CameraMode.Classic
+ UIS.MouseBehavior=Enum.MouseBehavior.Default
+ UIS.MouseIconEnabled=true
+end
+returnButton.Activated:Connect(function()
+ deathOverlay.Visible=false
+ backdrop.Visible=true
+ show("Home")
+ freeMenuMouse()
+end)
 local notice=text(backdrop,"",14,C.gold,true);notice.Position=UDim2.fromScale(0.35,0.93);notice.Size=UDim2.fromScale(0.4,0.04);notice.TextXAlignment=Enum.TextXAlignment.Center
 event.OnClientEvent:Connect(function(action,payload)
  if action=="state" then state=payload;render()
  elseif action=="notice" then notice.Text=tostring(payload)
  elseif action=="returnHome" then
   notice.Text=""
-  backdrop.Visible=true
-  show("Home")
-  player.CameraMode=Enum.CameraMode.Classic
-  UIS.MouseIconEnabled=true
+  backdrop.Visible=false
+  deathOverlay.Visible=true
+  freeMenuMouse()
  end
 end)
 local function hideHUD()
@@ -229,7 +248,7 @@ local function hideHUD()
 end
 player.PlayerGui.ChildAdded:Connect(function()task.defer(hideHUD)end)
 backdrop:GetPropertyChangedSignal("Visible"):Connect(hideHUD)
-player.CameraMode=Enum.CameraMode.Classic
+freeMenuMouse()
 show("Home")
 render()
 hideHUD()
