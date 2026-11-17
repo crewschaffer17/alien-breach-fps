@@ -103,8 +103,7 @@ remote.Name = "AlienBreachFire"
 remote.Parent = ReplicatedStorage
 local mapValue=ReplicatedStorage:FindFirstChild("AlienBreachMap") or Instance.new("StringValue")
 mapValue.Name="AlienBreachMap"
-mapValue.Value=table.concat(map,"
-")
+mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
