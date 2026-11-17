@@ -53,6 +53,66 @@ local breachState=ReplicatedStorage:WaitForChild("AlienBreachState")
 local breachLabel=label("BreachStatus","BREACH LOADING",UDim2.fromScale(0.34,0.025),UDim2.fromScale(0.33,0.06))
 local rewardLabel=label("LootNotification","",UDim2.fromScale(0.27,0.14),UDim2.fromScale(0.46,0.055))
 rewardLabel.Visible=false
+local function gunArt(parent,id,pos,size)
+ local art=Instance.new("Frame")
+ art.Name="WeaponArt_"..id;art.BackgroundTransparency=1;art.Position=pos;art.Size=size;art.ClipsDescendants=false;art.Parent=parent
+ local accents={pulse=Color3.fromRGB(100,245,189),shotgun=Color3.fromRGB(230,164,108),rifle=Color3.fromRGB(129,198,237),viper=Color3.fromRGB(110,255,169),ar51=Color3.fromRGB(144,180,200),phantom=Color3.fromRGB(97,228,255),titan=Color3.fromRGB(255,180,91),plasma=Color3.fromRGB(178,122,255),obliterator=Color3.fromRGB(255,91,99),laser=Color3.fromRGB(72,223,255),medkit=Color3.fromRGB(92,255,151),speed=Color3.fromRGB(255,213,100)}
+ local accent=accents[id] or Color3.fromRGB(100,245,189)
+ local function part(name,x,y,w,h,color,rotation)
+  local f=Instance.new("Frame");f.Name=name;f.BorderSizePixel=0;f.BackgroundColor3=color;f.Position=UDim2.fromScale(x,y);f.Size=UDim2.fromScale(w,h);f.Rotation=rotation or 0;f.Parent=art;return f
+ end
+ if id=="medkit" then
+  local box=part("MedicalCase",.22,.15,.56,.68,Color3.fromRGB(45,77,70))
+  local c=Instance.new("UICorner");c.CornerRadius=UDim.new(.15,0);c.Parent=box
+  part("CrossVertical",.46,.27,.08,.42,accent);part("CrossHorizontal",.34,.41,.32,.12,accent)
+ elseif id=="speed" then
+  part("Booster",.25,.15,.5,.7,Color3.fromRGB(42,60,65))
+  part("BoltTop",.48,.22,.13,.34,accent,27);part("BoltBottom",.38,.45,.13,.33,accent,27)
+ else
+  local long=id=="phantom" or id=="rifle" or id=="ar51"
+  local heavy=id=="titan" or id=="plasma" or id=="obliterator"
+  part("Stock",.07,.38,.23,.18,Color3.fromRGB(82,98,105))
+  part("StockCutout",.10,.41,.12,.08,Color3.fromRGB(13,32,34))
+  part("Receiver",.26,heavy and .26 or .32,heavy and .44 or .39,heavy and .35 or .27,Color3.fromRGB(51,68,77))
+  part("ReceiverHighlight",.28,.33,.29,.055,accent)
+  part("Barrel",.65,heavy and .34 or .39,long and .34 or .26,heavy and .18 or .10,Color3.fromRGB(95,110,120))
+  part("Muzzle",long and .95 or .88,.35,.045,.18,accent)
+  part("Grip",.43,.57,.10,.30,Color3.fromRGB(33,44,51),-12)
+  if id=="phantom" then part("Scope",.40,.20,.27,.08,accent);part("ScopeMount",.51,.27,.04,.09,accent)
+  elseif heavy then part("PowerCore",.48,.37,.12,.13,accent)
+  elseif id=="shotgun" then part("Pump",.69,.53,.20,.07,accent)
+  else part("Sight",.55,.24,.055,.09,accent) end
+ end
+ return art
+end
+
+-- First-person weapon display; HUD art tracks camera and recoils on each shot.
+local weaponFrame=Instance.new("Frame")
+weaponFrame.Name="FirstPersonWeapon"
+weaponFrame.BackgroundTransparency=1
+weaponFrame.AnchorPoint=Vector2.new(1,1)
+weaponFrame.Position=UDim2.fromScale(.99,.99)
+weaponFrame.Size=UDim2.fromScale(.37,.32)
+weaponFrame.ZIndex=10
+weaponFrame.Parent=gui
+local currentArt
+local recoil=0
+local function refreshWeaponArt()
+ if currentArt then currentArt:Destroy() end
+ local id=player:GetAttribute("Weapon") or "pulse"
+ currentArt=gunArt(weaponFrame,id,UDim2.fromScale(.03,.02),UDim2.fromScale(.97,.97))
+ currentArt.Rotation=-22
+ currentArt.ZIndex=10
+ for _,child in ipairs(currentArt:GetDescendants()) do
+  if child:IsA("GuiObject") then child.ZIndex=11 end
+ end
+end
+refreshWeaponArt()
+player:GetAttributeChangedSignal("Weapon"):Connect(refreshWeaponArt)
+RunService.RenderStepped:Connect(function(dt)
+ recoil=math.max(0,recoil-dt*5)
+ weaponFrame.Position=UDim2.fromScale(.99,.99+recoil*.08)
+end)
 local cooldown=0
 local function update()
     local magazine=player:GetAttribute("Magazine") or 25
@@ -70,10 +130,12 @@ local function update()
     end
 end
 local function shoot()
+    if player:GetAttribute("AlienBreachDeployed")~=true then return end
     if os.clock()<cooldown then return end
     local magazine=player:GetAttribute("Magazine") or 0
     if magazine<=0 then control:FireServer("reload");return end
     cooldown=os.clock()+(player:GetAttribute("Weapon")=="laser" and 0.13 or 0.21)
+    recoil=1
     local camera=workspace.CurrentCamera
     if camera then remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector) end
 end
