@@ -38,6 +38,39 @@ subtitle.Position=UDim2.fromScale(0.045,0.115)
 
 -- Full-screen home navigation; only one panel is visible at a time.
 local names={pulse="PULSE SMG",shotgun="SHOTGUN",rifle="ASSAULT RIFLE",viper="VIPER SMG",ar51="AR-51 ASSAULT RIFLE",phantom="PHANTOM SNIPER",titan="TITAN MINIGUN",plasma="PLASMA BLASTER",obliterator="OBLITERATOR X",laser="LEGENDARY LASER",medkit="MED-KIT",speed="SPEED BOOST"}
+local function gunArt(parent,id,pos,size)
+ local art=Instance.new("Frame")
+ art.Name="WeaponArt_"..id;art.BackgroundTransparency=1;art.Position=pos;art.Size=size;art.ClipsDescendants=false;art.Parent=parent
+ local accents={pulse=Color3.fromRGB(100,245,189),shotgun=Color3.fromRGB(230,164,108),rifle=Color3.fromRGB(129,198,237),viper=Color3.fromRGB(110,255,169),ar51=Color3.fromRGB(144,180,200),phantom=Color3.fromRGB(97,228,255),titan=Color3.fromRGB(255,180,91),plasma=Color3.fromRGB(178,122,255),obliterator=Color3.fromRGB(255,91,99),laser=Color3.fromRGB(72,223,255),medkit=Color3.fromRGB(92,255,151),speed=Color3.fromRGB(255,213,100)}
+ local accent=accents[id] or Color3.fromRGB(100,245,189)
+ local function part(name,x,y,w,h,color,rotation)
+  local f=Instance.new("Frame");f.Name=name;f.BorderSizePixel=0;f.BackgroundColor3=color;f.Position=UDim2.fromScale(x,y);f.Size=UDim2.fromScale(w,h);f.Rotation=rotation or 0;f.Parent=art;return f
+ end
+ if id=="medkit" then
+  local box=part("MedicalCase",.22,.15,.56,.68,Color3.fromRGB(45,77,70))
+  local c=Instance.new("UICorner");c.CornerRadius=UDim.new(.15,0);c.Parent=box
+  part("CrossVertical",.46,.27,.08,.42,accent);part("CrossHorizontal",.34,.41,.32,.12,accent)
+ elseif id=="speed" then
+  part("Booster",.25,.15,.5,.7,Color3.fromRGB(42,60,65))
+  part("BoltTop",.48,.22,.13,.34,accent,27);part("BoltBottom",.38,.45,.13,.33,accent,27)
+ else
+  local long=id=="phantom" or id=="rifle" or id=="ar51"
+  local heavy=id=="titan" or id=="plasma" or id=="obliterator"
+  part("Stock",.07,.38,.23,.18,Color3.fromRGB(82,98,105))
+  part("StockCutout",.10,.41,.12,.08,Color3.fromRGB(13,32,34))
+  part("Receiver",.26,heavy and .26 or .32,heavy and .44 or .39,heavy and .35 or .27,Color3.fromRGB(51,68,77))
+  part("ReceiverHighlight",.28,.33,.29,.055,accent)
+  part("Barrel",.65,heavy and .34 or .39,long and .34 or .26,heavy and .18 or .10,Color3.fromRGB(95,110,120))
+  part("Muzzle",long and .95 or .88,.35,.045,.18,accent)
+  part("Grip",.43,.57,.10,.30,Color3.fromRGB(33,44,51),-12)
+  if id=="phantom" then part("Scope",.40,.20,.27,.08,accent);part("ScopeMount",.51,.27,.04,.09,accent)
+  elseif heavy then part("PowerCore",.48,.37,.12,.13,accent)
+  elseif id=="shotgun" then part("Pump",.69,.53,.20,.07,accent)
+  else part("Sight",.55,.24,.055,.09,accent) end
+ end
+ return art
+end
+
 local catalog={{"shotgun",500,"▰"},{"rifle",750,"▰"},{"viper",1000,"▰"},{"ar51",1250,"▰"},{"phantom",1750,"⌖"},{"titan",2500,"▤"},{"plasma",3500,"✦"},{"obliterator",5000,"✹"},{"medkit",150,"✚"},{"speed",250,"⚡"}}
 local weaponOrder={"pulse","shotgun","rifle","viper","ar51","phantom","titan","plasma","obliterator","laser"}
 local root=make("Frame",backdrop,{BackgroundTransparency=1,Position=UDim2.fromScale(0.05,0.21),Size=UDim2.fromScale(0.9,0.72)})
@@ -87,7 +120,7 @@ local buyButtons={}
 for _,p in ipairs(catalog) do
  local item=make("Frame",shopScroll,{BackgroundColor3=C.panel,BorderSizePixel=0})
  round(item,9);stroke(item)
- local icon=text(item,p[3],32,C.green,true);icon.Position=UDim2.fromScale(0.06,0.06);icon.Size=UDim2.fromScale(0.22,0.35)
+ gunArt(item,p[1],UDim2.fromScale(0.04,0.04),UDim2.fromScale(0.28,0.38))
  local n=text(item,names[p[1]],16,C.white,true);n.Position=UDim2.fromScale(0.3,0.07);n.Size=UDim2.fromScale(0.66,0.28)
  local cost=text(item,p[2].." CREDITS",14,C.gold,true);cost.Position=UDim2.fromScale(0.06,0.44)
  local buy=make("TextButton",item,{Text="BUY",Font=Enum.Font.ArialBold,TextSize=14,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(0.06,0.72),Size=UDim2.fromScale(0.88,0.23)})
@@ -142,11 +175,18 @@ render=function()
   for _,id in ipairs(weaponOrder) do
    local owned=state.owned[id]
    local labelValue="▰  "..names[id].."    •    "..(owned and "OWNED" or id=="laser" and "CHESTS ONLY" or "LOCKED")
-   line(labelValue,owned and C.green or C.muted)
+   local gunLine=line(labelValue,owned and C.green or C.muted)
+   local gunLabel=gunLine:FindFirstChildOfClass("TextLabel")
+   if gunLabel then gunLabel.Position=UDim2.fromScale(.20,.1);gunLabel.Size=UDim2.fromScale(.78,.8) end
+   gunArt(gunLine,id,UDim2.fromScale(.01,.06),UDim2.fromScale(.18,.88))
   end
  elseif selected=="equipment" then
-  line("✚  MED-KITS    •    OWNED: "..state.medkit,C.green)
-  line("⚡  SPEED BOOSTS    •    OWNED: "..state.speed,C.green)
+  for _,id in ipairs({"medkit","speed"}) do
+   local equipLine=line(names[id].."    •    OWNED: "..tostring(state[id] or 0),C.green)
+   local equipLabel=equipLine:FindFirstChildOfClass("TextLabel")
+   if equipLabel then equipLabel.Position=UDim2.fromScale(.20,.1);equipLabel.Size=UDim2.fromScale(.78,.8) end
+   gunArt(equipLine,id,UDim2.fromScale(.02,.04),UDim2.fromScale(.16,.90))
+  end
  elseif selected=="inventory" then
   for i=1,5 do
    local item=state.slots[i] or ""
