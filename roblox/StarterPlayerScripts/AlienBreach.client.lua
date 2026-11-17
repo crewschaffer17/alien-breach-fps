@@ -113,39 +113,84 @@ RunService.RenderStepped:Connect(function(dt)
  recoil=math.max(0,recoil-dt*5)
  weaponFrame.Position=UDim2.fromScale(.99,.99+recoil*.08)
 end)
+-- 3D first-person weapon built from local Roblox Parts (no external assets).
+local viewModel=Instance.new("Model")
+viewModel.Name="AlienBreachFirstPersonGun"
+local weaponPieces={}
+local function gunPart(name,size,offset,color,material)
+ local part=Instance.new("Part")
+ part.Name=name;part.Size=size;part.Anchored=true
+ part.CanCollide=false;part.CanTouch=false;part.CanQuery=false
+ part.CastShadow=false;part.Material=material or Enum.Material.Metal
+ part.Color=color;part.Parent=viewModel
+ table.insert(weaponPieces,{part=part,offset=offset})
+ return part
+end
+local function rebuildGun()
+ for _,p in ipairs(viewModel:GetChildren()) do p:Destroy() end
+ table.clear(weaponPieces)
+ local id=player:GetAttribute("Weapon") or "pulse"
+ local colors={pulse=Color3.fromRGB(80,245,178),shotgun=Color3.fromRGB(224,148,82),rifle=Color3.fromRGB(109,194,242),viper=Color3.fromRGB(95,255,133),ar51=Color3.fromRGB(140,187,210),phantom=Color3.fromRGB(77,221,255),titan=Color3.fromRGB(255,171,75),plasma=Color3.fromRGB(184,106,255),obliterator=Color3.fromRGB(255,73,91),laser=Color3.fromRGB(74,223,255)}
+ local glow=colors[id] or colors.pulse
+ local heavy=id=="titan" or id=="plasma" or id=="obliterator"
+ local long=id=="phantom" or id=="rifle" or id=="ar51"
+ gunPart("Receiver",Vector3.new(.7,.45,heavy and 1.7 or 1.35),CFrame.new(0,0,0),Color3.fromRGB(47,58,66))
+ gunPart("Barrel",Vector3.new(heavy and .28 or .18,heavy and .28 or .18,long and 2.3 or 1.4),CFrame.new(0,.06,-1.25),Color3.fromRGB(110,122,135))
+ gunPart("MuzzleGlow",Vector3.new(.25,.25,.15),CFrame.new(0,.06,long and -2.45 or -1.95),glow,Enum.Material.Neon)
+ gunPart("Grip",Vector3.new(.25,.65,.35),CFrame.new(0,-.47,.37)*CFrame.Angles(math.rad(-16),0,0),Color3.fromRGB(25,32,39))
+ gunPart("Sight",Vector3.new(.14,.18,.22),CFrame.new(0,.33,-.42),glow,Enum.Material.Neon)
+ gunPart("SideRail",Vector3.new(.1,.13,.7),CFrame.new(.39,.06,-.15),glow,Enum.Material.Neon)
+end
+rebuildGun()
+player:GetAttributeChangedSignal("Weapon"):Connect(rebuildGun)
+local gunKick=0
+RunService.RenderStepped:Connect(function(dt)
+ local deployed=player:GetAttribute("AlienBreachDeployed")==true
+ local camera=workspace.CurrentCamera
+ if not camera then return end
+ viewModel.Parent=camera
+ gunKick=math.max(0,gunKick-dt*7)
+ for _,item in ipairs(weaponPieces) do
+  item.part.Transparency=deployed and 0 or 1
+  item.part.CFrame=camera.CFrame*CFrame.new(.95,-.82,-1.25+gunKick*.38)*CFrame.Angles(math.rad(-7-gunKick*11),math.rad(-11),0)*item.offset
+ end
+end)
+local weaponStats={
+ pulse={delay=.30,cost=1},shotgun={delay=.72,cost=1},rifle={delay=.60,cost=1},
+ viper={delay=.12,cost=1},ar51={delay=.34,cost=1},phantom={delay=1.35,cost=1},
+ titan={delay=.085,cost=2},plasma={delay=.68,cost=3},obliterator={delay=.85,cost=4},
+ laser={delay=.18,cost=5}
+}
 local cooldown=0
-local function update()
-    local magazine=player:GetAttribute("Magazine") or 25
-    local reserve=player:GetAttribute("ReserveAmmo") or 0
-    local weapon=player:GetAttribute("Weapon")=="laser" and "LEGENDARY LASER" or "PULSE PISTOL"
-    local kits=player:GetAttribute("Medkits") or 0
-    status.Text=weapon.." | "..magazine.." / "..reserve.." | KITS "..kits
-    local remaining=breachState:FindFirstChild("AliensRemaining")
-    local wave=breachState:FindFirstChild("Breach")
-    local timer=breachState:FindFirstChild("NextBreachIn")
-    if timer and timer.Value>0 then
-        breachLabel.Text="NEXT BREACH IN "..timer.Value.."s"
-    else
-        breachLabel.Text="BREACH "..(wave and wave.Value or 0).." | ALIENS "..(remaining and remaining.Value or 0)
-    end
-end
 local function shoot()
-    if player:GetAttribute("AlienBreachDeployed")~=true then return end
-    if os.clock()<cooldown then return end
-    local magazine=player:GetAttribute("Magazine") or 0
-    if magazine<=0 then control:FireServer("reload");return end
-    cooldown=os.clock()+(player:GetAttribute("Weapon")=="laser" and 0.13 or 0.21)
-    recoil=1
-    local camera=workspace.CurrentCamera
-    if camera then remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector) end
+ if player:GetAttribute("AlienBreachDeployed")~=true then return end
+ local id=player:GetAttribute("Weapon") or "pulse"
+ local w=weaponStats[id] or weaponStats.pulse
+ if os.clock()<cooldown then return end
+ local magazine=player:GetAttribute("Magazine") or 0
+ if magazine<w.cost then control:FireServer("reload");return end
+ cooldown=os.clock()+w.delay
+ recoil=1
+ gunKick=1
+ local camera=workspace.CurrentCamera
+ if camera then remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector) end
 end
+local holdingFire=false
+RunService.RenderStepped:Connect(function()
+ if holdingFire then shoot() end
+end)
 UserInputService.InputBegan:Connect(function(input,processed)
     if processed then return end
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then shoot() end
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then holdingFire=true;shoot() end
     if input.KeyCode==Enum.KeyCode.R then control:FireServer("reload") end
     if input.KeyCode==Enum.KeyCode.H then control:FireServer("heal") end
     if input.KeyCode==Enum.KeyCode.One then control:FireServer("pulse") end
     if input.KeyCode==Enum.KeyCode.Two then control:FireServer("laser") end
+    if input.KeyCode==Enum.KeyCode.Three then control:FireServer("shotgun") end
+    if input.KeyCode==Enum.KeyCode.Four then control:FireServer("rifle") end
+end)
+UserInputService.InputEnded:Connect(function(input)
+ if input.UserInputType==Enum.UserInputType.MouseButton1 then holdingFire=false end
 end)
 fire.Activated:Connect(shoot)
 for _,name in ipairs({"Magazine","ReserveAmmo","Medkits","Weapon"}) do
