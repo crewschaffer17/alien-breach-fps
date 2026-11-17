@@ -179,6 +179,22 @@ local weaponStats={
  titan={delay=.085,cost=2},plasma={delay=.68,cost=3},obliterator={delay=.85,cost=4},
  laser={delay=.18,cost=5}
 }
+local Debris=game:GetService("Debris")
+local function showMuzzleShot(camera,id)
+ -- Local first-person tracer so every shot is visible immediately, even before server replication.
+ local laser=id=="laser"
+ local part=Instance.new("Part")
+ part.Name=laser and "VisibleLaserBeam" or "VisibleBulletTracer"
+ part.Anchored=true;part.CanCollide=false;part.CanTouch=false;part.CanQuery=false
+ part.Material=Enum.Material.Neon
+ part.Color=laser and Color3.fromRGB(80,235,255) or Color3.fromRGB(255,225,130)
+ part.Size=Vector3.new(laser and .16 or .09,laser and .16 or .09,laser and 13 or 7)
+ local muzzle=camera.CFrame:PointToWorldSpace(Vector3.new(.68,-.5,-3.4))
+ local target=camera.CFrame.Position+camera.CFrame.LookVector*(laser and 18 or 12)
+ part.CFrame=CFrame.lookAt((muzzle+target)/2,target)
+ part.Parent=camera
+ Debris:AddItem(part,laser and .17 or .12)
+end
 local cooldown=0
 local function shoot()
  if player:GetAttribute("AlienBreachDeployed")~=true then return end
@@ -191,7 +207,10 @@ local function shoot()
  recoil=1
  gunKick=1
  local camera=workspace.CurrentCamera
- if camera then remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector) end
+ if camera then
+  showMuzzleShot(camera,id)
+  remote:FireServer(camera.CFrame.Position,camera.CFrame.LookVector)
+ end
 end
 local holdingFire=false
 RunService.RenderStepped:Connect(function()
