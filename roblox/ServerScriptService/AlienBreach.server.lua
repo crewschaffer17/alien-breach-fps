@@ -630,6 +630,25 @@ spawn.Parent=root
 -- Original browser game: 90-second supply rotation, laser 1/150,
 -- medkit probability (1/20 + 1/7 - 1/150), otherwise 15-35 ammo.
 -- The larger facility deploys 12 caches per rotation instead of 5.
+-- Research Lab uses the exact same chest rewards, quantity and rotation.
+local researchChestPoints={}
+for y=4,40,3 do
+    for x=69,110,3 do
+        if map[y] and map[y]:sub(x,x)=="0" then
+            table.insert(researchChestPoints,{x-0.5,y-0.5})
+        end
+    end
+end
+local function activeChestSector()
+    local researchCount,containmentCount=0,0
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p:GetAttribute("AlienBreachDeployed") then
+            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchCount+=1
+            else containmentCount+=1 end
+        end
+    end
+    return researchCount>0 and researchCount>=containmentCount and "research" or "containment"
+end
 local activeChests=Instance.new("Folder")
 activeChests.Name="SupplyCaches"
 activeChests.Parent=root
@@ -681,7 +700,7 @@ local function newChest(x,y,index)
 end
 local function rotateChests()
     activeChests:ClearAllChildren()
-    local shuffled=table.clone(chestPoints)
+    local shuffled=table.clone(activeChestSector()=="research" and researchChestPoints or chestPoints)
     for i=#shuffled,2,-1 do
         local j=math.random(1,i)
         shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
@@ -696,6 +715,17 @@ local function rotateChests()
     end
 end
 rotateChests()
+local lastChestSector=activeChestSector()
+task.spawn(function()
+    while root.Parent do
+        local current=activeChestSector()
+        if current~=lastChestSector then
+            lastChestSector=current
+            rotateChests()
+        end
+        task.wait(1)
+    end
+end)
 task.spawn(function()
     while root.Parent do
         task.wait(90)
@@ -1033,7 +1063,8 @@ local function spawnWave(number)
             local x=math.random(minX,maxX)+0.5
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
-                makeAlien(x,y,kind,number)
+                local alien=makeAlien(x,y,kind,number)
+                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
                 spawned+=1
                 break
             end
@@ -1044,7 +1075,8 @@ local function spawnWave(number)
             local x=math.random(minX,maxX)+0.5
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
-                makeAlien(x,y,"boss",number)
+                local alien=makeAlien(x,y,"boss",number)
+                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
                 spawned+=1
                 break
             end
@@ -1061,7 +1093,7 @@ task.spawn(function()
         end
         if not hasDeployed then
             task.wait(.5)
-        elseif (function() for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then return false end end return true end)() then
+        elseif #enemies:GetChildren()==0 then
             breachIntermission=true
             alarm:Play()
             for remaining=7,1,-1 do
@@ -1076,9 +1108,7 @@ task.spawn(function()
             breachIntermission=false
             alarm:Stop()
         else
-            local originalAlive=0
-            for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then originalAlive+=1 end end
-            aliveValue.Value=originalAlive
+            aliveValue.Value=#enemies:GetChildren()
             task.wait(0.4)
         end
     end
@@ -1148,7 +1178,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
     for _,alien in ipairs(enemies:GetChildren()) do
-        if alien:GetAttribute("SectorEnemy") then continue end
+        -- Sector enemies use the same flow-field movement as original aliens.
         local part=alien.PrimaryPart
         if not part then continue end
         local ax,ay=gridOf(part.Position)
