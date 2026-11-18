@@ -368,6 +368,8 @@ local TILE=8
 local function mapBounds()
  if player:GetAttribute("AlienBreachSelectedMap")=="research" then
   return 66,2,113,43
+ elseif player:GetAttribute("AlienBreachSelectedMap")=="reactor" then
+  return 119,2,172,43
  end
  return 1,1,57,45
 end
