@@ -27,6 +27,7 @@ local gui=Instance.new("ScreenGui")
 gui.Name="AlienBreachHUD"
 gui.ResetOnSpawn=false
 gui.IgnoreGuiInset=true
+-- Keep HUD in a single screen coordinate space; touch controls are positioned dynamically.
 gui.Parent=player:WaitForChild("PlayerGui")
 local function label(name,text,position,size)
     local l=Instance.new("TextLabel")
@@ -42,7 +43,7 @@ local function label(name,text,position,size)
     l.Parent=gui
     return l
 end
-label("Title","ALIEN BREACH FPS",UDim2.fromScale(0.02,0.03),UDim2.fromScale(0.29,0.06))
+local titleLabel=label("Title","ALIEN BREACH FPS",UDim2.fromScale(0.02,0.03),UDim2.fromScale(0.29,0.06))
 local status=label("Status","AMMO 125",UDim2.fromScale(0.35,0.91),UDim2.fromScale(0.30,0.065))
 status.Font=Enum.Font.SciFi
 status.TextColor3=Color3.fromRGB(215,255,225)
@@ -50,8 +51,9 @@ local cross=label("Crosshair","+",UDim2.fromScale(0.49,0.47),UDim2.fromScale(0.0
 cross.BackgroundTransparency=1
 local fire=Instance.new("TextButton")
 fire.Name="TouchFire"
-fire.Size=UDim2.fromScale(0.14,0.18)
-fire.Position=UDim2.fromScale(0.83,0.74)
+fire.Size=UDim2.fromOffset(88,88)
+fire.AnchorPoint=Vector2.new(1,1)
+fire.Position=UDim2.new(1,-175,1,-100)
 fire.BackgroundColor3=Color3.fromRGB(16,57,49)
 fire.TextColor3=Color3.fromRGB(175,255,209)
 fire.Font=Enum.Font.SciFi
@@ -346,8 +348,9 @@ healButton.Name="TouchHeal";healButton.Text="MEDKIT"
 healButton.TextScaled=true;healButton.Font=Enum.Font.SciFi
 healButton.TextColor3=Color3.fromRGB(225,255,225)
 healButton.BackgroundColor3=Color3.fromRGB(28,90,60)
-healButton.Size=UDim2.fromScale(0.14,0.07)
-healButton.Position=UDim2.fromScale(0.83,0.65)
+healButton.Size=UDim2.fromOffset(92,38)
+healButton.AnchorPoint=Vector2.new(1,1)
+healButton.Position=UDim2.new(1,-175,1,-205)
 healButton.Visible=UserInputService.TouchEnabled
 healButton.Parent=gui
 healButton.Activated:Connect(function() control:FireServer("heal") end)
@@ -364,8 +367,9 @@ radar.Font=Enum.Font.SciFi
 radar.TextScaled=true
 radar.TextColor3=Color3.fromRGB(172,255,203)
 radar.BackgroundColor3=Color3.fromRGB(9,28,33)
-radar.Size=UDim2.fromScale(0.13,0.055)
-radar.Position=UDim2.fromScale(0.85,0.04)
+radar.Size=UDim2.fromOffset(140,36)
+radar.AnchorPoint=Vector2.new(1,0)
+radar.Position=UDim2.new(1,-18,0,18)
 radar.Parent=gui
 local panel=Instance.new("Frame")
 panel.Name="FacilityMap"
@@ -374,8 +378,8 @@ panel.BackgroundTransparency=0.08
 panel.BorderSizePixel=2
 panel.BorderColor3=Color3.fromRGB(64,155,139)
 panel.AnchorPoint=Vector2.new(0.5,0.5)
-panel.Position=UDim2.fromScale(0.85,0.20)
-panel.Size=UDim2.fromScale(0.22,0.22)
+panel.Position=UDim2.new(1,-115,0,155)
+panel.Size=UDim2.fromOffset(188,188)
 panel.Visible=true
 panel.Parent=gui
 local constraint=Instance.new("UIAspectRatioConstraint")
@@ -427,13 +431,72 @@ end
 local expanded=false
 local function toggleMap()
     expanded=not expanded
-    panel.Size=expanded and UDim2.fromScale(0.76,0.76) or UDim2.fromScale(0.22,0.22)
-    panel.Position=expanded and UDim2.fromScale(0.5,0.51) or UDim2.fromScale(0.85,0.20)
+    panel.Size=expanded and UDim2.fromScale(0.72,0.72) or UDim2.fromOffset(188,188)
+    panel.Position=expanded and UDim2.fromScale(0.5,0.51) or UDim2.new(1,-115,0,155)
+    panel.ZIndex=expanded and 30 or 1
+    cells.ZIndex=expanded and 31 or 1
+    markerLayer.ZIndex=expanded and 32 or 1
+    for _,tile in ipairs(cells:GetChildren()) do if tile:IsA("GuiObject") then tile.ZIndex=cells.ZIndex end end
+    for _,dot in ipairs(markerLayer:GetChildren()) do if dot:IsA("GuiObject") then dot.ZIndex=markerLayer.ZIndex end end
     radar.Text=expanded and "SMALL MAP [M]" or "EXPAND MAP [M]"
 end
 radar.Activated:Connect(toggleMap)
 UserInputService.InputBegan:Connect(function(input,processed)
     if input.KeyCode==Enum.KeyCode.M and not processed then toggleMap() end
+end)
+-- Responsive HUD: avoid the native Roblox jump button and reserve a separate
+-- top-right zone for the minimap, away from the wave/XP information.
+local function layoutHUD()
+ local camera=workspace.CurrentCamera
+ if not camera then return end
+ local viewport=camera.ViewportSize
+ local w,h=viewport.X,viewport.Y
+ local mobile=UserInputService.TouchEnabled
+ local compact=w<850 or h<500
+ radar.Size=UDim2.fromOffset(compact and 104 or 140,compact and 30 or 36)
+ radar.Position=UDim2.new(1,-(compact and 12 or 20),0,compact and 8 or 18)
+ if not expanded then
+  local mapSide=compact and math.clamp(h*.23,70,125) or 188
+  panel.Size=UDim2.fromOffset(mapSide,mapSide)
+  panel.Position=UDim2.new(1,-(mapSide/2+12),0,compact and (mapSide/2+48) or 155)
+ end
+ if mobile then
+  -- Roblox's built-in JumpButton usually sits in the lower-right corner.
+  -- Read its actual screen bounds when present, rather than guessing.
+  local jump
+  local touchGui=player.PlayerGui:FindFirstChild("TouchGui")
+  if touchGui then
+   local controlFrame=touchGui:FindFirstChild("TouchControlFrame",true)
+   jump=controlFrame and controlFrame:FindFirstChild("JumpButton",true)
+  end
+  local jumpLeft=jump and jump.Visible and jump.AbsoluteSize.X>0 and jump.AbsolutePosition.X or (w-110)
+  local jumpTop=jump and jump.Visible and jump.AbsoluteSize.Y>0 and jump.AbsolutePosition.Y or (h-135)
+  local buttonSide=math.floor(math.clamp(math.min(w*.12,h*.16),54,82))
+  local gap=math.max(16,math.floor(w*.025))
+  local fireRight=math.max(buttonSide+12,jumpLeft-gap)
+  local fireBottom=math.min(h-14,jumpTop+buttonSide)
+  fire.Size=UDim2.fromOffset(buttonSide,buttonSide)
+  fire.Position=UDim2.fromOffset(fireRight,fireBottom)
+  healButton.Size=UDim2.fromOffset(buttonSide+8,math.max(30,buttonSide*.43))
+  healButton.Position=UDim2.fromOffset(fireRight,math.max(50,jumpTop-18))
+  status.Position=UDim2.fromScale(.32,.91)
+  status.Size=UDim2.fromScale(.36,.055)
+  titleLabel.Visible=not compact
+ else
+  fire.Visible=false
+  healButton.Visible=false
+  status.Position=UDim2.fromScale(.35,.91)
+  status.Size=UDim2.fromScale(.30,.065)
+  titleLabel.Visible=true
+ end
+ breachLabel.Size=UDim2.fromScale(compact and .52 or .33,.06)
+ breachLabel.Position=UDim2.fromScale(compact and .24 or .34,.025)
+end
+task.spawn(function()
+ while gui.Parent do
+  layoutHUD()
+  task.wait(.5)
+ end
 end)
 local elapsed=0
 RunService.RenderStepped:Connect(function(dt)
