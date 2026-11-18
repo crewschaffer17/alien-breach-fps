@@ -329,6 +329,30 @@ stairFlight(145,14,0,1)
 stairFlight(145,30,0,-1)
 stairFlight(132,22,1,0)
 stairFlight(159,22,-1,0)
+-- Seal every HIGH-TO-LOW ceiling transition. These boundaries are
+-- WALKABLE on both sides, so solid-tile perimeter checks miss them.
+-- Only fill ABOVE the 18-stud doorway height; passages stay open.
+for y=1,HEIGHT do
+ for x=1,WIDTH do
+  if map[y]:sub(x,x)=="0" and tallRoom(x,y) then
+   local ceilingHeight=x>=REACTOR_START and 66 or 34
+   for _,d in ipairs({{1,0},{0,1},{-1,0},{0,-1}}) do
+    local nx,ny=x+d[1],y+d[2]
+    if nx>=1 and nx<=WIDTH and ny>=1 and ny<=HEIGHT
+      and map[ny]:sub(nx,nx)=="0" and not tallRoom(nx,ny) then
+     local center=pos(x-.5+d[1]*.5,y-.5+d[2]*.5,(ceilingHeight+WALL_HEIGHT)/2)
+     local size=d[1]~=0
+      and Vector3.new(.9,ceilingHeight-WALL_HEIGHT,TILE+.2)
+      or Vector3.new(TILE+.2,ceilingHeight-WALL_HEIGHT,.9)
+     local seal=block("SEALED HIGH-CEILING UPPER BULKHEAD",size,
+      CFrame.new(center),
+      x>=REACTOR_START and Color3.fromRGB(107,52,35) or Color3.fromRGB(61,77,88))
+     seal.CastShadow=false
+    end
+   end
+  end
+ end
+end
 -- Industrial grating copied from the original browser game's floor design:
 -- framed steel panels, dark recessed channels, silver raised ribs.
 -- Use anchored Parts with no collision for decorative details.
@@ -488,8 +512,8 @@ alarm.Parent=root
 -- Do not periodically dim global Lighting or the white fixtures.
 task.spawn(function()
     while root.Parent do
-        Lighting.Brightness=1.45
-        Lighting.ExposureCompensation=-0.35
+        Lighting.Brightness=3
+        Lighting.ExposureCompensation=0.2
         for _,fixture in ipairs(lightingFixtures) do
             fixture.light.Brightness=1.0
             fixture.part.Color=Color3.fromRGB(193,245,236)
