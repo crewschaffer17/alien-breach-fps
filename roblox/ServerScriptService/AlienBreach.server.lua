@@ -1127,7 +1127,7 @@ local function makeAlien(x,y,kind,wave)
 end
 local wave=0
 local function spawnWave(number)
-    local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
+    local count=math.max(1,math.floor(math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))*0.85+0.5)) -- 15% fewer aliens in every sector
     local spawned=0
     local bossWave=number%3==0
     local selectedSector=activeChestSector()
