@@ -11,7 +11,7 @@ gui.IgnoreGuiInset=true
 gui.DisplayOrder=100
 gui.Parent=player:WaitForChild("PlayerGui")
 local C={bg=Color3.fromRGB(6,14,19),panel=Color3.fromRGB(13,32,34),edge=Color3.fromRGB(58,116,98),green=Color3.fromRGB(105,232,167),white=Color3.fromRGB(223,246,235),muted=Color3.fromRGB(155,184,177),gold=Color3.fromRGB(250,214,125)}
-local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={},xp=0,rankName="RECRUIT",nextXP=125,levels={pulse=3},maps={containment=true},selectedMap="containment"}
+local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={},xp=0,rankName="RECRUIT",nextXP=125,levels={pulse=1},maps={containment=true},selectedMap="containment"}
 local function make(class,parent,props)
  local o=Instance.new(class)
  for k,v in pairs(props or {}) do o[k]=v end
