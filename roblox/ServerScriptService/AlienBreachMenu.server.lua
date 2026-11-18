@@ -7,6 +7,7 @@ local event=RS:FindFirstChild("AlienBreachMenuEvent") or Instance.new("RemoteEve
 event.Name="AlienBreachMenuEvent";event.Parent=RS
 local prices={shotgun=500,rifle=750,viper=1000,ar51=1250,phantom=1750,titan=2500,plasma=3500,obliterator=5000,medkit=150,speed=250}
 local weapons={pulse=true,shotgun=true,rifle=true,viper=true,ar51=true,phantom=true,titan=true,plasma=true,obliterator=true,laser=true}
+local sectorPrices={containment=0,research=2500,reactor=5000,nest=8500}
 local data={}
 local owns=Instance.new("BindableFunction")
 owns.Name="AlienBreachOwnsWeapon"
@@ -18,7 +19,7 @@ end
 local function state(p)
  local d=data[p]
  if not d then
-  d={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={games=0,kills=0,bestWave=0}}
+  d={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={games=0,kills=0,bestWave=0},maps={containment=true},selectedMap="containment"}
   data[p]=d
  end
  return d
@@ -38,7 +39,7 @@ local function snapshot(p)
  local ls=p:FindFirstChild("leaderstats")
  local credits=ls and ls:FindFirstChild("Credits")
  if credits then d.credits=credits.Value end
- event:FireClient(p,"state",{credits=d.credits,owned=d.owned,medkit=d.medkit,speed=d.speed,slots=d.slots,stats=d.stats})
+ event:FireClient(p,"state",{credits=d.credits,owned=d.owned,medkit=d.medkit,speed=d.speed,slots=d.slots,stats=d.stats,maps=d.maps,selectedMap=d.selectedMap})
 end
 local function watchCharacter(p,character)
  local humanoid=character:WaitForChild("Humanoid",10)
@@ -64,6 +65,10 @@ Players.PlayerAdded:Connect(function(p)
   d.medkit=math.max(0,tonumber(saved.medkit) or 0)
   d.speed=math.max(0,tonumber(saved.speed) or 0)
   d.stats=type(saved.stats)=="table" and saved.stats or d.stats
+  d.maps=type(saved.maps)=="table" and saved.maps or d.maps
+  d.maps.containment=true
+  d.selectedMap=type(saved.selectedMap)=="string" and saved.selectedMap or "containment"
+  if not d.maps[d.selectedMap] or not sectorPrices[d.selectedMap] then d.selectedMap="containment" end
   if type(saved.slots)=="table" then
    for i=1,3 do if type(saved.slots[i])=="string" then d.slots[i]=saved.slots[i] end end
   end
@@ -110,6 +115,21 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
    local purchase=RS:FindFirstChild("AlienBreachWeaponPurchased")
    if purchase then purchase:Fire(p,arg1) end
   end
+ elseif action=="buyMap" then
+  if type(arg1)~="string" or not sectorPrices[arg1] then return end
+  if d.maps[arg1] then event:FireClient(p,"notice","SECTOR ALREADY UNLOCKED");return end
+  local ls=p:FindFirstChild("leaderstats")
+  local credits=ls and ls:FindFirstChild("Credits")
+  local cost=sectorPrices[arg1]
+  if not credits or credits.Value<cost then event:FireClient(p,"notice","NOT ENOUGH CREDITS");return end
+  credits.Value-=cost
+  d.credits=credits.Value
+  d.maps[arg1]=true
+  event:FireClient(p,"notice","SECTOR UNLOCKED: "..string.upper(arg1))
+ elseif action=="selectMap" then
+  if type(arg1)~="string" or not sectorPrices[arg1] or not d.maps[arg1] then return end
+  d.selectedMap=arg1
+  event:FireClient(p,"notice","SECTOR SELECTED: "..string.upper(arg1))
  elseif action=="slot" then
   if not validSlot(d,arg1,arg2) then return end
   d.slots[arg1]=arg2
@@ -123,6 +143,7 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   local chosen=d.slots[1]
   if not d.owned[chosen] then chosen="pulse" end
   p:SetAttribute("Weapon",chosen)
+  p:SetAttribute("AlienBreachSelectedMap",d.selectedMap)
   p:SetAttribute("AlienBreachDeployed",true)
   d.stats.games+=1
   save(p)
