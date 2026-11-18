@@ -107,16 +107,16 @@ local sectors=page("Sectors")
 local function show(id)
  for name,p in pairs(pages) do p.Visible=(name==id) end
 end
-local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,12)})
+local homeLayout=make("UIGridLayout",home,{CellSize=UDim2.new(.235,0,.66,0),CellPadding=UDim2.new(.015,0,.02,0),HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder})
 local function homeCard(heading,description,action)
- local card=make("Frame",home,{Size=UDim2.new(0.225,0,0.62,0),BackgroundColor3=C.panel,BorderSizePixel=0})
+ local card=make("Frame",home,{BackgroundColor3=C.panel,BorderSizePixel=0})
  round(card,12);stroke(card)
  make("UIGradient",card,{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,58,57),C.panel)})
  local accentBar=make("Frame",card,{Size=UDim2.new(1,0,0,4),BackgroundColor3=C.green,BorderSizePixel=0})
  local pad=make("UIPadding",card,{PaddingTop=UDim.new(0,22),PaddingLeft=UDim.new(0,16),PaddingRight=UDim.new(0,16)})
  vertical(card,18)
- local h=text(card,heading,26,C.green,true);h.TextXAlignment=Enum.TextXAlignment.Center
- local desc=text(card,description,15,C.muted);desc.Size=UDim2.new(1,0,0,82);desc.TextXAlignment=Enum.TextXAlignment.Center
+ local h=text(card,heading,26,C.green,true);h.TextXAlignment=Enum.TextXAlignment.Center;h.TextScaled=true
+ local desc=text(card,description,15,C.muted);desc.Size=UDim2.new(1,0,0,82);desc.TextXAlignment=Enum.TextXAlignment.Center;desc.TextScaled=true
  button(card,"ACCESS  ▶",action)
 end
 homeCard("▶  DEPLOY","Enter the breach. Survive the unknown.",function()
@@ -331,6 +331,58 @@ task.spawn(function()
   end
  end)
  ev:FireServer("sync")
+end)
+-- Adapt the entire command interface to phone, tablet and desktop widths.
+-- The 4 homepage cards become a 2x2 grid on narrow screens.
+local shopGrid=shopScroll:FindFirstChildOfClass("UIGridLayout")
+local sectorGrid=sectorScroll:FindFirstChildOfClass("UIGridLayout")
+local function responsiveMenu()
+ local camera=workspace.CurrentCamera
+ if not camera then return end
+ local v=camera.ViewportSize
+ local phone=v.X<760 or v.Y<430
+ local narrow=v.X<1100
+ if phone then
+  root.Position=UDim2.fromScale(.045,.22)
+  root.Size=UDim2.fromScale(.91,.75)
+  homeLayout.CellSize=UDim2.new(.47,0,.45,0)
+  homeLayout.CellPadding=UDim2.new(.02,0,.025,0)
+  if shopGrid then shopGrid.CellSize=UDim2.new(.47,0,0,155) end
+  if sectorGrid then sectorGrid.CellSize=UDim2.new(.47,0,0,150) end
+  statsPanel.Position=UDim2.fromScale(.72,.16)
+  statsPanel.Size=UDim2.fromScale(.28,.69)
+  statsBody.TextScaled=true
+  title.Size=UDim2.fromScale(.8,.10)
+  title.Position=UDim2.fromScale(.10,.025)
+  subtitle.Position=UDim2.fromScale(.08,.125)
+  subtitle.Size=UDim2.fromScale(.84,.05)
+  leftStatus.Visible=false
+  rightStatus.Visible=false
+ elseif narrow then
+  root.Position=UDim2.fromScale(.04,.22)
+  root.Size=UDim2.fromScale(.92,.74)
+  homeLayout.CellSize=UDim2.new(.235,0,.64,0)
+  if shopGrid then shopGrid.CellSize=UDim2.new(.47,0,0,155) end
+  if sectorGrid then sectorGrid.CellSize=UDim2.new(.47,0,0,160) end
+  statsBody.TextScaled=false
+  leftStatus.Visible=true
+  rightStatus.Visible=true
+ else
+  root.Position=UDim2.fromScale(.05,.235)
+  root.Size=UDim2.fromScale(.9,.70)
+  homeLayout.CellSize=UDim2.new(.235,0,.66,0)
+  if shopGrid then shopGrid.CellSize=UDim2.new(.31,0,0,155) end
+  if sectorGrid then sectorGrid.CellSize=UDim2.new(.47,0,0,160) end
+  statsBody.TextScaled=false
+  leftStatus.Visible=true
+  rightStatus.Visible=true
+ end
+end
+task.spawn(function()
+ while gui.Parent do
+  responsiveMenu()
+  task.wait(.6)
+ end
 end)
 freeMenuMouse()
 show("Home")
