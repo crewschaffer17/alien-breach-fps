@@ -223,9 +223,9 @@ end
 local reactorDecor=Instance.new("Folder")
 reactorDecor.Name="ReactorCoreEnvironment"
 reactorDecor.Parent=root
-local orange=Color3.fromRGB(255,151,65)
+local orange=Color3.fromRGB(255,102,39)
 local violet=Color3.fromRGB(172,86,255)
-local steel=Color3.fromRGB(75,85,96)
+local steel=Color3.fromRGB(111,65,49)
 local function rp(name,x,y,h,size,color,material,collide)
  local p=Instance.new("Part")
  p.Name=name;p.Anchored=true;p.CanCollide=collide==true
@@ -244,25 +244,25 @@ end
 for _,p in ipairs({{129,13},{161,13},{129,32},{161,32},{145,6},{145,39},
  {121,21},{170,21},{137,22},{153,22},{145,17},{145,27},
  {128,6},{161,6},{128,39},{161,39}}) do
- beacon(p[1],p[2],Color3.fromRGB(255,224,185),3.8,105)
+ beacon(p[1],p[2],Color3.fromRGB(255,176,92),3.8,105)
 end
 -- Floors are tidy large panels, not hundreds of random loose objects.
 for y=4,41 do
  for x=120,171 do
   if open(x,y) then
    local center=x>=132 and x<=159 and y>=14 and y<=30
-   rp(center and "Omega vault floor" or "Reactor corridor floor",x-.5,y-.5,.15,
+   rp(center and "Omega vault floor" or "Reactor corridor floor",x-.5,y-.5,center and -7.85 or .15,
     Vector3.new(7.85,.24,7.85),
-    center and Color3.fromRGB(34,42,57) or Color3.fromRGB(77,82,88),
+    center and Color3.fromRGB(105,51,36) or Color3.fromRGB(95,66,47),
     Enum.Material.DiamondPlate)
   end
  end
 end
 -- REACTOR SERVICE NETWORK. Modular infrastructure hugs the corridor walls.
 -- The middle of each passage stays open for players, chests, and enemy AI.
-local teal=Color3.fromRGB(76,215,240)
-local darkSteel=Color3.fromRGB(36,49,63)
-local panelSteel=Color3.fromRGB(89,111,124)
+local teal=Color3.fromRGB(255,193,66)
+local darkSteel=Color3.fromRGB(67,38,34)
+local panelSteel=Color3.fromRGB(125,76,48)
 local function fixture(name,x,y,h,size,color,material)
  return rp(name,x,y,h,size,color,material)
 end
@@ -350,16 +350,8 @@ for _,p in ipairs({{129,9},{160,9},{129,36},{160,36}}) do
  fixture("Reactor bay hazard strip",x,y,15.65,Vector3.new(18,.25,1.6),
   orange,Enum.Material.Neon)
 end
--- Sunken chamber appearance: dark central basin and an elevated observation
--- lip. The walkable collision plane remains flat for the existing alien AI.
-for x=137,154,3 do
- for y=19,25,3 do
-  if open(x,y) then
-   rp("Omega deep shaft shadow",x,y,.3,Vector3.new(21,.12,21),
-    Color3.fromRGB(13,19,33),Enum.Material.SmoothPlastic)
-  end
- end
-end
+-- The chamber floor is now physically 8 studs lower, not a painted fake pit.
+-- Keep the real staircase treads unobstructed and visible.
 for _,x in ipairs({134,157}) do
  for y=18,26,4 do
   rp("Omega tall vault vertical rib",x,y,32,Vector3.new(2,64,2),steel)
@@ -438,7 +430,7 @@ for i=1,8 do
  e.Parent=spark
 end
 for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
- rp("Omega containment pillar",p[1],p[2],9,Vector3.new(4,18,4),steel)
+ rp("Omega containment pillar",p[1],p[2],5,Vector3.new(4,26,4),steel)
  rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
 end
 -- EXPERIMENT OMEGA: engineered magnetic containment facility.
@@ -477,9 +469,9 @@ fixture("Omega ceiling collector light",cx,cy,59,
 local injector=fixture("Omega vertical plasma injector",cx,cy,52,
  Vector3.new(2.5,12,2.5),teal,Enum.Material.Neon)
 injector.Transparency=.35
-fixture("Omega lower stabilizer housing",cx,cy,2,
+fixture("Omega lower stabilizer housing",cx,cy,-6,
  Vector3.new(19,3.5,19),darkSteel)
-fixture("Omega stabilizer hazard ring",cx,cy,4,
+fixture("Omega stabilizer hazard ring",cx,cy,-3.9,
  Vector3.new(17,.4,17),orange,Enum.Material.Neon)
 -- Open segmented rings keep the plasma visible, unlike opaque cylinders.
 for i=1,3 do
