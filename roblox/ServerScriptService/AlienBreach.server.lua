@@ -6,6 +6,15 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local RunService = game:GetService("RunService")
+-- Set baseline illumination before generating any map geometry.
+-- This removes startup darkness even while fixtures are still being built.
+Lighting.ClockTime=14
+Lighting.Brightness=3
+Lighting.ExposureCompensation=0.2
+Lighting.GlobalShadows=false
+Lighting.Ambient=Color3.fromRGB(165,176,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(140,153,165)
+Lighting.FogEnd=900
 local TILE = 8
 local WALL_HEIGHT = 18
 local map = {
@@ -176,12 +185,12 @@ mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
-Lighting.Brightness=1.45
-Lighting.ExposureCompensation=-0.35
+Lighting.Brightness=3
+Lighting.ExposureCompensation=0.2
 Lighting.GlobalShadows=false
-Lighting.Ambient=Color3.fromRGB(124,137,139)
-Lighting.OutdoorAmbient=Color3.fromRGB(100,112,118)
-Lighting.FogEnd=320
+Lighting.Ambient=Color3.fromRGB(165,176,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(140,153,165)
+Lighting.FogEnd=900
 Lighting.FogColor=Color3.fromRGB(18,31,36)
 local breachState=ReplicatedStorage:FindFirstChild("AlienBreachState") or Instance.new("Folder")
 breachState.Name="AlienBreachState"
@@ -239,9 +248,28 @@ for y,row in ipairs(map) do
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
-                 first>=REACTOR_START and Color3.fromRGB(71,45,32) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
+                 first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
+end
+-- The Omega vault has true full-height perimeter wall extensions.
+-- Existing collision walls stay in place; tall sections close the gap
+-- between the 18-stud base walls and 66-stud chamber ceiling.
+for y=14,30 do
+ for x=132,159 do
+  if map[y] and map[y]:sub(x,x)=="1" then
+   local adjacent=false
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    local xx,yy=x+d[1],y+d[2]
+    if xx>=132 and xx<=159 and yy>=14 and yy<=30
+     and map[yy] and map[yy]:sub(xx,xx)=="0" then adjacent=true end
+   end
+   if adjacent then
+    block("Omega vault full height wall",Vector3.new(TILE,48,TILE),
+     CFrame.new(pos(x-.5,y-.5,42)),Color3.fromRGB(52,67,82))
+   end
+  end
+ end
 end
 -- Industrial grating copied from the original browser game's floor design:
 -- framed steel panels, dark recessed channels, silver raised ribs.
@@ -680,6 +708,25 @@ for y=4,40,3 do
             table.insert(researchChestPoints,{x-0.5,y-0.5})
         end
     end
+end
+-- Wave selection must exist even though caches now rotate independently.
+-- Without this function the wave coroutine errors before creating any aliens.
+local function activeChestSector()
+ local counts={containment=0,research=0,reactor=0}
+ for _,player in ipairs(Players:GetPlayers()) do
+  if player:GetAttribute("AlienBreachDeployed") then
+   local hum=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+   if hum and hum.Health>0 then
+    local sector=player:GetAttribute("AlienBreachSelectedMap") or "containment"
+    counts[sector]=(counts[sector] or 0)+1
+   end
+  end
+ end
+ local selected="containment"
+ for _,sector in ipairs({"research","reactor"}) do
+  if counts[sector]>counts[selected] then selected=sector end
+ end
+ return selected
 end
 local activeChests=Instance.new("Folder")
 activeChests.Name="SupplyCaches"
