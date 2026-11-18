@@ -441,6 +441,77 @@ for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
  rp("Omega containment pillar",p[1],p[2],9,Vector3.new(4,18,4),steel)
  rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
 end
+-- EXPERIMENT OMEGA: engineered magnetic containment facility.
+-- Six industrial suspension towers, energy conduits and segmented field rings.
+local function omegaBeam(name,a,b,width,color,material)
+ local part=Instance.new("Part")
+ part.Name=name;part.Anchored=true;part.CanCollide=false
+ part.CanTouch=false;part.CanQuery=false;part.CastShadow=false
+ part.Size=Vector3.new(width,width,(b-a).Magnitude)
+ part.CFrame=CFrame.lookAt((a+b)*.5,b)
+ part.Color=color;part.Material=material or Enum.Material.Metal
+ part.Parent=reactorDecor
+ return part
+end
+local orbCenter=pos(cx,cy,35)
+for i=0,5 do
+ local angle=i*math.pi/3
+ local dx,dz=math.cos(angle),math.sin(angle)
+ local tx,tz=cx+dx*12,cy+dz*10
+ fixture("Omega magnetic tower",tx,tz,27,Vector3.new(4,54,4),darkSteel)
+ fixture("Omega tower transformer",tx,tz,55,Vector3.new(6,4,6),panelSteel)
+ for _,h in ipairs({13,28,43}) do
+  fixture("Omega tower warning collar",tx,tz,h,
+   Vector3.new(5,.5,5),orange,Enum.Material.Neon)
+ end
+ omegaBeam("Omega structural magnetic arm",pos(tx,tz,52),
+  orbCenter+Vector3.new(dx*16,11,dz*16),2,panelSteel)
+ local energy=omegaBeam("Omega glowing magnetic channel",pos(tx,tz,43),
+  orbCenter+Vector3.new(dx*11,4,dz*11),.6,teal,Enum.Material.Neon)
+ energy.Transparency=.2
+end
+fixture("Omega ceiling power collector",cx,cy,62,
+ Vector3.new(20,5,20),darkSteel)
+fixture("Omega ceiling collector light",cx,cy,59,
+ Vector3.new(15,.6,15),teal,Enum.Material.Neon)
+local injector=fixture("Omega vertical plasma injector",cx,cy,52,
+ Vector3.new(2.5,12,2.5),teal,Enum.Material.Neon)
+injector.Transparency=.35
+fixture("Omega lower stabilizer housing",cx,cy,2,
+ Vector3.new(19,3.5,19),darkSteel)
+fixture("Omega stabilizer hazard ring",cx,cy,4,
+ Vector3.new(17,.4,17),orange,Enum.Material.Neon)
+-- Open segmented rings keep the plasma visible, unlike opaque cylinders.
+for i=1,3 do
+ local radius=25+i*2
+ for j=0,31 do
+  local a=j*math.pi/16
+  local b=(j+1)*math.pi/16
+  local start=orbCenter+Vector3.new(math.cos(a)*radius,math.sin(a)*radius,0)
+  local finish=orbCenter+Vector3.new(math.cos(b)*radius,math.sin(b)*radius,0)
+  local segment=omegaBeam("Omega segmented containment field",start,finish,
+   .65,i==2 and teal or violet,Enum.Material.Neon)
+  segment.Transparency=.25
+ end
+end
+-- Readable science-fiction control stations flank the vault.
+for _,p in ipairs({{137,17},{154,17},{137,28},{154,28}}) do
+ local x,y=p[1],p[2]
+ fixture("Omega diagnostic console housing",x,y,10,
+  Vector3.new(8,8,.6),darkSteel)
+ local display=fixture("Omega active telemetry screen",x,y-.4,10,
+  Vector3.new(6,5,.2),teal,Enum.Material.Neon)
+ display.Transparency=.25
+end
+local arc=Instance.new("ParticleEmitter")
+arc.Name="Omega magnetic discharge sparks"
+arc.Rate=65;arc.Lifetime=NumberRange.new(.25,.8)
+arc.Speed=NumberRange.new(5,18)
+arc.SpreadAngle=Vector2.new(180,180)
+arc.Size=NumberSequence.new(1.8,0)
+arc.LightEmission=1
+arc.Color=ColorSequence.new(teal,violet)
+arc.Parent=core
 task.spawn(function()
  local phase=0
  while core.Parent do
