@@ -586,16 +586,16 @@ task.spawn(function()
  end
 end)
 
--- ALIEN NEST: organic green hive, 1.5x the reactor's horizontal footprint.
--- Structural collision comes from the main Map script. Decorative growths
--- remain noncolliding so the player and alien flow-field can navigate.
+-- ALIEN NEST: roots, membranous wall sacs, natural stone and a living canopy.
+-- One grass floor is provided by Map; NO per-tile floor parts are generated.
 local hive=Instance.new("Folder")
 hive.Name="AlienNestEnvironment";hive.Parent=root
-local resin=Color3.fromRGB(31,66,38)
-local moss=Color3.fromRGB(47,102,54)
-local deep=Color3.fromRGB(16,40,26)
-local glow=Color3.fromRGB(90,230,105)
-local violet=Color3.fromRGB(156,67,215)
+local bark=Color3.fromRGB(37,66,34)
+local rootGreen=Color3.fromRGB(55,88,39)
+local moss=Color3.fromRGB(48,96,47)
+local sacGreen=Color3.fromRGB(75,145,61)
+local lightGreen=Color3.fromRGB(119,210,81)
+local purple=Color3.fromRGB(128,63,163)
 local function hp(name,x,y,h,size,color,material,shape)
  local p=Instance.new("Part")
  p.Name=name;p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false
@@ -605,75 +605,109 @@ local function hp(name,x,y,h,size,color,material,shape)
  p.Parent=hive
  return p
 end
-local function rib(x,y,along)
- local a=hp("Organic arch rib",x,y,11,Vector3.new(2.3,20,2.8),resin)
- a.CFrame=a.CFrame*CFrame.Angles(0,along and math.pi/2 or 0,math.rad(13))
- for side=-1,1,2 do
-  local b=hp("Curved chitin arch",x+(along and 0 or side*2.8),y+(along and side*2.8 or 0),15,
-   Vector3.new(2.5,8,2.6),moss)
-  b.CFrame=b.CFrame*CFrame.Angles(0,0,side*math.rad(35))
+local function stem(name,a,b,thickness,color)
+ local d=b-a
+ if d.Magnitude<.1 then return end
+ local p=hp(name,0,0,0,Vector3.new(thickness,thickness,d.Magnitude),color)
+ p.CFrame=CFrame.lookAt((a+b)/2,b)
+ return p
+end
+local function world(x,y,h) return pos(x-.5,y-.5,h) end
+local function rootSystem(x,y,side)
+ -- A single thick, forked root emerging from the wall and clinging to it.
+ local wall=world(x+side[1]*.44,y+side[2]*.44,13)
+ local knee=world(x-side[1]*.12,y-side[2]*.12,8)
+ local toe=world(x-side[1]*.36,y-side[2]*.36,.7)
+ stem("Massive twisting wall root",wall,knee,2.4,bark)
+ stem("Root reaching into moss",knee,toe,1.65,rootGreen)
+ for branch=1,2 do
+  local offset=(branch==1 and -1 or 1)*2.1
+  local fork=toe+Vector3.new(side[2]*offset,0,-side[1]*offset)
+  stem("Forked creeping root",knee,fork+Vector3.new(0,1.2,0),.75,rootGreen)
  end
 end
--- Fleshy floor plating and glowing growths are deliberately sparse enough
--- for firefights, chests, and clear sightlines.
-for y=5,40 do
- for x=181,257 do
+local function wallSac(x,y,side,index)
+ local p=hp("GREEN ALIEN WALL SAC",x-.5+side[1]*.38,y-.5+side[2]*.38,
+   7+(index%3)*1.5,Vector3.new(4.3,6.4,3.9),sacGreen,
+   Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ p.Transparency=.12
+ local cap=hp("SAC translucent membrane",x-.5+side[1]*.26,y-.5+side[2]*.26,
+   7.5+(index%3)*1.5,Vector3.new(3,4.7,2.8),lightGreen,
+   Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ cap.Transparency=.38
+ for k=1,3 do
+  local v=hp("Sac organic vein",x-.5+side[1]*.2,y-.5+side[2]*.2,
+   5.6+k*1.6,Vector3.new(.32,2.2,.32),bark,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ end
+end
+-- Roots and sacs are placed on ACTUAL walls, never randomly in corridors.
+-- Bounded sampling keeps the number of objects manageable on mobile.
+local edgeIndex=0
+for y=4,40 do
+ for x=182,256 do
   if open(x,y) then
-   if (x+y*7)%5==0 then
-    hp("Layered green resin floor",x-.5,y-.5,.11,Vector3.new(7.7,.18,7.7),
-     (x+y)%2==0 and resin or moss,Enum.Material.Slate)
+   local side
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    if not open(x+d[1],y+d[2]) then side=d;break end
    end
-   if (x*3+y*11)%29==0 then
-    local egg=hp("Violet incubation egg",x-.5,y-.5,2.2,
-     Vector3.new(2.5,4.1,2.5),violet,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
-    egg.Transparency=.15
-    local base=hp("Egg membrane cradle",x-.5,y-.5,.7,
-     Vector3.new(4,1.4,4),deep,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
-   end
-   if (x*13+y*7)%23==0 then
-    local lamp=hp("Bioluminescent fungus",x-.5,y-.5,16.7,
-      Vector3.new(2.5,.6,2.5),glow,Enum.Material.Neon,Enum.PartType.Ball)
-    local light=Instance.new("PointLight")
-    light.Color=glow;light.Brightness=1.6;light.Range=28;light.Shadows=false;light.Parent=lamp
-   end
-   if (x*5+y*3)%37==0 then
-    local root=hp("Hanging organic tendril",x-.5,y-.5,14,
-     Vector3.new(.9,7,.9),moss,Enum.Material.SmoothPlastic,Enum.PartType.Cylinder)
-    root.CFrame=root.CFrame*CFrame.Angles(0,0,math.rad(18))
+   if side then
+    edgeIndex+=1
+    if (x*7+y*11)%13==0 then rootSystem(x,y,side) end
+    if (x*17+y*5)%19==0 then wallSac(x,y,side,edgeIndex) end
    end
   end
  end
 end
-for x=186,251,7 do
- for _,y in ipairs({6,22,39}) do
-  if open(x,y) then rib(x-.5,y-.5,true) end
+-- A handful of giant ancient roots bridge the ceiling of major caverns.
+for _,v in ipairs({
+ {195,14,8},{218,22,11},{243,31,9},{207,9,7},
+ {234,12,7},{188,29,7},{202,35,8},{228,36,7}
+}) do
+ local x,y,r=v[1],v[2],v[3]
+ local a=world(x-r*.65,y-r*.2,16.5)
+ local b=world(x,y,13.8)
+ local d=world(x+r*.6,y+r*.25,16.5)
+ stem("Ancient vaulted root",a,b,3.2,bark)
+ stem("Ancient vaulted root",b,d,2.7,rootGreen)
+ local glow=hp("Soft green fungal bloom",x-.5,y-.5,17,
+  Vector3.new(3.2,.8,3.2),lightGreen,Enum.Material.Neon,Enum.PartType.Ball)
+ local l=Instance.new("PointLight")
+ l.Color=Color3.fromRGB(116,205,112);l.Brightness=1.7;l.Range=42;l.Shadows=false;l.Parent=glow
+end
+-- Natural egg incubation areas: clustered sacs, not a grid of loose props.
+for _,v in ipairs({{192,13},{199,17},{210,11},{239,13},{188,30},{205,34},{231,35},{248,29}}) do
+ local x,y=v[1],v[2]
+ for i=1,4 do
+  local ang=i*math.pi*.5
+  local ex=x+math.cos(ang)*1.3
+  local ey=y+math.sin(ang)*1.3
+  if open(math.floor(ex),math.floor(ey)) then
+   hp("Incubation egg in moss",ex-.5,ey-.5,1.7,
+    Vector3.new(2.6,3.2,2.6),i%2==0 and sacGreen or purple,
+    Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  end
  end
 end
-for y=11,35,6 do
- for _,x in ipairs({183,218,255}) do
-  if open(x,y) then rib(x-.5,y-.5,false) end
- end
-end
--- All three queen sites are detailed. The actual Queen spawns at one random
--- site per server; this keeps the discovery different on each play session.
+-- Three hidden sanctuaries. The server chooses one for the Queen.
 for _,site in ipairs({{195,14},{218,22},{243,31}}) do
- local x,y=site[1]-.5,site[2]-.5
- hp("Queen throne root mass",x,y,1.3,Vector3.new(23,2.4,23),
-   deep,Enum.Material.Slate,Enum.PartType.Ball)
- for i=1,8 do
-  local angle=i*math.pi/4
-  local px=x+math.cos(angle)*4.2
-  local py=y+math.sin(angle)*4.2
-  local pillar=hp("Queen chamber curved chitin",px,py,10,
-   Vector3.new(2.8,19,2.8),resin)
-  pillar.CFrame=pillar.CFrame*CFrame.Angles(0,0,math.sin(angle)*.18)
-  hp("Queen throne luminous cyst",px,py,18,
-   Vector3.new(3,3,3),glow,Enum.Material.Neon,Enum.PartType.Ball)
+ local x,y=site[1],site[2]
+ local bed=hp("QUEEN NEST woven organic bedding",x-.5,y-.5,.7,
+  Vector3.new(17,1.3,17),bark,Enum.Material.Slate,Enum.PartType.Ball)
+ for i=1,6 do
+  local angle=i*math.pi/3
+  local px=x+math.cos(angle)*3.2
+  local py=y+math.sin(angle)*3.2
+  local foot=world(px,py,1)
+  local top=world(px+math.cos(angle)*.7,py+math.sin(angle)*.7,16)
+  stem("Queen nest rooted buttress",foot,top,2.4,rootGreen)
+  local cyst=hp("Queen nest green cyst",px-.5,py-.5,10,
+    Vector3.new(3.1,4.1,3.1),sacGreen,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  cyst.Transparency=.18
  end
- local heart=hp("Violet queen spawning pool",x,y,2.6,
-  Vector3.new(11,.35,11),violet,Enum.Material.Neon,Enum.PartType.Ball)
+ local heart=hp("Queen nest pulsing violet brood pool",x-.5,y-.5,1.5,
+  Vector3.new(8,.65,8),purple,Enum.Material.Neon,Enum.PartType.Ball)
  heart.Transparency=.35
- local l=Instance.new("PointLight");l.Color=glow;l.Brightness=2;l.Range=42;l.Parent=heart
+ local l=Instance.new("PointLight");l.Color=lightGreen;l.Brightness=1.8;l.Range=34;l.Parent=heart
 end
 
 -- A sector change is a deployment transition, not a permanent respawn location.
