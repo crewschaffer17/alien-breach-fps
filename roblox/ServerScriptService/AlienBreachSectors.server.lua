@@ -4,6 +4,11 @@ local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
 local map=string.split(RS:WaitForChild("AlienBreachMap").Value,"\n")
 local root=workspace:WaitForChild("AlienBreachRoblox")
+local versionTag=Instance.new("StringValue")
+versionTag.Name="NEST_DECOR_BUILD_2026_11_18_V2"
+versionTag.Value="Winding burrows / grass floor / rooted wall sacs"
+versionTag.Parent=root
+print("[Alien Breach] NEST_DECOR_BUILD_2026_11_18_V2 loaded")
 local TILE=8
 local W,H=#map[1],#map
 local research={x=89,y=15}
