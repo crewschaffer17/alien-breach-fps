@@ -1283,6 +1283,42 @@ local function spawnWave(number,selectedSector)
         q:SetAttribute("HiveQueen",true)
         q:SetAttribute("HP",1800+number*180)
         q:SetAttribute("Speed",6.5)
+        -- Eight-legged spider anatomy attached to the moving enemy model.
+        local pivot=q.PrimaryPart
+        if pivot then
+            for _,piece in ipairs(q:GetDescendants()) do
+                if piece:IsA("BasePart") then piece.Transparency=1 end
+            end
+            local function anatomy(name,size,cf,color,shape)
+                local p=Instance.new("Part")
+                p.Name=name;p.Size=size;p.Shape=shape or Enum.PartType.Block
+                p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CastShadow=false
+                p.Material=Enum.Material.SmoothPlastic;p.Color=color
+                p.CFrame=pivot.CFrame*cf;p.Parent=q
+                return p
+            end
+            local shell=Color3.fromRGB(65,32,84)
+            anatomy("QUEEN ARMORED ABDOMEN",Vector3.new(12,7,14),CFrame.new(0,3,3),shell,Enum.PartType.Ball)
+            anatomy("QUEEN CEPHALOTHORAX",Vector3.new(9,6,9),CFrame.new(0,4,-4),Color3.fromRGB(115,53,142),Enum.PartType.Ball)
+            anatomy("QUEEN PLASMA SAC",Vector3.new(6,4,7),CFrame.new(0,4,7),Color3.fromRGB(171,59,232),Enum.PartType.Ball).Material=Enum.Material.Neon
+            for side=-1,1,2 do
+                for leg=1,4 do
+                    local z=-8+(leg-1)*4.8
+                    local hip=Vector3.new(side*3.5,4,z)
+                    local knee=Vector3.new(side*(10+leg*.6),7,z+(leg-2.5)*2)
+                    local foot=Vector3.new(side*(14+leg*.7),-2,z+(leg-2.5)*3.5)
+                    for _,pair in ipairs({{hip,knee},{knee,foot}}) do
+                        local d=pair[2]-pair[1]
+                        anatomy("Queen articulated spider leg",Vector3.new(1.5,1.5,d.Magnitude),
+                            CFrame.lookAt((pair[1]+pair[2])/2,pair[2]),shell)
+                    end
+                end
+                for eye=1,3 do
+                    anatomy("Queen glowing eye",Vector3.new(1.3,1.3,1.3),
+                        CFrame.new(side*(1.1+eye*.8),5.3,-8),Color3.fromRGB(180,255,80),Enum.PartType.Ball).Material=Enum.Material.Neon
+                end
+            end
+        end
         spawned+=1
     end
     aliveValue.Value=spawned
@@ -1570,7 +1606,10 @@ RunService.Heartbeat:Connect(function(dt)
                                 while orb.Parent and travel<110 do
                                     local dtOrb=task.wait(.045)
                                     local step=direction*math.min(65*dtOrb,110-travel)
-                                    local hit=workspace:Raycast(orb.Position,step)
+                                    local rayFilter=RaycastParams.new()
+                                    rayFilter.FilterType=Enum.RaycastFilterType.Exclude
+                                    rayFilter.FilterDescendantsInstances={alien,orb}
+                                    local hit=workspace:Raycast(orb.Position,step,rayFilter)
                                     orb.Position+=step;travel+=step.Magnitude
                                     if hit then
                                         local victim=Players:GetPlayerFromCharacter(hit.Instance:FindFirstAncestorOfClass("Model"))
