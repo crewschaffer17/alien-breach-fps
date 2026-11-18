@@ -105,7 +105,11 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   local ls=p:FindFirstChild("leaderstats")
   local credits=ls and ls:FindFirstChild("Credits")
   if credits then credits.Value=d.credits end
-  if arg1=="medkit" or arg1=="speed" then d[arg1]+=1 else d.owned[arg1]=true end
+  if arg1=="medkit" or arg1=="speed" then d[arg1]+=1 else
+   d.owned[arg1]=true
+   local purchase=RS:FindFirstChild("AlienBreachWeaponPurchased")
+   if purchase then purchase:Fire(p,arg1) end
+  end
  elseif action=="slot" then
   if not validSlot(d,arg1,arg2) then return end
   d.slots[arg1]=arg2
