@@ -4,6 +4,16 @@ local Players=game:GetService("Players")
 local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local UserInputService=game:GetService("UserInputService")
 local RunService=game:GetService("RunService")
+-- Set local illumination before waiting for map replication, UI or spawning.
+-- Server lighting alone may arrive after the client has already rendered.
+local Lighting=game:GetService("Lighting")
+Lighting.ClockTime=14
+Lighting.Brightness=3
+Lighting.ExposureCompensation=0.2
+Lighting.GlobalShadows=false
+Lighting.Ambient=Color3.fromRGB(165,176,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(140,153,165)
+Lighting.FogEnd=900
 local player=Players.LocalPlayer
 local function syncDeploymentCamera()
  local deployed=player:GetAttribute("AlienBreachDeployed")==true
