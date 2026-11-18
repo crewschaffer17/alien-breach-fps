@@ -49,21 +49,24 @@ local function sign(x,y,message,color)
  t.Size=UDim2.fromScale(1,1);t.BackgroundTransparency=1;t.Text=message
  t.TextColor3=color;t.Font=Enum.Font.SciFi;t.TextScaled=true;t.Parent=sg
 end
--- Unlike the original dirty ceramic grid, this map has large charcoal
--- hex-like metal deck panels, glowing seam lines and high-tech floor grilles.
--- Group tiles into two-by-two blocks to reduce the part count on phones.
-for y=3,42,2 do
- for x=67,112,2 do
+-- Floor panels now follow EACH walkable tile, never bridging solid walls.
+-- Decorative panels sit flush with the original foundation and do not collide.
+for y=3,42 do
+ for x=67,112 do
   if open(x,y) then
    local cx,cy=x-.5,y-.5
-   part("Research dark alloy deck",cx,cy,.23,Vector3.new(15.6,.42,15.6),
-    ((x+y)%7==0) and Color3.fromRGB(54,67,76) or floor,Enum.Material.DiamondPlate)
-   if x%6==1 then
-    local strip=part("Floor cyan guiding strip",cx,cy,.47,Vector3.new(.16,.04,14),cyan,Enum.Material.Neon)
-    strip.Transparency=.18
+   local panel=part("Research precision alloy floor",cx,cy,.095,
+    Vector3.new(7.88,.17,7.88),
+    ((x+y)%11==0) and Color3.fromRGB(55,72,81) or floor,
+    Enum.Material.DiamondPlate)
+   if x%7==0 and open(x,y-1) and open(x,y+1) then
+    local strip=part("Embedded cyan route guide",cx,cy,.205,
+     Vector3.new(.16,.025,7.1),cyan,Enum.Material.Neon)
+    strip.Transparency=.25
    end
-   if (x*7+y*11)%13==0 then
-    part("Broken floor hazard plate",cx,cy,.49,Vector3.new(5,.07,4),Color3.fromRGB(105,61,52),Enum.Material.CorrodedMetal)
+   if (x*7+y*11)%41==0 then
+    part("Scorched floor impact",cx,cy,.21,
+     Vector3.new(3,.025,3),Color3.fromRGB(86,55,52),Enum.Material.CorrodedMetal)
    end
   end
  end
@@ -87,22 +90,25 @@ for y=4,41,2 do
   end
  end
 end
--- Distinctive overhead construction: dark suspended ceiling bays,
--- exposed crossbeams, bright hanging surgical lights and damaged sections.
-for y=5,41,4 do
- for x=69,111,4 do
+-- Every ceiling cassette is tile-sized: no roofs cutting through walls.
+-- Higher central specimen hall remains open above its tall original roof.
+for y=4,41 do
+ for x=68,111 do
   if open(x,y) then
-   part("Suspended laboratory ceiling cassette",x-.5,y-.5,17.6,
-    Vector3.new(22,.3,22),Color3.fromRGB(13,28,40))
-   part("Ceiling ventilation truss",x-.5,y-.5,17.15,
-    Vector3.new(20,.45,1.1),Color3.fromRGB(73,96,112))
-   local lamp=part("Hanging cyan laboratory light",x-.5,y-.5,16.5,
-    Vector3.new(8,.32,1.3),cyan,Enum.Material.Neon)
-   light(lamp,cyan,1.2,38)
-   if (x+y)%3==0 then
-    local warning=part("Emergency red strobe",x+1,y-.5,16.3,
-     Vector3.new(1,.3,1),red,Enum.Material.Neon)
-    light(warning,red,.7,18)
+   local high=x>=81 and x<=99 and y>=9 and y<=20
+   local ceilingY=high and 33.6 or 17.45
+   part("Research sealed ceiling cassette",x-.5,y-.5,ceilingY,
+    Vector3.new(7.9,.22,7.9),Color3.fromRGB(13,28,40))
+   if x%4==0 and y%4==0 then
+    part("Research ceiling service beam",x-.5,y-.5,ceilingY-.35,
+     Vector3.new(7.2,.38,.7),Color3.fromRGB(73,96,112))
+    local lamp=part("Surgical cyan light",x-.5,y-.5,ceilingY-.85,
+     Vector3.new(4,.25,1.1),cyan,Enum.Material.Neon)
+    light(lamp,cyan,1.05,32)
+   elseif (x*3+y)%19==0 then
+    local warning=part("Emergency red lamp",x-.5,y-.5,ceilingY-.6,
+     Vector3.new(1,.24,1),red,Enum.Material.Neon)
+    light(warning,red,.65,18)
    end
   end
  end
@@ -146,19 +152,77 @@ end
 sign(89,7,"PROJECT ECHO // RESEARCH LAB",cyan)
 sign(90,23,"BIOHAZARD // CONTAINMENT FAILURE",red)
 sign(90,39,"EVACUATE // EXPERIMENTAL WING",red)
-local function teleport(player)
- if not player:GetAttribute("AlienBreachDeployed") then return end
+-- Environmental storytelling: overturned desks, broken consoles, shelving,
+-- equipment crates, pipework, wall-mounted status monitors, loose debris.
+-- Placement is deterministic and kept non-collidable for safe alien routing.
+local rng=Random.new(51027)
+for y=5,40,3 do
+ for x=69,110,3 do
+  if open(x,y) and (x<84 or x>99 or y>21) then
+   local cx,cy=x-.5,y-.5
+   local variant=(x*17+y*29)%9
+   if variant<=2 then
+    part("Lab equipment cabinet",cx,cy,3.2,Vector3.new(4,6,2.2),
+     Color3.fromRGB(46,68,82))
+    part("Cabinet warning stripe",cx,cy-0.15,5.4,
+     Vector3.new(3.4,.24,2.3),variant==0 and red or cyan,Enum.Material.Neon)
+   elseif variant<=4 then
+    part("Abandoned instrument cart",cx,cy,1.8,Vector3.new(4,2.8,3),
+     Color3.fromRGB(70,85,97))
+    part("Portable diagnostic screen",cx,cy,3.7,Vector3.new(2.6,1.8,.25),
+     cyan,Enum.Material.Neon).Transparency=.22
+   elseif variant==5 then
+    part("Spilled cargo case",cx,cy,.9,Vector3.new(3,1.8,2.5),
+     Color3.fromRGB(91,72,65),Enum.Material.CorrodedMetal)
+   elseif variant==6 then
+    part("Medical examination table",cx,cy,2.3,Vector3.new(5,.45,2.6),
+     Color3.fromRGB(128,145,149))
+    part("Emergency med display",cx,cy,3.5,Vector3.new(2.2,1.3,.2),
+     Color3.fromRGB(72,192,146),Enum.Material.Neon)
+   elseif variant==7 then
+    local pod=part("Biohazard disposal canister",cx,cy,2.3,
+     Vector3.new(2.6,4.5,2.6),Color3.fromRGB(91,112,84))
+    pod.Shape=Enum.PartType.Cylinder
+    part("Canister red seal",cx,cy,4.6,Vector3.new(3,.3,3),red,Enum.Material.Neon)
+   end
+   if (x*13+y*7)%5==0 then
+    local scrap=part("Scattered broken lab panel",cx+rng:NextNumber(-1.6,1.6),
+     cy+rng:NextNumber(-1.6,1.6),.3,
+     Vector3.new(rng:NextNumber(1,2.5),.1,rng:NextNumber(1,2.5)),
+     Color3.fromRGB(92,125,131),Enum.Material.Metal)
+    scrap.CFrame=scrap.CFrame*CFrame.Angles(0,rng:NextNumber(0,6.28),0)
+   end
+  end
+ end
+end
+for _,p in ipairs({{70,8},{78,12},{103,12},{109,18},{71,30},{81,35},{90,30},{97,38},{108,33}}) do
+ local x,y=p[1],p[2]
+ if open(x,y) then
+  local c=part("Suspended research display",x-.5,y-.5,10,
+   Vector3.new(5,3,.3),Color3.fromRGB(18,42,58))
+  local screen=part("Live diagnostics hologram",x-.5,y-.65,10,
+   Vector3.new(4.5,2.5,.12),cyan,Enum.Material.Neon)
+  screen.Transparency=.3
+ end
+end
+-- Retain selected map when the character respawns after dying.
+-- Menu still controls whether the player is deployed and may shoot.
+local function teleport(player,character)
  if player:GetAttribute("AlienBreachSelectedMap")~="research" then return end
- local character=player.Character
- if not character then return end
- local hrp=character:FindFirstChild("HumanoidRootPart")
- if hrp then character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5))) end
+ local hrp=character:WaitForChild("HumanoidRootPart",10)
+ if not hrp or not character.Parent then return end
+ character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
 end
 local function track(player)
- player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(function()
-  if player:GetAttribute("AlienBreachDeployed") then task.defer(teleport,player) end
+ player.CharacterAdded:Connect(function(character)
+  task.defer(teleport,player,character)
  end)
- if player:GetAttribute("AlienBreachDeployed") then task.defer(teleport,player) end
+ player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(function()
+  if player:GetAttribute("AlienBreachDeployed") and player.Character then
+   task.defer(teleport,player,player.Character)
+  end
+ end)
+ if player.Character then task.defer(teleport,player,player.Character) end
 end
 Players.PlayerAdded:Connect(track)
 for _,player in ipairs(Players:GetPlayers()) do track(player) end
