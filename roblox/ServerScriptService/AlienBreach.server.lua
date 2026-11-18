@@ -1363,10 +1363,10 @@ RunService.Heartbeat:Connect(function(dt)
                 -- Trace to actual walkable ground, ignoring the alien itself.
                 local groundParams=RaycastParams.new()
                 groundParams.FilterType=Enum.RaycastFilterType.Exclude
-                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character,root}
+                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character}
                 local groundHit=workspace:Raycast(
-                    Vector3.new(part.Position.X,60,part.Position.Z),
-                    Vector3.new(0,-90,0),groundParams)
+                    Vector3.new(part.Position.X,12,part.Position.Z),
+                    Vector3.new(0,-40,0),groundParams)
                 local groundY=groundHit and groundHit.Position.Y or 0
                                 local playerDistance=(hrp.Position-part.Position).Magnitude
                 -- Ranged aliens hold position once they reach firing distance.
