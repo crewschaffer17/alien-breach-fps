@@ -18,7 +18,7 @@ local data={}
 local function state(p)
  local d=data[p]
  if not d then
-  d={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={games=0,kills=0,bestWave=0},xp=0,levels={pulse=3},maps={containment=true},selectedMap="containment"}
+  d={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={games=0,kills=0,bestWave=0},xp=0,levels={pulse=1},maps={containment=true},selectedMap="containment"}
   data[p]=d
  end
  return d
@@ -125,7 +125,7 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   if not cost or d.credits<cost then event:FireClient(p,"notice","Not enough credits");return end
   if weapons[arg1] and d.owned[arg1] then event:FireClient(p,"notice","Already owned");return end
   d.credits-=cost
-  if weapons[arg1] then d.levels[arg1]=3;p:SetAttribute("WeaponLevel_"..arg1,3) end
+  if weapons[arg1] then d.levels[arg1]=1;p:SetAttribute("WeaponLevel_"..arg1,1) end
   if arg1=="medkit" or arg1=="speed" then d[arg1]+=1 else d.owned[arg1]=true end
  elseif action=="slot" then
   if not validSlot(d,arg1,arg2) then return end
