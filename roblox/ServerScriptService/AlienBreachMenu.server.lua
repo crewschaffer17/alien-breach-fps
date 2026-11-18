@@ -8,6 +8,13 @@ event.Name="AlienBreachMenuEvent";event.Parent=RS
 local prices={shotgun=500,rifle=750,viper=1000,ar51=1250,phantom=1750,titan=2500,plasma=3500,obliterator=5000,medkit=150,speed=250}
 local weapons={pulse=true,shotgun=true,rifle=true,viper=true,ar51=true,phantom=true,titan=true,plasma=true,obliterator=true,laser=true}
 local data={}
+local owns=Instance.new("BindableFunction")
+owns.Name="AlienBreachOwnsWeapon"
+owns.Parent=RS
+owns.OnInvoke=function(p,id)
+ local d=data[p]
+ return d~=nil and d.owned[id]==true and id~="laser"
+end
 local function state(p)
  local d=data[p]
  if not d then
@@ -19,12 +26,18 @@ end
 local function save(p)
  local d=data[p]
  if not d then return false end
+ local ls=p:FindFirstChild("leaderstats")
+ local credits=ls and ls:FindFirstChild("Credits")
+ if credits then d.credits=credits.Value end
  local ok,err=pcall(function()store:SetAsync("player_"..p.UserId,d)end)
  if not ok then warn("Alien Breach save failed: "..tostring(err)) end
  return ok
 end
 local function snapshot(p)
  local d=state(p)
+ local ls=p:FindFirstChild("leaderstats")
+ local credits=ls and ls:FindFirstChild("Credits")
+ if credits then d.credits=credits.Value end
  event:FireClient(p,"state",{credits=d.credits,owned=d.owned,medkit=d.medkit,speed=d.speed,slots=d.slots,stats=d.stats})
 end
 local function watchCharacter(p,character)
@@ -55,7 +68,20 @@ Players.PlayerAdded:Connect(function(p)
    for i=1,3 do if type(saved.slots[i])=="string" then d.slots[i]=saved.slots[i] end end
   end
  elseif not ok then warn("Alien Breach load failed: "..tostring(saved)) end
- task.defer(function() if p.Parent then snapshot(p) end end)
+ task.defer(function()
+  if not p.Parent then return end
+  local ls=p:WaitForChild("leaderstats",5)
+  local credits=ls and ls:WaitForChild("Credits",5)
+  if credits then
+   credits.Value=d.credits
+   credits.Changed:Connect(function()
+    if not p.Parent then return end
+    d.credits=credits.Value
+    snapshot(p)
+   end)
+  end
+  snapshot(p)
+ end)
 end)
 Players.PlayerRemoving:Connect(function(p) save(p);data[p]=nil end)
 game:BindToClose(function()for p in pairs(data) do save(p) end end)
@@ -76,6 +102,9 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   if not cost or d.credits<cost then event:FireClient(p,"notice","Not enough credits");return end
   if weapons[arg1] and d.owned[arg1] then event:FireClient(p,"notice","Already owned");return end
   d.credits-=cost
+  local ls=p:FindFirstChild("leaderstats")
+  local credits=ls and ls:FindFirstChild("Credits")
+  if credits then credits.Value=d.credits end
   if arg1=="medkit" or arg1=="speed" then d[arg1]+=1 else d.owned[arg1]=true end
  elseif action=="slot" then
   if not validSlot(d,arg1,arg2) then return end
