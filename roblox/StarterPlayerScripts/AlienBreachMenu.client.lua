@@ -103,12 +103,13 @@ end
 local home=page("Home")
 local shop=page("Shop")
 local load=page("Loadout")
+local sectors=page("Sectors")
 local function show(id)
  for name,p in pairs(pages) do p.Visible=(name==id) end
 end
-local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,18)})
+local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,12)})
 local function homeCard(heading,description,action)
- local card=make("Frame",home,{Size=UDim2.new(0.3,0,0.62,0),BackgroundColor3=C.panel,BorderSizePixel=0})
+ local card=make("Frame",home,{Size=UDim2.new(0.225,0,0.62,0),BackgroundColor3=C.panel,BorderSizePixel=0})
  round(card,12);stroke(card)
  make("UIGradient",card,{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,58,57),C.panel)})
  local accentBar=make("Frame",card,{Size=UDim2.new(1,0,0,4),BackgroundColor3=C.green,BorderSizePixel=0})
@@ -126,6 +127,7 @@ homeCard("▶  DEPLOY","Enter the breach. Survive the unknown.",function()
 end)
 homeCard("▣  ARMORY","Upgrade weapons and stock your supplies.",function()show("Shop")end)
 homeCard("▤  LOADOUT","Prepare your gear before the next breach.",function()show("Loadout")end)
+homeCard("◇  SECTORS","Explore upcoming unlockable missions.",function()show("Sectors")end)
 local function topbar(parent,heading)
  local bar=make("Frame",parent,{Size=UDim2.new(1,0,0,62),BackgroundTransparency=1})
  local headingText=text(bar,heading,25,C.green,true);headingText.Size=UDim2.new(0.6,0,1,0)
@@ -149,6 +151,17 @@ for _,p in ipairs(catalog) do
  round(buy,5);buy.Activated:Connect(function()event:FireServer("buy",p[1])end)
  buyButtons[p[1]]=buy
 end
+local sectorCredits=topbar(sectors,"ALIEN BREACH  /  SECTOR ACCESS")
+local sectorScroll=make("ScrollingFrame",sectors,{Position=UDim2.fromOffset(0,72),Size=UDim2.new(1,0,1,-128),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,CanvasSize=UDim2.fromScale(0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
+make("UIGridLayout",sectorScroll,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.03,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder})
+for _,entry in ipairs({{"CONTAINMENT WING","CURRENT MAP  •  FREE"},{"RESEARCH LAB","2,500 CREDITS  •  COMING SOON"},{"REACTOR CORE","5,000 CREDITS  •  COMING SOON"},{"ALIEN NEST","8,500 CREDITS  •  COMING SOON"}}) do
+ local card=make("Frame",sectorScroll,{BackgroundColor3=C.panel,BorderSizePixel=0})
+ round(card,9);stroke(card)
+ local h=text(card,entry[1],21,C.green,true);h.Position=UDim2.fromScale(.07,.12);h.Size=UDim2.fromScale(.86,.3)
+ local info=text(card,entry[2],15,C.gold,true);info.Position=UDim2.fromScale(.07,.58);info.Size=UDim2.fromScale(.86,.27)
+end
+local progressState={xp=0,rank="RECRUIT",nextXP=125,levels={}}
+local progressEvent=nil
 local loadCredits=topbar(load,"ALIEN BREACH  /  LOADOUT")
 local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,58),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
 make("UIListLayout",tabs,{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,9)})
@@ -185,8 +198,9 @@ end
 render=function()
  shopCredits.Text="CREDITS: "..tostring(state.credits)
  loadCredits.Text=shopCredits.Text
+ sectorCredits.Text=shopCredits.Text
  local st=state.stats or {}
- statsBody.Text="GAMES PLAYED: "..tostring(st.games or 0).."\n\nTOTAL KILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
+ statsBody.Text="RANK: "..tostring(progressState.rank).."\nXP: "..tostring(progressState.xp).." / "..tostring(progressState.nextXP).."\n\nGAMES: "..tostring(st.games or 0).."\n\nKILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
  for _,p in ipairs(catalog) do
   local b=buyButtons[p[1]]
   local owned=state.owned[p[1]]
@@ -213,8 +227,21 @@ render=function()
    local equipped=false
    for _,slotId in ipairs(state.slots or {}) do if slotId==id then equipped=true end end
    local status=text(card,not isOwned and "LOCKED" or (equipped and "IN LOADOUT" or "IN INVENTORY"),12,equipped and C.gold or C.muted,true)
-   status.Position=UDim2.fromScale(.07,.80)
-   status.Size=UDim2.fromScale(.88,.16)
+   if selected=="guns" and isOwned and id~="laser" then
+    local level=math.clamp(tonumber(progressState.levels[id]) or 3,1,5)
+    local costs={[1]=300,[2]=600,[3]=1100,[4]=1800}
+    status.Text="LEVEL "..level.."  •  "..(equipped and "EQUIPPED" or "OWNED")
+    status.Position=UDim2.fromScale(.07,.71)
+    status.Size=UDim2.fromScale(.88,.13)
+    local upgrade=make("TextButton",card,{Text=level>=5 and "MAX LEVEL" or ("UPGRADE  "..costs[level].." CR"),Font=Enum.Font.SciFi,TextSize=12,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(.07,.86),Size=UDim2.fromScale(.86,.13)})
+    round(upgrade,5)
+    upgrade.Activated:Connect(function()
+     if progressEvent and level<5 then progressEvent:FireServer("upgrade",id) end
+    end)
+   else
+    status.Position=UDim2.fromScale(.07,.80)
+    status.Size=UDim2.fromScale(.88,.16)
+   end
   end
   local count=0
   if selected=="guns" then
@@ -291,6 +318,20 @@ local function hideHUD()
 end
 player.PlayerGui.ChildAdded:Connect(function()task.defer(hideHUD)end)
 backdrop:GetPropertyChangedSignal("Visible"):Connect(hideHUD)
+task.spawn(function()
+ local ev=RS:WaitForChild("AlienBreachProgressionEvent",15)
+ if not ev then warn("Alien Breach progression script not installed; base game remains playable");return end
+ progressEvent=ev
+ ev.OnClientEvent:Connect(function(action,payload)
+  if action=="state" and type(payload)=="table" then
+   progressState=payload
+   render()
+  elseif action=="notice" then
+   notice.Text=tostring(payload)
+  end
+ end)
+ ev:FireServer("sync")
+end)
 freeMenuMouse()
 show("Home")
 render()
