@@ -235,7 +235,8 @@ local function rp(name,x,y,h,size,color,material,collide)
  return p
 end
 local function beacon(x,y,color,brightness,range)
- local lamp=rp("Always-on reactor ceiling light",x,y,16.7,Vector3.new(6,.5,3),color,Enum.Material.Neon)
+ local high=x>=132 and x<=159 and y>=14 and y<=30
+ local lamp=rp("Always-on reactor ceiling light",x,y,high and 64 or 16.7,Vector3.new(6,.5,3),color,Enum.Material.Neon)
  local l=Instance.new("PointLight")
  l.Color=color;l.Brightness=brightness;l.Range=range;l.Shadows=false;l.Parent=lamp
 end
@@ -252,9 +253,46 @@ for y=4,41 do
    local center=x>=132 and x<=159 and y>=14 and y<=30
    rp(center and "Omega vault floor" or "Reactor corridor floor",x-.5,y-.5,.15,
     Vector3.new(7.85,.24,7.85),
-    center and Color3.fromRGB(58,64,77) or Color3.fromRGB(77,82,88),
+    center and Color3.fromRGB(34,42,57) or Color3.fromRGB(77,82,88),
     Enum.Material.DiamondPlate)
   end
+ end
+end
+-- Architectural corridor features: repeated beams, luminous navigation
+-- strips and sealed service doors, kept out of walkable centerlines.
+for _,y in ipairs({5,39}) do
+ for x=124,168,8 do
+  rp("Reactor hallway overhead truss",x,y,15.5,Vector3.new(1.3,2.5,23),steel)
+  rp("Reactor hallway direction light",x,y,14.15,Vector3.new(1,0.25,14),
+   Color3.fromRGB(99,217,245),Enum.Material.Neon)
+ end
+end
+for _,x in ipairs({121,170}) do
+ for y=10,36,7 do
+  rp("Reactor side corridor wall conduit",x,y,8,Vector3.new(.7,1.4,17),steel)
+  rp("Reactor side corridor safety beacon",x,y,13,Vector3.new(1.3,1.3,1.3),
+   orange,Enum.Material.Neon)
+ end
+end
+-- Sunken chamber appearance: dark central basin and an elevated observation
+-- lip. The walkable collision plane remains flat for the existing alien AI.
+for x=137,154,3 do
+ for y=19,25,3 do
+  if open(x,y) then
+   rp("Omega deep shaft shadow",x,y,.3,Vector3.new(21,.12,21),
+    Color3.fromRGB(13,19,33),Enum.Material.SmoothPlastic)
+  end
+ end
+end
+for _,x in ipairs({134,157}) do
+ for y=18,26,4 do
+  rp("Omega tall vault vertical rib",x,y,32,Vector3.new(2,64,2),steel)
+  rp("Omega tall vault warning light",x,y,59,Vector3.new(2,2.5,2.5),orange,Enum.Material.Neon)
+ end
+end
+for _,y in ipairs({16,29}) do
+ for x=137,154,5 do
+  rp("Omega vault overhead support",x,y,61,Vector3.new(2,9,2),steel)
  end
 end
 -- Central chamber: high perimeter framing defines a real room.
@@ -292,7 +330,7 @@ end
 local shell=Instance.new("Part")
 shell.Name="EXPERIMENT OMEGA | Containment orb"
 shell.Shape=Enum.PartType.Ball;shell.Size=Vector3.new(44,44,44)
-shell.CFrame=CFrame.new(pos(cx,cy,33))
+shell.CFrame=CFrame.new(pos(cx,cy,35))
 shell.Anchored=true;shell.CanCollide=false;shell.CanTouch=false;shell.CanQuery=false
 shell.Material=Enum.Material.Glass;shell.Color=Color3.fromRGB(124,172,204)
 shell.Transparency=.68;shell.CastShadow=false;shell.Parent=reactorDecor
