@@ -356,10 +356,21 @@ healButton.Parent=gui
 healButton.Activated:Connect(function() control:FireServer("heal") end)
 -- Interactive facility map: tap the corner radar or press M to enlarge.
 local mapValue=ReplicatedStorage:WaitForChild("AlienBreachMap")
-local rows=string.split(mapValue.Value,"\n")
-local mapHeight=#rows
-local mapWidth=#rows[1]
+local allRows=string.split(mapValue.Value,"\n")
+local fullMapWidth=#allRows[1]
+local fullMapHeight=#allRows
+local rows={}
+local mapHeight=0
+local mapWidth=0
+local minMapX=1
+local minMapY=1
 local TILE=8
+local function mapBounds()
+ if player:GetAttribute("AlienBreachSelectedMap")=="research" then
+  return 66,2,113,43
+ end
+ return 1,1,57,45
+end
 local radar=Instance.new("TextButton")
 radar.Name="MapToggle"
 radar.Text="EXPAND MAP [M]"
@@ -383,7 +394,7 @@ panel.Size=UDim2.fromOffset(188,188)
 panel.Visible=true
 panel.Parent=gui
 local constraint=Instance.new("UIAspectRatioConstraint")
-constraint.AspectRatio=mapWidth/mapHeight
+constraint.AspectRatio=1
 constraint.AspectType=Enum.AspectType.FitWithinMaxSize
 constraint.DominantAxis=Enum.DominantAxis.Width
 constraint.Parent=panel
@@ -392,19 +403,6 @@ cells.Name="MapTiles"
 cells.BackgroundTransparency=1
 cells.Size=UDim2.fromScale(1,1)
 cells.Parent=panel
-for y,row in ipairs(rows) do
-    for x=1,#row do
-        if row:sub(x,x)=="0" then
-            local tile=Instance.new("Frame")
-            tile.Name="HallwayOrRoom"
-            tile.BorderSizePixel=0
-            tile.BackgroundColor3=Color3.fromRGB(73,103,108)
-            tile.Position=UDim2.fromScale((x-1)/mapWidth,(y-1)/mapHeight)
-            tile.Size=UDim2.fromScale(1/mapWidth+0.0002,1/mapHeight+0.0002)
-            tile.Parent=cells
-        end
-    end
-end
 local markerLayer=Instance.new("Frame")
 markerLayer.BackgroundTransparency=1
 markerLayer.Size=UDim2.fromScale(1,1)
@@ -423,10 +421,36 @@ local function marker(color,size)
     return m
 end
 local playerDot=marker(Color3.fromRGB(70,255,100),1.3)
+local function rebuildMap()
+ local x1,y1,x2,y2=mapBounds()
+ minMapX,minMapY=x1,y1
+ mapWidth,mapHeight=x2-x1+1,y2-y1+1
+ constraint.AspectRatio=mapWidth/mapHeight
+ for _,tile in ipairs(cells:GetChildren()) do tile:Destroy() end
+ for y=y1,y2 do
+  local row=allRows[y] or ""
+  for x=x1,x2 do
+   if row:sub(x,x)=="0" then
+    local tile=Instance.new("Frame")
+    tile.Name="HallwayOrRoom"
+    tile.BorderSizePixel=0
+    tile.BackgroundColor3=Color3.fromRGB(73,103,108)
+    tile.Position=UDim2.fromScale((x-x1)/mapWidth,(y-y1)/mapHeight)
+    tile.Size=UDim2.fromScale(1/mapWidth+.0002,1/mapHeight+.0002)
+    tile.ZIndex=cells.ZIndex
+    tile.Parent=cells
+   end
+  end
+ end
+ playerDot.Size=UDim2.fromScale(1.3/mapWidth,1.3/mapHeight)
+end
+rebuildMap()
+player:GetAttributeChangedSignal("AlienBreachSelectedMap"):Connect(rebuildMap)
 local function place(dot,position)
-    local gx=position.X/TILE+mapWidth/2
-    local gy=position.Z/TILE+mapHeight/2
+    local gx=position.X/TILE+fullMapWidth/2-minMapX
+    local gy=position.Z/TILE+fullMapHeight/2-minMapY
     dot.Position=UDim2.fromScale(gx/mapWidth,gy/mapHeight)
+    dot.Visible=gx>=0 and gx<mapWidth and gy>=0 and gy<mapHeight
 end
 local expanded=false
 local function toggleMap()
