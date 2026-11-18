@@ -218,6 +218,7 @@ local function pos(x,y,h)
     return Vector3.new((x - #map[1]/2)*TILE, h, (y - #map/2)*TILE)
 end
 local function tallRoom(x,y)
+    if x>=REACTOR_START then return x>=132 and x<=159 and y>=14 and y<=30 end
     if x>=RESEARCH_START then return x>=81 and x<=99 and y>=9 and y<=20 end
     return (x>=38 and x<=53 and y>=3 and y<=10)
         or (x>=38 and x<=53 and y>=15 and y<=24)
@@ -367,7 +368,7 @@ for y,row in ipairs(map) do
             local high=tallRoom(x,y)
             while x<=#row and row:sub(x,x)=="0" and tallRoom(x,y)==high do x+=1 end
             local count=x-first
-            local h=high and 34 or WALL_HEIGHT
+            local h=high and (first>=REACTOR_START and 66 or 34) or WALL_HEIGHT
             local ceiling=block(high and "High laboratory ceiling" or "Corridor ceiling",
                 Vector3.new(count*TILE,0.5,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=REACTOR_START and Color3.fromRGB(34,24,24) or first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
@@ -680,27 +681,14 @@ for y=4,40,3 do
         end
     end
 end
-local function activeChestSector()
- local counts={containment=0,research=0,reactor=0}
- for _,p in ipairs(Players:GetPlayers()) do
-  if p:GetAttribute("AlienBreachDeployed") then
-   local sector=p:GetAttribute("AlienBreachSelectedMap")
-   counts[sector] = (counts[sector] or 0)+1
-  end
- end
- local selected="containment"
- for _,sector in ipairs({"research","reactor"}) do
-  if counts[sector]>counts[selected] then selected=sector end
- end
- return selected
-end
 local activeChests=Instance.new("Folder")
 activeChests.Name="SupplyCaches"
 activeChests.Parent=root
-local function newChest(x,y,index)
+local function newChest(x,y,index,sector)
     local base=pos(x,y,0)
     local model=Instance.new("Model")
-    model.Name="Armored supply cache "..index
+    model.Name=sector.." armored supply cache "..index
+    model:SetAttribute("Sector",sector)
     model.Parent=activeChests
     local box=block("Heavy reinforced storage case",Vector3.new(5.5,2.8,3.8),CFrame.new(base+Vector3.new(0,1.5,0)),Color3.fromRGB(62,83,77),Enum.Material.Metal,model)
     local lid=block("Hinged steel lid",Vector3.new(5.8,0.6,4.0),CFrame.new(base+Vector3.new(0,3.15,0)),Color3.fromRGB(95,117,97),Enum.Material.Metal,model)
@@ -743,39 +731,36 @@ local function newChest(x,y,index)
         task.delay(2,function() if model.Parent then model:Destroy() end end)
     end)
 end
+-- Independent supply rotation in EACH sector: twelve caches per map,
+-- ninety-second refresh, identical loot odds and rewards everywhere.
 local function rotateChests()
-    activeChests:ClearAllChildren()
-    local shuffled=table.clone(activeChestSector()=="reactor" and reactorChestPoints or activeChestSector()=="research" and researchChestPoints or chestPoints)
-    for i=#shuffled,2,-1 do
-        local j=math.random(1,i)
-        shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
-    end
-    local count=0
-    for _,p in ipairs(shuffled) do
-        if free(p[1],p[2]) then
-            count+=1
-            newChest(p[1],p[2],count)
-            if count>=12 then break end
-        end
-    end
+ activeChests:ClearAllChildren()
+ for _,entry in ipairs({
+  {sector="containment",points=chestPoints},
+  {sector="research",points=researchChestPoints},
+  {sector="reactor",points=reactorChestPoints}
+ }) do
+  local shuffled=table.clone(entry.points)
+  for i=#shuffled,2,-1 do
+   local j=math.random(1,i)
+   shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
+  end
+  local count=0
+  for _,p in ipairs(shuffled) do
+   if free(p[1],p[2]) then
+    count+=1
+    newChest(p[1],p[2],count,entry.sector)
+    if count>=12 then break end
+   end
+  end
+ end
 end
 rotateChests()
-local lastChestSector=activeChestSector()
 task.spawn(function()
-    while root.Parent do
-        local current=activeChestSector()
-        if current~=lastChestSector then
-            lastChestSector=current
-            rotateChests()
-        end
-        task.wait(1)
-    end
-end)
-task.spawn(function()
-    while root.Parent do
-        task.wait(90)
-        if root.Parent then rotateChests() end
-    end
+ while root.Parent do
+  task.wait(90)
+  if root.Parent then rotateChests() end
+ end
 end)
 StarterPlayer.CameraMode=Enum.CameraMode.LockFirstPerson
 Players.PlayerAdded:Connect(function(player)
