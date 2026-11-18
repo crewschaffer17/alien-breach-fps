@@ -810,9 +810,9 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
  end
  for alien,count in pairs(hits) do
   if id=="laser" then
-   hurtAlien(player,alien,alien:GetAttribute("Kind")=="armored" and 2 or alien:GetAttribute("Kind")=="boss" and 8 or 100)
+   hurtAlien(player,alien,alien:GetAttribute("Kind")=="armored" and 2 or 100)
   else
-   hurtAlien(player,alien,w.damage*count*({[1]=.55,[2]=.78,[3]=1,[4]=1.3,[5]=1.65})[math.clamp(tonumber(player:GetAttribute("WeaponLevel_"..id)) or 3,1,5)])
+   hurtAlien(player,alien,w.damage*count)
   end
  end
  if id=="plasma" then
@@ -843,10 +843,10 @@ local alienAnimation={}
 local function makeAlien(x,y,kind,wave)
     kind=kind or "stalker"
     local model=Instance.new("Model")
-    model.Name=(kind=="boss" and "BREACH OVERLORD" or kind=="armored" and "Armored Alien" or kind=="crawler" and "Crawler Alien" or "Stalker Alien")
+    model.Name=(kind=="armored" and "Armored Alien" or kind=="crawler" and "Crawler Alien" or "Stalker Alien")
     model:SetAttribute("Kind",kind)
-    model:SetAttribute("Speed",kind=="boss" and 6.2 or kind=="crawler" and 15 or kind=="armored" and 7.5 or 10.5)
-    model:SetAttribute("HP",kind=="boss" and 900+wave*75 or kind=="armored" and 100 or 50)
+    model:SetAttribute("Speed",kind=="crawler" and 15 or kind=="armored" and 7.5 or 10.5)
+    model:SetAttribute("HP",kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
     -- Prefer a single imported MeshPart for a continuous alien silhouette.
@@ -864,8 +864,8 @@ local function makeAlien(x,y,kind,wave)
         mesh.CastShadow=true
         -- Imported mesh textures can override part color; remove glowing texture overrides.
         mesh.TextureID=""
-        mesh.Color=kind=="boss" and Color3.fromRGB(132,35,65) or kind=="armored" and Color3.fromRGB(57,100,48) or Color3.fromRGB(76,126,61)
-        mesh.Size=meshTemplate.Size*(kind=="boss" and 2.9 or kind=="crawler" and 0.85 or kind=="armored" and 1.3 or 1.1)
+        mesh.Color=kind=="armored" and Color3.fromRGB(57,100,48) or Color3.fromRGB(76,126,61)
+        mesh.Size=meshTemplate.Size*(kind=="crawler" and 0.85 or kind=="armored" and 1.3 or 1.1)
         -- OBJ imports can use X or Z as the vertical axis. Rotate the longest
         -- dimension upright and use the rotated bounds to put feet on the floor.
         local size=mesh.Size
@@ -911,8 +911,8 @@ local function makeAlien(x,y,kind,wave)
         model.Destroying:Connect(function() alienAnimation[model]=nil end)
         return model
     end
-    local scale=kind=="boss" and 2.6 or kind=="crawler" and 0.83 or kind=="armored" and 1.42 or 1.22
-    local color=kind=="boss" and Color3.fromRGB(175,48,85) or kind=="armored" and Color3.fromRGB(100,171,46) or Color3.fromRGB(147,223,67)
+    local scale=kind=="crawler" and 0.83 or kind=="armored" and 1.42 or 1.22
+    local color=kind=="armored" and Color3.fromRGB(100,171,46) or Color3.fromRGB(147,223,67)
     local function body(name,size,offset,shape)
         local p=block(name,size*scale,CFrame.new(origin+offset*scale),color,Enum.Material.SmoothPlastic,model)
         p.CanCollide=false;p.CanTouch=false;p.Transparency=0
@@ -948,7 +948,7 @@ local function makeAlien(x,y,kind,wave)
     end
     local jaw=body("Small mandible ridge",Vector3.new(0.85,0.36,0.35),Vector3.new(0,6.95,-1.25),Enum.PartType.Ball)
     jaw.Color=Color3.fromRGB(72,137,39)
-    if kind=="armored" or kind=="boss" then
+    if kind=="armored" then
         local armor=body("Heavy chitin chest plate",Vector3.new(2.25,2.8,1.5),Vector3.new(0,4.6,-0.1),Enum.PartType.Ball)
         armor.Color=Color3.fromRGB(65,118,36)
         for _,side in ipairs({-1,1}) do
@@ -972,12 +972,9 @@ local wave=0
 local function spawnWave(number)
     local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
     local spawned=0
-    local bossWave=number%3==0
     for i=1,count do
         local kind="stalker"
-        if bossWave then
-            kind=i<=math.floor(count/2) and "armored" or "stalker"
-        elseif number>=2 then
+        if number>=2 then
             local roll=math.random()
             if roll<math.min(0.30,0.10+number*0.018) then kind="crawler"
             elseif i==1 or roll<math.min(0.70,0.40+number*0.035) then kind="armored" end
@@ -987,17 +984,6 @@ local function spawnWave(number)
             local y=math.random(1,#map-2)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
                 makeAlien(x,y,kind,number)
-                spawned+=1
-                break
-            end
-        end
-    end
-    if bossWave then
-        for attempt=1,100 do
-            local x=math.random(1,#map[1]-2)+0.5
-            local y=math.random(1,#map-2)+0.5
-            if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
-                makeAlien(x,y,"boss",number)
                 spawned+=1
                 break
             end
@@ -1049,7 +1035,7 @@ local function alienShoot(alien,origin,target,hum)
     beam.Parent=root
     game:GetService("Debris"):AddItem(beam,0.15)
     if result and hum and result.Instance:IsDescendantOf(hum.Parent) and Players:GetPlayerFromCharacter(hum.Parent) and Players:GetPlayerFromCharacter(hum.Parent):GetAttribute("AlienBreachDeployed") then
-        hum:TakeDamage(alien:GetAttribute("Kind")=="boss" and 22 or alien:GetAttribute("Kind")=="armored" and 13 or 8)
+        hum:TakeDamage(alien:GetAttribute("Kind")=="armored" and 13 or 8)
     end
 end
 -- Breadth-first flow fields guide every alien through connected corridors.
