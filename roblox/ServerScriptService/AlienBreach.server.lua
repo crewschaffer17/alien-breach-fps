@@ -39,7 +39,8 @@ local map = {
 }
 -- Preserve the original 35x27 layout in the northwest corner, then expand
 -- into new east research wings and a south office/maintenance complex.
-local WIDTH,HEIGHT=57,45
+local WIDTH,HEIGHT=116,45
+local RESEARCH_START=66
 local cells={}
 for y=1,HEIGHT do
     cells[y]={}
@@ -76,6 +77,32 @@ for _,x in ipairs({43,49}) do
 end
 -- Ensure the east wing connects to the lower south wing.
 carve(42,24,44,30)
+-- Research Lab: a second, physically isolated 49x40-tile facility.
+-- Its own floorplan, architecture and materials are deliberately unrelated
+-- to the original containment facility. No hallway joins the two maps.
+carve(68,4,111,7)   -- northern observation concourse
+carve(68,9,78,20)  -- west clean rooms
+carve(81,9,98,20)  -- central specimen hall
+carve(101,9,111,20) -- east quarantine
+carve(68,22,111,25) -- main cross-corridor
+carve(68,27,83,40) -- broken diagnostics
+carve(86,27,99,40) -- surgical labs
+carve(102,27,111,40) -- decontamination
+carve(72,7,75,10)
+carve(88,7,92,10)
+carve(105,7,108,10)
+carve(73,19,76,23)
+carve(89,19,93,23)
+carve(105,19,108,23)
+carve(73,24,76,28)
+carve(89,24,93,28)
+carve(105,24,108,28)
+for _,x in ipairs({73,91,106}) do
+ for y=10,19 do if y~=14 and y~=15 then cells[y][x]="1" end end
+end
+for _,x in ipairs({76,92,106}) do
+ for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
+end
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
@@ -149,6 +176,7 @@ local function pos(x,y,h)
     return Vector3.new((x - #map[1]/2)*TILE, h, (y - #map/2)*TILE)
 end
 local function tallRoom(x,y)
+    if x>=RESEARCH_START then return x>=81 and x<=99 and y>=9 and y<=20 end
     return (x>=38 and x<=53 and y>=3 and y<=10)
         or (x>=38 and x<=53 and y>=15 and y<=24)
         or (x>=19 and x<=33 and y>=35 and y<=41)
@@ -167,7 +195,8 @@ for y,row in ipairs(map) do
             while x<=#row and row:sub(x,x)=="1" do x+=1 end
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
-                CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),wallColor)
+                CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
+                 first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
 end
@@ -192,7 +221,7 @@ end
 -- This prevents the initial multi-second wait for the laboratory lights.
 for y,row in ipairs(map) do
     for x=1,#row do
-        if row:sub(x,x)=="0" and x%4==0 and y%4==0 then
+        if row:sub(x,x)=="0" and x<RESEARCH_START and x%4==0 and y%4==0 then
             local center=pos(x-0.5,y-0.5,0)
             local fixtureHeight=tallRoom(x,y) and 34 or WALL_HEIGHT
             -- Evenly spaced overhead fluorescent lamps and independent red alarms.
@@ -223,7 +252,7 @@ for y,row in ipairs(map) do
 end
 for y,row in ipairs(map) do
     for x=1,#row do
-        if row:sub(x,x)=="0" then
+        if row:sub(x,x)=="0" and x<RESEARCH_START then
             local px,py=x-0.5,y-0.5
             local center=pos(px,py,0)
             -- Abandoned laboratory tiles: varied dirty concrete, uneven staining,
@@ -299,14 +328,14 @@ for y,row in ipairs(map) do
             local h=high and 34 or WALL_HEIGHT
             local ceiling=block(high and "High laboratory ceiling" or "Corridor ceiling",
                 Vector3.new(count*TILE,0.5,TILE),
-                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),Color3.fromRGB(49,61,68))
+                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
             ceiling.CanCollide=false
         else x+=1 end
     end
 end
 for y,row in ipairs(map) do
     for x=1,#row do
-        if row:sub(x,x)=="0" and tallRoom(x,y) then
+        if row:sub(x,x)=="0" and x<RESEARCH_START and tallRoom(x,y) then
             local center=pos(x-0.5,y-0.5,0)
             for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
                 if not tallRoom(x+d[1],y+d[2]) then
@@ -980,6 +1009,17 @@ local function spawnWave(number)
     local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
     local spawned=0
     local bossWave=number%3==0
+    local researchPlayers=0
+    local originalPlayers=0
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p:GetAttribute("AlienBreachDeployed") then
+            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchPlayers+=1
+            else originalPlayers+=1 end
+        end
+    end
+    local spawnResearch=researchPlayers>0 and researchPlayers>=originalPlayers
+    local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
+    local minY,maxY=3,spawnResearch and 41 or 43
     for i=1,count do
         local kind="stalker"
         if bossWave then
@@ -990,8 +1030,8 @@ local function spawnWave(number)
             elseif i==1 or roll<math.min(0.70,0.40+number*0.035) then kind="armored" end
         end
         for attempt=1,100 do
-            local x=math.random(1,#map[1]-2)+0.5
-            local y=math.random(1,#map-2)+0.5
+            local x=math.random(minX,maxX)+0.5
+            local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
                 makeAlien(x,y,kind,number)
                 spawned+=1
@@ -1001,8 +1041,8 @@ local function spawnWave(number)
     end
     if bossWave then
         for attempt=1,100 do
-            local x=math.random(1,#map[1]-2)+0.5
-            local y=math.random(1,#map-2)+0.5
+            local x=math.random(minX,maxX)+0.5
+            local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
                 makeAlien(x,y,"boss",number)
                 spawned+=1
