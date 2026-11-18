@@ -330,6 +330,7 @@ event.OnClientEvent:Connect(function(action,payload)
  elseif action=="notice" then notice.Text=tostring(payload)
  elseif action=="returnHome" then
   notice.Text=""
+  event:FireServer("sync")
   backdrop.Visible=false
   deathOverlay.Visible=true
   freeMenuMouse()

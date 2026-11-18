@@ -47,6 +47,7 @@ local function watchCharacter(p,character)
  humanoid.Died:Connect(function()
   -- Death ends this deployment. The menu LocalScript observes this attribute.
   p:SetAttribute("AlienBreachDeployed",false)
+  p:SetAttribute("AlienBreachSelectedMap","containment") -- Respawn in the command area, not the previous sector.
   p:SetAttribute("HasLegendaryLaser",false)
   p:SetAttribute("Weapon","pulse")
   event:FireClient(p,"returnHome")
