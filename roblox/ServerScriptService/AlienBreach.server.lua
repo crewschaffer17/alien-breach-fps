@@ -104,34 +104,47 @@ end
 for _,x in ipairs({76,92,106}) do
  for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
 end
--- Reactor Core: asymmetric ring of corridors surrounding a huge sunken experiment vault.
--- Unlike Research Lab this is a radial facility with a single monumental center.
-carve(120,4,171,7)       -- north service ring
-carve(120,38,171,41)     -- south service ring
-carve(120,7,124,38)      -- west perimeter ring
-carve(167,7,171,38)      -- east perimeter ring
-carve(126,10,165,34)     -- enormous central vault and viewing gallery
-carve(124,19,168,24)     -- east-west access
-carve(142,7,149,38)      -- north-south access
--- Side wings: each has a different footprint and distinct corridors.
-carve(125,9,138,16)      -- turbine diagnostics
-carve(154,9,166,17)      -- control observation
-carve(125,27,140,37)     -- coolant storage
-carve(152,28,166,37)     -- backup power
-carve(121,17,130,25)     -- west intake
-carve(160,18,170,26)     -- east exhaust
--- Divide the peripheral wings, leaving deliberate doorways.
-for y=10,16 do if y~=13 then cells[y][133]="1" end end
-for x=125,138 do if x~=130 then cells[13][x]="1" end end
-for y=28,37 do if y~=32 then cells[y][133]="1" end end
-for x=154,166 do if x~=160 then cells[33][x]="1" end end
--- Central experiment pit is a massive open arena (not a copy of lab rooms).
-carve(134,15,157,29)
--- Keep four wide approaches so aliens and players can reach the experiment.
-carve(142,7,149,18)
-carve(142,27,149,38)
-carve(124,20,138,24)
-carve(153,20,169,24)
+-- Reactor Core: connected perimeter hallways, enclosed utility rooms,
+-- and one vast central chamber. Walls are real map collision geometry.
+carve(120,4,171,7)     -- north corridor
+carve(120,38,171,41)   -- south corridor
+carve(120,7,123,38)    -- west corridor
+carve(168,7,171,38)   -- east corridor
+carve(143,7,148,38)   -- central north-south hallway
+carve(123,20,168,24)  -- central east-west hallway
+-- Four large, separate equipment rooms, each connected to a hallway.
+carve(126,10,139,17)  -- north-west turbine room
+carve(152,10,165,17)  -- north-east control room
+carve(126,28,139,35)  -- south-west coolant room
+carve(152,28,165,35)  -- south-east generator room
+-- Doorways between the outer ring and each equipment room.
+carve(128,7,131,10)
+carve(159,7,162,10)
+carve(128,35,131,38)
+carve(159,35,162,38)
+-- Doors leading from equipment rooms toward the central corridors.
+carve(137,16,143,18)
+carve(148,16,154,18)
+carve(137,25,143,29)
+carve(148,25,154,29)
+-- THE OMEGA VAULT: one huge uninterrupted central room with four entrances.
+carve(132,17,159,27)
+carve(138,14,153,30)
+-- Reinstate solid partitions between machinery rooms and outer corridors,
+-- leaving only the intentional four-tile door openings.
+for x=125,140 do
+ if x<128 or x>131 then cells[9][x]="1" end
+ if x<128 or x>131 then cells[36][x]="1" end
+end
+for x=151,166 do
+ if x<159 or x>162 then cells[9][x]="1" end
+ if x<159 or x>162 then cells[36][x]="1" end
+end
+-- Distinct service closets and side passages, not one continuous empty floor.
+carve(125,18,130,19)
+carve(161,18,166,19)
+carve(125,26,130,27)
+carve(161,26,166,27)
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
