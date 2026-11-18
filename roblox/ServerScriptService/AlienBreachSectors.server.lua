@@ -274,6 +274,39 @@ for _,x in ipairs({121,170}) do
    orange,Enum.Material.Neon)
  end
 end
+-- Hallway storytelling: organized wall-side service equipment, safety
+-- lighting, pipework, and signage. All nonblocking for combat and AI.
+local teal=Color3.fromRGB(77,222,231)
+for _,y in ipairs({5,39}) do
+ for x=126,166,8 do
+  -- Wall-mounted cabinets and instruments are lifted off the floor.
+  rp("Reactor hallway emergency equipment cabinet",x,y-1.35,8,
+   Vector3.new(5,8,1.5),Color3.fromRGB(86,104,114))
+  rp("Reactor hallway status screen",x,y-1.35,9,
+   Vector3.new(3,3,.2),teal,Enum.Material.Neon)
+  rp("Reactor hallway pipe clamp",x+3,y+1.4,12,
+   Vector3.new(1.1,1.1,4),orange)
+  rp("Reactor hallway overhead coolant pipe",x,y+1.45,13.5,
+   Vector3.new(18,1.3,1.3),steel)
+ end
+end
+for _,x in ipairs({121,170}) do
+ for y=11,35,6 do
+  rp("Reactor vertical power conduit",x+((x==121) and 1.25 or -1.25),y,10,
+   Vector3.new(1.2,12,1.2),steel)
+  rp("Reactor warning power indicator",x+((x==121) and 1.25 or -1.25),y,14,
+   Vector3.new(1.5,1.6,1.5),orange,Enum.Material.Neon)
+ end
+end
+-- Entrance gantries to the four utility rooms; ceiling-mounted so
+-- hallways remain open and alien navigation is unchanged.
+for _,p in ipairs({{129,9},{160,9},{129,36},{160,36}}) do
+ local x,y=p[1],p[2]
+ rp("Reactor utility entrance overhead gantry",x,y,15,
+  Vector3.new(23,2,2),Color3.fromRGB(106,117,124))
+ rp("Reactor utility entrance warning bar",x,y,13.8,
+  Vector3.new(17,.4,2),orange,Enum.Material.Neon)
+end
 -- Sunken chamber appearance: dark central basin and an elevated observation
 -- lip. The walkable collision plane remains flat for the existing alien AI.
 for x=137,154,3 do
@@ -315,17 +348,7 @@ for i=0,23 do
  local rim=rp("Omega observation railing",x,y,4,Vector3.new(7,3,.7),orange)
  rim.CFrame=CFrame.new(pos(x,y,4))*CFrame.Angles(0,-angle-math.pi/2,0)
 end
--- Four visual stairways face the orb; these are nonblocking until the
--- navigation system supports a real second elevation.
-for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
- for step=1,4 do
-  local dist=8+step*1.4
-  local x,y=cx+d[1]*dist,cy+d[2]*dist
-  local stair=rp("Omega descent step",x,y,1+step*.55,
-   Vector3.new(d[1]==0 and 15 or 7,.55,d[2]==0 and 15 or 7),
-   Color3.fromRGB(103,108,116),Enum.Material.DiamondPlate)
- end
-end
+-- Clear uninterrupted floor around Omega; removed the decorative fake stairs.
 -- Main experiment, centered and scaled to fit inside the vault.
 local shell=Instance.new("Part")
 shell.Name="EXPERIMENT OMEGA | Containment orb"
