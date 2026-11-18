@@ -252,7 +252,20 @@ local function free(x,y)
     return row ~= nil and row:sub(math.floor(x)+1,math.floor(x)+1) == "0"
 end
 -- Expanded 57x45 facility, retaining the original 35x27 section. Runs of walls are combined for performance.
-block("Industrial foundation",Vector3.new(#map[1]*TILE,1,#map*TILE),CFrame.new(pos(#map[1]/2,#map/2,-0.5)),metal)
+-- Leave a true opening under the Omega chamber; a separate lower
+-- collision floor and four physical stairways are built below.
+local OMEGA_X1,OMEGA_X2,OMEGA_Y1,OMEGA_Y2=132,159,14,30
+local OMEGA_DROP=8
+local function foundationRect(x1,x2,y1,y2)
+ block("Industrial foundation",Vector3.new((x2-x1+1)*TILE,1,(y2-y1+1)*TILE),
+  CFrame.new(pos((x1+x2-1)/2,(y1+y2-1)/2,-.5)),metal)
+end
+foundationRect(1,WIDTH,1,OMEGA_Y1-1)
+foundationRect(1,WIDTH,OMEGA_Y2+1,HEIGHT)
+foundationRect(1,OMEGA_X1-1,OMEGA_Y1,OMEGA_Y2)
+foundationRect(OMEGA_X2+1,WIDTH,OMEGA_Y1,OMEGA_Y2)
+block("Omega lowered collision floor",Vector3.new((OMEGA_X2-OMEGA_X1+1)*TILE,1,(OMEGA_Y2-OMEGA_Y1+1)*TILE),CFrame.new(pos((OMEGA_X1+OMEGA_X2-1)/2,(OMEGA_Y1+OMEGA_Y2-1)/2,-OMEGA_DROP-.5)),metal)
+
 for y,row in ipairs(map) do
     local x=1
     while x<=#row do
@@ -285,6 +298,46 @@ for y=14,30 do
   end
  end
 end
+-- Full-height vault perimeter walls, including boundaries outside the
+-- original high-room rectangle. Open entry passages remain unobstructed.
+for y=OMEGA_Y1-1,OMEGA_Y2+1 do
+ for x=OMEGA_X1-1,OMEGA_X2+1 do
+  if map[y] and map[y]:sub(x,x)=="1" then
+   local touches=false
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    local nx,ny=x+d[1],y+d[2]
+    if nx>=OMEGA_X1 and nx<=OMEGA_X2 and ny>=OMEGA_Y1 and ny<=OMEGA_Y2
+      and map[ny] and map[ny]:sub(nx,nx)=="0" then touches=true end
+   end
+   if touches then
+    block("Omega vault wall to ceiling",Vector3.new(TILE,48+OMEGA_DROP,TILE),
+     CFrame.new(pos(x-.5,y-.5,(66+18-OMEGA_DROP)/2)),
+     Color3.fromRGB(94,46,35))
+   end
+  end
+ end
+end
+-- Physical steps: 8 studs wide, 1 stud riser each, anchored and collidable.
+-- Four flights descend from the upper passages into the 8-stud-deep vault.
+local function stairFlight(startX,startY,dx,dy)
+ for i=1,8 do
+  local x=startX+dx*(i-1)
+  local y=startY+dy*(i-1)
+  local top=-i
+  local step=block("Omega WALKABLE stair "..i,
+   Vector3.new(dx~=0 and TILE or TILE*3,1,dy~=0 and TILE or TILE*3),
+   CFrame.new(pos(x-.5,y-.5,top-.5)),
+   Color3.fromRGB(113,69,45),Enum.Material.DiamondPlate)
+  step.CanCollide=true
+  local stripe=block("Omega stair tread amber marker",Vector3.new(dx~=0 and .6 or TILE*2.7,.08,dy~=0 and .6 or TILE*2.7),
+   CFrame.new(pos(x-.5,y-.5,top+.06)),Color3.fromRGB(255,174,57),Enum.Material.Neon)
+  stripe.CanCollide=false;stripe.CanQuery=false
+ end
+end
+stairFlight(145,14,0,1)
+stairFlight(145,30,0,-1)
+stairFlight(132,22,1,0)
+stairFlight(159,22,-1,0)
 -- Industrial grating copied from the original browser game's floor design:
 -- framed steel panels, dark recessed channels, silver raised ribs.
 -- Use anchored Parts with no collision for decorative details.
