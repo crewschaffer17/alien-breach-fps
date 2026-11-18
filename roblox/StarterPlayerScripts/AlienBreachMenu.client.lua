@@ -3,13 +3,22 @@ local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
 local UIS=game:GetService("UserInputService")
 local player=Players.LocalPlayer
-local event=RS:WaitForChild("AlienBreachMenuEvent")
+local event=RS:WaitForChild("AlienBreachMenuEvent",30)
+-- Render a visible startup screen even if the server has not finished loading.
 local gui=Instance.new("ScreenGui")
 gui.Name="AlienBreachHome"
 gui.ResetOnSpawn=false
 gui.IgnoreGuiInset=true
 gui.DisplayOrder=100
 gui.Parent=player:WaitForChild("PlayerGui")
+local startup=Instance.new("TextLabel")
+startup.Name="StartupStatus"
+startup.Size=UDim2.fromScale(1,1)
+startup.BackgroundColor3=Color3.fromRGB(6,14,19)
+startup.TextColor3=Color3.fromRGB(105,232,167)
+startup.TextScaled=true
+startup.Text="ALIEN BREACH FPS  /  LOADING COMMAND..."
+startup.Parent=gui
 local C={bg=Color3.fromRGB(6,14,19),panel=Color3.fromRGB(13,32,34),edge=Color3.fromRGB(58,116,98),green=Color3.fromRGB(105,232,167),white=Color3.fromRGB(223,246,235),muted=Color3.fromRGB(155,184,177),gold=Color3.fromRGB(250,214,125)}
 local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={},maps={containment=true},selectedMap="containment"}
 local function make(class,parent,props)
@@ -120,6 +129,7 @@ local function homeCard(heading,description,action)
  button(card,"ACCESS  ▶",action)
 end
 homeCard("▶  DEPLOY","Enter the breach. Survive the unknown.",function()
+ if not event then return end
  event:FireServer("deploy")
  backdrop.Visible=false
  player.CameraMode=Enum.CameraMode.LockFirstPerson
@@ -413,4 +423,5 @@ freeMenuMouse()
 show("Home")
 render()
 hideHUD()
-event:FireServer("sync")
+startup:Destroy()
+if event then event:FireServer("sync") end
