@@ -146,6 +146,23 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   local chosen=d.slots[1]
   if not d.owned[chosen] then chosen="pulse" end
   p:SetAttribute("Weapon",chosen)
+  -- A deployment always starts in the selected facility, never at an arbitrary
+  -- Roblox default spawn or at the position left over from the previous run.
+  local character=p.Character
+  local humanoid=character and character:FindFirstChildOfClass("Humanoid")
+  if not character or not humanoid or humanoid.Health<=0 then
+   event:FireClient(p,"notice","WAIT FOR RESPAWN BEFORE DEPLOYING")
+   return
+  end
+  if d.selectedMap=="containment" then
+   local root=workspace:FindFirstChild("AlienBreachRoblox")
+   local startingRoom=root and root:FindFirstChild("Starting Room Spawn")
+   if not startingRoom then
+    event:FireClient(p,"notice","FACILITY STILL LOADING")
+    return
+   end
+   character:PivotTo(startingRoom.CFrame*CFrame.new(0,4,0))
+  end
   p:SetAttribute("AlienBreachSelectedMap",d.selectedMap)
   p:SetAttribute("AlienBreachDeployed",true)
   d.stats.games+=1
