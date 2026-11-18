@@ -1194,7 +1194,9 @@ local function makeAlien(x,y,kind,wave)
     return model
 end
 local wave=0
-local function spawnWave(number)
+local sectorWaves={containment=0,research=0,reactor=0}
+local lastWaveSector=nil
+local function spawnWave(number,selectedSector)
     -- ONE shared spawn-count curve for Containment, Research Lab and Reactor Core.
     -- Wave 1 is exactly 9 normal aliens; later waves follow Reactor Core's
     -- existing 15%-reduced scaling. Bosses are added separately on waves 3,6,...
@@ -1206,7 +1208,6 @@ local function spawnWave(number)
     end
     local spawned=0
     local bossWave=number%3==0
-    local selectedSector=activeChestSector()
     local minX,maxX=2,55
     local minY,maxY=3,43
     if selectedSector=="research" then minX,maxX=68,111;maxY=41
@@ -1265,30 +1266,59 @@ local function clearEmptySectors()
  end
  return occupied
 end
--- A breach starts only after all aliens from the preceding wave are eliminated.
+-- Each sector keeps its own progression. Moving to Research Lab cannot
+-- inherit Wave 3 (20 aliens) from Containment or another sector.
+-- The existing shared HUD follows the currently active sector.
 task.spawn(function()
     while root.Parent do
         local occupied=clearEmptySectors()
         local hasDeployed=occupied.containment or occupied.research or occupied.reactor
+        local selectedSector=activeChestSector()
         if not hasDeployed then
-            task.wait(.5)
-        elseif #enemies:GetChildren()==0 then
-            breachIntermission=true
-            alarm:Play()
-            for remaining=7,1,-1 do
-                timerValue.Value=remaining
-                task.wait(1)
-                if not root.Parent then return end
-            end
+            -- New deployment sessions always begin at Wave 1.
+            for sector in pairs(sectorWaves) do sectorWaves[sector]=0 end
+            lastWaveSector=nil
+            wave=0;waveValue.Value=0;aliveValue.Value=0
             timerValue.Value=0
-            wave+=1
-            waveValue.Value=wave
-            spawnWave(wave)
-            breachIntermission=false
-            alarm:Stop()
+            task.wait(.5)
         else
-            aliveValue.Value=#enemies:GetChildren()
-            task.wait(0.4)
+            if lastWaveSector~=selectedSector then
+                -- Sector switching must not carry the old sector's enemies
+                -- or wave number into the newly selected sector.
+                for _,alien in ipairs(enemies:GetChildren()) do alien:Destroy() end
+                lastWaveSector=selectedSector
+                wave=sectorWaves[selectedSector]
+                waveValue.Value=wave
+                aliveValue.Value=0
+            end
+            if #enemies:GetChildren()==0 then
+                breachIntermission=true
+                alarm:Play()
+                local interrupted=false
+                for remaining=7,1,-1 do
+                    timerValue.Value=remaining
+                    task.wait(1)
+                    if not root.Parent then return end
+                    local current=clearEmptySectors()
+                    if not (current.containment or current.research or current.reactor)
+                      or activeChestSector()~=selectedSector then
+                        interrupted=true
+                        break
+                    end
+                end
+                timerValue.Value=0
+                if not interrupted then
+                    sectorWaves[selectedSector]+=1
+                    wave=sectorWaves[selectedSector]
+                    waveValue.Value=wave
+                    spawnWave(wave,selectedSector)
+                end
+                breachIntermission=false
+                alarm:Stop()
+            else
+                aliveValue.Value=#enemies:GetChildren()
+                task.wait(.4)
+            end
         end
     end
 end)
