@@ -169,24 +169,46 @@ carve(126,18,130,19)    -- west diagnostics annex
 carve(161,18,166,19)    -- east diagnostics annex
 carve(126,26,130,27)    -- west pump annex
 carve(161,26,166,27)    -- east pump annex
--- Alien Nest: 78-tile-long hive (1.5x the 52-tile Reactor footprint).
--- Twisting connected galleries, egg caverns and three possible queen sanctums.
-carve(181,5,257,8)
-carve(181,37,257,40)
-carve(181,8,185,37)
-carve(253,8,257,37)
-carve(216,8,221,37)
-carve(185,20,253,24)
-for _,room in ipairs({
- {188,10,204,18},{207,10,229,18},{233,10,250,18},
- {188,27,204,35},{207,27,229,35},{233,27,250,35},
- {190,17,200,28},{209,16,228,29},{237,17,248,28}
-}) do carve(room[1],room[2],room[3],room[4]) end
-for _,door in ipairs({
- {192,8,196,12},{216,8,221,12},{241,8,245,12},
- {192,33,196,37},{216,33,221,37},{241,33,245,37},
- {202,16,209,19},{228,16,235,19},{202,26,209,29},{228,26,235,29}
-}) do carve(door[1],door[2],door[3],door[4]) end
+-- Alien Nest: a continuous, winding subterranean burrow, not rectangular rooms.
+-- 78x38 tile footprint: 1.5x Reactor's length, with three secluded queen dens.
+local function burrow(cx,cy,rx,ry)
+ for yy=math.max(3,math.floor(cy-ry)),math.min(42,math.ceil(cy+ry)) do
+  for xx=math.max(181,math.floor(cx-rx)),math.min(257,math.ceil(cx+rx)) do
+   local dx=(xx-cx)/rx
+   local dy=(yy-cy)/ry
+   local wobble=.09*math.sin(xx*.59+yy*.27)+.06*math.cos(xx*.31-yy*.62)
+   if dx*dx+dy*dy<=1+wobble then cells[yy][xx]="0" end
+  end
+ end
+end
+local function tunnel(x1,y1,x2,y2,radius)
+ local steps=math.max(math.abs(x2-x1),math.abs(y2-y1))*2
+ for i=0,steps do
+  local t=i/steps
+  local x=x1+(x2-x1)*t+math.sin(t*math.pi*2)*1.4
+  local y=y1+(y2-y1)*t+math.sin(t*math.pi*3)*1.1
+  burrow(x,y,radius,radius*.78)
+ end
+end
+-- Main winding spine and branching return loops.
+for _,v in ipairs({
+ {185,7,195,14,3.4},{195,14,208,9,3.2},{208,9,219,7,3.4},
+ {219,7,231,14,3.4},{231,14,245,12,3.5},{245,12,253,21,3.4},
+ {253,21,243,31,3.5},{243,31,228,36,3.3},{228,36,216,34,3.4},
+ {216,34,202,35,3.4},{202,35,187,29,3.3},{187,29,185,7,3.3},
+ {195,14,208,23,3.2},{208,23,218,22,3.6},{218,22,231,24,3.5},
+ {231,24,243,31,3.3},{208,23,202,35,3.0},{218,22,216,34,3.2},
+ {231,14,231,24,3.2},{195,14,187,29,3.1}
+}) do tunnel(v[1],v[2],v[3],v[4],v[5]) end
+-- Irregular incubation caverns, fungal groves and the three queen dens.
+for _,v in ipairs({
+ {195,14,8.2,6.5},{218,22,10.3,8.3},{243,31,8.6,7},
+ {207,9,6.5,5.1},{234,12,6.2,5.2},{188,29,6.3,5.5},
+ {202,35,7.4,5.0},{228,36,7.2,4.8},{252,21,5.2,7.0},
+ {219,7,6.3,4.1}
+}) do burrow(v[1],v[2],v[3],v[4]) end
+-- Dedicated, safely walkable entry pocket.
+burrow(219,6,5,3)
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
@@ -279,10 +301,16 @@ local function foundationRect(x1,x2,y1,y2)
  block("Industrial foundation",Vector3.new((x2-x1+1)*TILE,1,(y2-y1+1)*TILE),
   CFrame.new(pos((x1+x2-1)/2,(y1+y2-1)/2,-.5)),metal)
 end
-foundationRect(1,WIDTH,1,OMEGA_Y1-1)
-foundationRect(1,WIDTH,OMEGA_Y2+1,HEIGHT)
+foundationRect(1,NEST_START-1,1,OMEGA_Y1-1)
+foundationRect(1,NEST_START-1,OMEGA_Y2+1,HEIGHT)
 foundationRect(1,OMEGA_X1-1,OMEGA_Y1,OMEGA_Y2)
-foundationRect(OMEGA_X2+1,WIDTH,OMEGA_Y1,OMEGA_Y2)
+foundationRect(OMEGA_X2+1,NEST_START-1,OMEGA_Y1,OMEGA_Y2)
+-- One single, collidable grassy hive floor instead of thousands of tiles.
+local nestGround=block("ALIEN NEST continuous overgrown floor",
+ Vector3.new((WIDTH-NEST_START+1)*TILE,1,HEIGHT*TILE),
+ CFrame.new(pos((NEST_START+WIDTH-1)/2,(HEIGHT-1)/2,-.5)),
+ Color3.fromRGB(49,91,43),Enum.Material.Grass)
+nestGround.CastShadow=false
 block("Omega lowered collision floor",Vector3.new((OMEGA_X2-OMEGA_X1+1)*TILE,1,(OMEGA_Y2-OMEGA_Y1+1)*TILE),CFrame.new(pos((OMEGA_X1+OMEGA_X2-1)/2,(OMEGA_Y1+OMEGA_Y2-1)/2,-OMEGA_DROP-.5)),metal)
 
 for y,row in ipairs(map) do
@@ -294,7 +322,7 @@ for y,row in ipairs(map) do
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
-                 first>=NEST_START and Color3.fromRGB(31,62,37) or first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
+                 first>=NEST_START and Color3.fromRGB(29,55,32) or first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
 end
