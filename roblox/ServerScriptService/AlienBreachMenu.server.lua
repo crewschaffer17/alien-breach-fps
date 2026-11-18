@@ -47,6 +47,8 @@ local function watchCharacter(p,character)
  humanoid.Died:Connect(function()
   -- Death ends this deployment. The menu LocalScript observes this attribute.
   p:SetAttribute("AlienBreachDeployed",false)
+  -- The next character starts at command; selecting a sector deploys it explicitly.
+  p:SetAttribute("AlienBreachSelectedMap","containment")
   p:SetAttribute("HasLegendaryLaser",false)
   p:SetAttribute("Weapon","pulse")
   event:FireClient(p,"returnHome")
