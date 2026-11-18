@@ -344,10 +344,33 @@ local light=Instance.new("PointLight")
 light.Color=violet;light.Brightness=5;light.Range=100;light.Shadows=false;light.Parent=core
 local particles=Instance.new("ParticleEmitter")
 particles.Name="Contained plasma"
-particles.Rate=28;particles.Lifetime=NumberRange.new(.3,.8)
-particles.Speed=NumberRange.new(2,7);particles.SpreadAngle=Vector2.new(180,180)
+particles.Rate=220;particles.Lifetime=NumberRange.new(1.1,2.4)
+particles.Speed=NumberRange.new(10,25);particles.SpreadAngle=Vector2.new(180,180)
 particles.Color=ColorSequence.new(violet,Color3.fromRGB(84,219,255))
-particles.Size=NumberSequence.new(1.4,0);particles.LightEmission=1;particles.Parent=core
+particles.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,3),NumberSequenceKeypoint.new(.35,5),NumberSequenceKeypoint.new(1,0)});particles.LightEmission=1;particles.Parent=core
+-- Clean landmark architecture in the four broad access corridors.
+for _,p in ipairs({{145,10},{145,35},{127,22},{164,22}}) do
+ local x,y=p[1],p[2]
+ rp("Reactor access gateway left",x-2,y,8,Vector3.new(2,16,2),steel)
+ rp("Reactor access gateway right",x+2,y,8,Vector3.new(2,16,2),steel)
+ rp("Reactor access gateway illuminated header",x,y,15.5,
+  Vector3.new(34,1.2,2),Color3.fromRGB(86,185,218),Enum.Material.Neon)
+end
+-- Additional highly visible plasma sparks orbit the glass containment vessel.
+for i=1,8 do
+ local angle=i*math.pi/4
+ local x,y=cx+math.cos(angle)*3,cy+math.sin(angle)*3
+ local spark=rp("Omega ion discharge emitter",x,y,35,Vector3.new(1.5,1.5,1.5),
+  Color3.fromRGB(93,221,255),Enum.Material.Neon)
+ local e=Instance.new("ParticleEmitter")
+ e.Name="Visible plasma arcs";e.Rate=36
+ e.Lifetime=NumberRange.new(.5,1.2);e.Speed=NumberRange.new(8,19)
+ e.SpreadAngle=Vector2.new(180,180)
+ e.Size=NumberSequence.new(2.8,0)
+ e.LightEmission=1
+ e.Color=ColorSequence.new(Color3.fromRGB(87,225,255),violet)
+ e.Parent=spark
+end
 for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
  rp("Omega containment pillar",p[1],p[2],9,Vector3.new(4,18,4),steel)
  rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
