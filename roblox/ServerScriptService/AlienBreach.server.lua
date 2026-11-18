@@ -154,6 +154,20 @@ carve(125,18,130,19)
 carve(161,18,166,19)
 carve(125,26,130,27)
 carve(161,26,166,27)
+-- Expanded reactor service wings: additional rooms and looped hallways
+-- inside the sector's existing reserved footprint, away from other maps.
+carve(125,8,139,8)      -- north-west service gallery
+carve(152,8,166,8)      -- north-east service gallery
+carve(125,37,139,37)    -- south-west service gallery
+carve(152,37,166,37)    -- south-east service gallery
+carve(125,10,125,17)    -- west utility passage
+carve(166,10,166,17)    -- east utility passage
+carve(125,28,125,35)    -- lower west utility passage
+carve(166,28,166,35)    -- lower east utility passage
+carve(126,18,130,19)    -- west diagnostics annex
+carve(161,18,166,19)    -- east diagnostics annex
+carve(126,26,130,27)    -- west pump annex
+carve(161,26,166,27)    -- east pump annex
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
