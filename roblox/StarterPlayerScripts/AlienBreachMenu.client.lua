@@ -11,7 +11,7 @@ gui.IgnoreGuiInset=true
 gui.DisplayOrder=100
 gui.Parent=player:WaitForChild("PlayerGui")
 local C={bg=Color3.fromRGB(6,14,19),panel=Color3.fromRGB(13,32,34),edge=Color3.fromRGB(58,116,98),green=Color3.fromRGB(105,232,167),white=Color3.fromRGB(223,246,235),muted=Color3.fromRGB(155,184,177),gold=Color3.fromRGB(250,214,125)}
-local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={}}
+local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={},maps={containment=true},selectedMap="containment"}
 local function make(class,parent,props)
  local o=Instance.new(class)
  for k,v in pairs(props or {}) do o[k]=v end
@@ -154,11 +154,28 @@ end
 local sectorCredits=topbar(sectors,"ALIEN BREACH  /  SECTOR ACCESS")
 local sectorScroll=make("ScrollingFrame",sectors,{Position=UDim2.fromOffset(0,72),Size=UDim2.new(1,0,1,-128),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=6,CanvasSize=UDim2.fromScale(0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
 make("UIGridLayout",sectorScroll,{CellSize=UDim2.new(.47,0,0,160),CellPadding=UDim2.new(.03,0,0,12),SortOrder=Enum.SortOrder.LayoutOrder})
-for _,entry in ipairs({{"CONTAINMENT WING","CURRENT MAP  •  FREE"},{"RESEARCH LAB","2,500 CREDITS  •  COMING SOON"},{"REACTOR CORE","5,000 CREDITS  •  COMING SOON"},{"ALIEN NEST","8,500 CREDITS  •  COMING SOON"}}) do
+local sectorButtons={}
+for _,entry in ipairs({
+ {"containment","CONTAINMENT WING",0,"ORIGINAL FACILITY"},
+ {"research","RESEARCH LAB",2500,"EXPERIMENTAL CONTAINMENT"},
+ {"reactor","REACTOR CORE",5000,"HIGH VOLTAGE GENERATORS"},
+ {"nest","ALIEN NEST",8500,"INFESTED HIVE"}
+}) do
+ local id,name,price,description=entry[1],entry[2],entry[3],entry[4]
  local card=make("Frame",sectorScroll,{BackgroundColor3=C.panel,BorderSizePixel=0})
  round(card,9);stroke(card)
- local h=text(card,entry[1],21,C.green,true);h.Position=UDim2.fromScale(.07,.12);h.Size=UDim2.fromScale(.86,.3)
- local info=text(card,entry[2],15,C.gold,true);info.Position=UDim2.fromScale(.07,.58);info.Size=UDim2.fromScale(.86,.27)
+ local h=text(card,name,20,C.green,true);h.Position=UDim2.fromScale(.07,.07);h.Size=UDim2.fromScale(.86,.24)
+ local info=text(card,description,13,C.muted);info.Position=UDim2.fromScale(.07,.32);info.Size=UDim2.fromScale(.86,.18)
+ local b=make("TextButton",card,{Text="LOADING",Font=Enum.Font.SciFi,TextScaled=true,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(.07,.67),Size=UDim2.fromScale(.86,.26)})
+ round(b,6)
+ b.Activated:Connect(function()
+  if (state.maps or {})[id] then
+   event:FireServer("selectMap",id)
+  else
+   event:FireServer("buyMap",id)
+  end
+ end)
+ sectorButtons[id]={button=b,price=price}
 end
 local progressState={xp=0,rank="RECRUIT",nextXP=125,levels={}}
 local progressEvent=nil
@@ -199,6 +216,12 @@ render=function()
  shopCredits.Text="CREDITS: "..tostring(state.credits)
  loadCredits.Text=shopCredits.Text
  sectorCredits.Text=shopCredits.Text
+ for id,entry in pairs(sectorButtons) do
+  local owned=(state.maps or {})[id]
+  local selected=state.selectedMap==id
+  entry.button.Text=selected and "SELECTED" or owned and "SELECT SECTOR" or ("UNLOCK  •  "..entry.price.." CREDITS")
+  entry.button.BackgroundColor3=selected and C.muted or owned and C.green or C.gold
+ end
  local st=state.stats or {}
  statsBody.Text="RANK: "..tostring(progressState.rank).."\nXP: "..tostring(progressState.xp).." / "..tostring(progressState.nextXP).."\n\nGAMES: "..tostring(st.games or 0).."\n\nKILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
  for _,p in ipairs(catalog) do
