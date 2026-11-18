@@ -1,141 +1,164 @@
--- Alien Breach playable sector wings.
--- Add as a NEW Script in ServerScriptService.
--- Uses the original map, aliens, wave manager and weapons; does not rebuild them.
+-- Alien Breach: separate Research Lab map (stage 1).
+-- Requires the updated AlienBreach.server.lua floorplan. Leave Reactor/Nest for later.
 local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
-local mapValue=RS:WaitForChild("AlienBreachMap")
+local map=string.split(RS:WaitForChild("AlienBreachMap").Value,"\n")
 local root=workspace:WaitForChild("AlienBreachRoblox")
 local TILE=8
-local map=string.split(mapValue.Value,"\n")
-local width=#map[1]
-local height=#map
-local sectors={
- containment={x=18,y=18,name="CONTAINMENT WING"},
- research={x=45,y=7,name="RESEARCH LAB"},
- reactor={x=45,y=19,name="REACTOR CORE"},
- nest={x=45,y=36,name="ALIEN NEST"}
-}
+local W,H=#map[1],#map
+local research={x=89,y=15}
 local decor=Instance.new("Folder")
-decor.Name="PlayableSectorDecor"
+decor.Name="ResearchLabEnvironment"
 decor.Parent=root
-local function position(x,y,h)
- return Vector3.new((x-.5-width/2)*TILE,h or 0,(y-.5-height/2)*TILE)
+local function pos(x,y,h)
+ return Vector3.new((x-W/2)*TILE,h or 0,(y-H/2)*TILE)
 end
 local function open(x,y)
- return map[y] and map[y]:sub(x,x)=="0"
+ local row=map[y]
+ return row~=nil and row:sub(x,x)=="0"
 end
-local function safeTile(x,y)
- if open(x,y) then return x,y end
- for radius=1,10 do
-  for dy=-radius,radius do
-   for dx=-radius,radius do
-    if open(x+dx,y+dy) then return x+dx,y+dy end
-   end
-  end
- end
- return 4,5
-end
-local function part(name,x,y,offset,size,color,material,transparency)
+local function part(name,x,y,h,size,color,material,collide)
  local p=Instance.new("Part")
  p.Name=name
  p.Size=size
+ p.CFrame=CFrame.new(pos(x,y,h))
  p.Anchored=true
- p.CanCollide=false
+ p.CanCollide=collide==true
  p.CanTouch=false
- p.CanQuery=false
+ p.CanQuery=collide==true
  p.CastShadow=false
- p.Color=color
  p.Material=material or Enum.Material.Metal
- p.Transparency=transparency or 0
- p.CFrame=CFrame.new(position(x,y,offset))
+ p.Color=color
  p.Parent=decor
  return p
 end
-local function glow(p,color,range,brightness)
- local light=Instance.new("PointLight")
- light.Color=color
- light.Range=range or 25
- light.Brightness=brightness or 1
- light.Shadows=false
- light.Parent=p
+local function light(p,color,brightness,range)
+ local l=Instance.new("PointLight")
+ l.Color=color;l.Brightness=brightness;l.Range=range;l.Shadows=false;l.Parent=p
 end
-local function sign(x,y,label,color)
- local anchor=part(label.." directory",x,y,9,Vector3.new(7,2.7,.5),Color3.fromRGB(14,28,36))
- local surface=Instance.new("SurfaceGui")
- surface.Face=Enum.NormalId.Front
- surface.AlwaysOnTop=true
- surface.PixelsPerStud=32
- surface.Parent=anchor
+local cyan=Color3.fromRGB(65,227,241)
+local red=Color3.fromRGB(249,60,75)
+local steel=Color3.fromRGB(30,54,71)
+local floor=Color3.fromRGB(38,51,61)
+local glass=Color3.fromRGB(88,180,203)
+local function sign(x,y,message,color)
+ local p=part("LAB SIGN / "..message,x,y,10,Vector3.new(12,3,.35),Color3.fromRGB(7,19,29))
+ local sg=Instance.new("SurfaceGui")
+ sg.Face=Enum.NormalId.Front;sg.CanvasSize=Vector2.new(600,150);sg.LightInfluence=0;sg.Parent=p
  local t=Instance.new("TextLabel")
- t.Size=UDim2.fromScale(1,1)
- t.BackgroundTransparency=1
- t.Font=Enum.Font.SciFi
- t.TextScaled=true
- t.TextColor3=color
- t.Text=label
- t.Parent=surface
+ t.Size=UDim2.fromScale(1,1);t.BackgroundTransparency=1;t.Text=message
+ t.TextColor3=color;t.Font=Enum.Font.SciFi;t.TextScaled=true;t.Parent=sg
 end
-local function nearestOpen(x,y)
- return safeTile(x,y)
-end
--- Sector landmarks are placed only on walkable floor tiles. Decorations do not
--- collide with players, shots or alien pathfinding.
-local function research()
- local color=Color3.fromRGB(68,237,235)
- for _,p in ipairs({{40,5},{46,5},{52,5},{40,9},{46,9},{52,9}}) do
-  local x,y=nearestOpen(p[1],p[2])
-  local base=part("Research cryo pod base",x,y,1,Vector3.new(4.5,2,4.5),Color3.fromRGB(38,77,88))
-  local glass=part("Research glowing specimen tube",x,y,6.8,Vector3.new(3,10,3),color,Enum.Material.Glass,.68)
-  local core=part("Research specimen hologram",x,y,6,Vector3.new(.8,6,.8),color,Enum.Material.Neon,.24)
-  glow(core,color,22,.7)
+-- Unlike the original dirty ceramic grid, this map has large charcoal
+-- hex-like metal deck panels, glowing seam lines and high-tech floor grilles.
+-- Group tiles into two-by-two blocks to reduce the part count on phones.
+for y=3,42,2 do
+ for x=67,112,2 do
+  if open(x,y) then
+   local cx,cy=x-.5,y-.5
+   part("Research dark alloy deck",cx,cy,.23,Vector3.new(15.6,.42,15.6),
+    ((x+y)%7==0) and Color3.fromRGB(54,67,76) or floor,Enum.Material.DiamondPlate)
+   if x%6==1 then
+    local strip=part("Floor cyan guiding strip",cx,cy,.47,Vector3.new(.16,.04,14),cyan,Enum.Material.Neon)
+    strip.Transparency=.18
+   end
+   if (x*7+y*11)%13==0 then
+    part("Broken floor hazard plate",cx,cy,.49,Vector3.new(5,.07,4),Color3.fromRGB(105,61,52),Enum.Material.CorrodedMetal)
+   end
+  end
  end
- sign(45,7,"RESEARCH LAB",color)
 end
-local function reactor()
- local color=Color3.fromRGB(255,164,58)
- for _,p in ipairs({{40,17},{46,17},{52,17},{40,22},{46,22},{52,22}}) do
-  local x,y=nearestOpen(p[1],p[2])
-  part("Reactor armored pedestal",x,y,1.5,Vector3.new(5,3,5),Color3.fromRGB(78,65,56))
-  local core=part("Reactor hot plasma core",x,y,7,Vector3.new(2.5,8,2.5),color,Enum.Material.Neon,.22)
-  part("Reactor upper heat sink",x,y,12,Vector3.new(5,2,5),Color3.fromRGB(96,91,88))
-  glow(core,color,27,1)
+-- Architectural wall treatment: black composite ribs, bright edge trims,
+-- frosted observation windows, red hazard bulkheads and fractured panels.
+for y=4,41,2 do
+ for x=68,111,2 do
+  if open(x,y) then
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    if not open(x+d[1],y+d[2]) then
+     local wx,wy=x-.5+d[1]*.5,y-.5+d[2]*.5
+     local side=d[1]~=0
+     part("Research composite wall cladding",wx,wy,9,
+      side and Vector3.new(.3,16,7) or Vector3.new(7,16,.3),steel)
+     local edge=part("Wall cyan power conduit",wx,wy,15.5,
+      side and Vector3.new(.38,.25,7) or Vector3.new(7,.25,.38),cyan,Enum.Material.Neon)
+     edge.Transparency=.12
+    end
+   end
+  end
  end
- sign(45,19,"REACTOR CORE",color)
 end
-local function nest()
- local color=Color3.fromRGB(182,61,225)
- for _,p in ipairs({{40,32},{46,32},{52,32},{40,39},{46,39},{52,39}}) do
-  local x,y=nearestOpen(p[1],p[2])
-  local base=part("Hive fungal spread",x,y,.35,Vector3.new(7,.5,7),Color3.fromRGB(91,35,87),Enum.Material.Slate,.25)
-  local egg=part("Alien nest egg",x,y,3.7,Vector3.new(3.6,6,3.6),Color3.fromRGB(107,35,122),Enum.Material.Glass,.22)
-  egg.Shape=Enum.PartType.Ball
-  local core=part("Hive bioluminescence",x,y,4,Vector3.new(1.2,2.6,1.2),color,Enum.Material.Neon,.15)
-  core.Shape=Enum.PartType.Ball
-  glow(core,color,24,.65)
+-- Distinctive overhead construction: dark suspended ceiling bays,
+-- exposed crossbeams, bright hanging surgical lights and damaged sections.
+for y=5,41,4 do
+ for x=69,111,4 do
+  if open(x,y) then
+   part("Suspended laboratory ceiling cassette",x-.5,y-.5,17.6,
+    Vector3.new(22,.3,22),Color3.fromRGB(13,28,40))
+   part("Ceiling ventilation truss",x-.5,y-.5,17.15,
+    Vector3.new(20,.45,1.1),Color3.fromRGB(73,96,112))
+   local lamp=part("Hanging cyan laboratory light",x-.5,y-.5,16.5,
+    Vector3.new(8,.32,1.3),cyan,Enum.Material.Neon)
+   light(lamp,cyan,1.2,38)
+   if (x+y)%3==0 then
+    local warning=part("Emergency red strobe",x+1,y-.5,16.3,
+     Vector3.new(1,.3,1),red,Enum.Material.Neon)
+    light(warning,red,.7,18)
+   end
+  end
  end
- sign(45,36,"ALIEN NEST",color)
 end
-research()
-reactor()
-nest()
-local function deployToSector(player)
+-- Huge central containment tanks and research benches. All display parts
+-- are non-collidable so enemies retain clear paths and no player gets stuck.
+for _,p in ipairs({{83,11},{89,11},{95,11},{83,17},{89,17},{95,17}}) do
+ local x,y=p[1],p[2]
+ if open(x,y) then
+  part("Specimen pod reinforced foundation",x-.5,y-.5,1,Vector3.new(6,2,6),steel)
+  local tube=part("CRYO / GLASS CONTAINMENT CYLINDER",x-.5,y-.5,8,
+   Vector3.new(5,12,5),glass,Enum.Material.Glass)
+  tube.Shape=Enum.PartType.Cylinder;tube.Transparency=.65
+  local fluid=part("Suspended alien specimen",x-.5,y-.5,7,
+   Vector3.new(2.5,6,2.5),Color3.fromRGB(57,168,142),Enum.Material.Glass)
+  fluid.Shape=Enum.PartType.Ball;fluid.Transparency=.22
+  part("Cryo pod overhead seal",x-.5,y-.5,14.3,Vector3.new(6,1.4,6),steel)
+  local ring=part("Specimen diagnostic ring",x-.5,y-.5,15.2,Vector3.new(6,.3,6),cyan,Enum.Material.Neon)
+  light(ring,cyan,.8,20)
+ end
+end
+for _,p in ipairs({{70,12},{78,17},{103,12},{109,17},{70,30},{80,37},{89,32},{96,37},{104,30},{110,37}}) do
+ local x,y=p[1],p[2]
+ if open(x,y) then
+  part("Research workstation",x-.5,y-.5,2.4,Vector3.new(5,1,3),Color3.fromRGB(64,83,98))
+  local screen=part("Flickering holographic terminal",x-.5,y-.5,4.2,
+   Vector3.new(4,2,.3),cyan,Enum.Material.Neon)
+  screen.Transparency=.28
+ end
+end
+for _,p in ipairs({{70,6},{97,6},{72,23},{103,23},{70,39},{97,39}}) do
+ local x,y=p[1],p[2]
+ if open(x,y) then
+  local spill=part("Containment breach chemical spill",x-.5,y-.5,.53,
+   Vector3.new(5,.08,5),Color3.fromRGB(79,165,119),Enum.Material.Neon)
+  spill.Transparency=.48
+  part("Shattered observation glass",x-.5,y-.5,1.2,
+   Vector3.new(3,.08,1.5),Color3.fromRGB(122,195,205),Enum.Material.Glass)
+ end
+end
+sign(89,7,"PROJECT ECHO // RESEARCH LAB",cyan)
+sign(90,23,"BIOHAZARD // CONTAINMENT FAILURE",red)
+sign(90,39,"EVACUATE // EXPERIMENTAL WING",red)
+local function teleport(player)
  if not player:GetAttribute("AlienBreachDeployed") then return end
- local id=player:GetAttribute("AlienBreachSelectedMap") or "containment"
- local sector=sectors[id] or sectors.containment
+ if player:GetAttribute("AlienBreachSelectedMap")~="research" then return end
  local character=player.Character
- local hrp=character and character:FindFirstChild("HumanoidRootPart")
- if not hrp then return end
- local x,y=safeTile(sector.x,sector.y)
- -- Elevate above the floor and allow Roblox's collision solver to settle.
- character:PivotTo(CFrame.new(position(x,y,5)))
+ if not character then return end
+ local hrp=character:FindFirstChild("HumanoidRootPart")
+ if hrp then character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5))) end
 end
 local function track(player)
  player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(function()
-  if player:GetAttribute("AlienBreachDeployed") then
-   task.defer(deployToSector,player)
-  end
+  if player:GetAttribute("AlienBreachDeployed") then task.defer(teleport,player) end
  end)
- if player:GetAttribute("AlienBreachDeployed") then task.defer(deployToSector,player) end
+ if player:GetAttribute("AlienBreachDeployed") then task.defer(teleport,player) end
 end
 Players.PlayerAdded:Connect(track)
-for _,p in ipairs(Players:GetPlayers()) do track(p) end
+for _,player in ipairs(Players:GetPlayers()) do track(player) end
