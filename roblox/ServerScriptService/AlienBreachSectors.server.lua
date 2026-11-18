@@ -8,6 +8,7 @@ local TILE=8
 local W,H=#map[1],#map
 local research={x=89,y=15}
 local reactor={x=145,y=7}
+local nestSpawn={x=219,y=6}
 local decor=Instance.new("Folder")
 decor.Name="ResearchLabEnvironment"
 decor.Parent=root
@@ -584,12 +585,103 @@ task.spawn(function()
   task.wait(.15)
  end
 end)
+
+-- ALIEN NEST: organic green hive, 1.5x the reactor's horizontal footprint.
+-- Structural collision comes from the main Map script. Decorative growths
+-- remain noncolliding so the player and alien flow-field can navigate.
+local hive=Instance.new("Folder")
+hive.Name="AlienNestEnvironment";hive.Parent=root
+local resin=Color3.fromRGB(31,66,38)
+local moss=Color3.fromRGB(47,102,54)
+local deep=Color3.fromRGB(16,40,26)
+local glow=Color3.fromRGB(90,230,105)
+local violet=Color3.fromRGB(156,67,215)
+local function hp(name,x,y,h,size,color,material,shape)
+ local p=Instance.new("Part")
+ p.Name=name;p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false
+ p.CastShadow=false;p.Size=size;p.CFrame=CFrame.new(pos(x,y,h))
+ p.Color=color;p.Material=material or Enum.Material.SmoothPlastic
+ if shape then p.Shape=shape end
+ p.Parent=hive
+ return p
+end
+local function rib(x,y,along)
+ local a=hp("Organic arch rib",x,y,11,Vector3.new(2.3,20,2.8),resin)
+ a.CFrame=a.CFrame*CFrame.Angles(0,along and math.pi/2 or 0,math.rad(13))
+ for side=-1,1,2 do
+  local b=hp("Curved chitin arch",x+(along and 0 or side*2.8),y+(along and side*2.8 or 0),15,
+   Vector3.new(2.5,8,2.6),moss)
+  b.CFrame=b.CFrame*CFrame.Angles(0,0,side*math.rad(35))
+ end
+end
+-- Fleshy floor plating and glowing growths are deliberately sparse enough
+-- for firefights, chests, and clear sightlines.
+for y=5,40 do
+ for x=181,257 do
+  if open(x,y) then
+   if (x+y*7)%5==0 then
+    hp("Layered green resin floor",x-.5,y-.5,.11,Vector3.new(7.7,.18,7.7),
+     (x+y)%2==0 and resin or moss,Enum.Material.Slate)
+   end
+   if (x*3+y*11)%29==0 then
+    local egg=hp("Violet incubation egg",x-.5,y-.5,2.2,
+     Vector3.new(2.5,4.1,2.5),violet,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+    egg.Transparency=.15
+    local base=hp("Egg membrane cradle",x-.5,y-.5,.7,
+     Vector3.new(4,1.4,4),deep,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+   end
+   if (x*13+y*7)%23==0 then
+    local lamp=hp("Bioluminescent fungus",x-.5,y-.5,16.7,
+      Vector3.new(2.5,.6,2.5),glow,Enum.Material.Neon,Enum.PartType.Ball)
+    local light=Instance.new("PointLight")
+    light.Color=glow;light.Brightness=1.6;light.Range=28;light.Shadows=false;light.Parent=lamp
+   end
+   if (x*5+y*3)%37==0 then
+    local root=hp("Hanging organic tendril",x-.5,y-.5,14,
+     Vector3.new(.9,7,.9),moss,Enum.Material.SmoothPlastic,Enum.PartType.Cylinder)
+    root.CFrame=root.CFrame*CFrame.Angles(0,0,math.rad(18))
+   end
+  end
+ end
+end
+for x=186,251,7 do
+ for _,y in ipairs({6,22,39}) do
+  if open(x,y) then rib(x-.5,y-.5,true) end
+ end
+end
+for y=11,35,6 do
+ for _,x in ipairs({183,218,255}) do
+  if open(x,y) then rib(x-.5,y-.5,false) end
+ end
+end
+-- All three queen sites are detailed. The actual Queen spawns at one random
+-- site per server; this keeps the discovery different on each play session.
+for _,site in ipairs({{195,14},{218,22},{243,31}}) do
+ local x,y=site[1]-.5,site[2]-.5
+ hp("Queen throne root mass",x,y,1.3,Vector3.new(23,2.4,23),
+   deep,Enum.Material.Slate,Enum.PartType.Ball)
+ for i=1,8 do
+  local angle=i*math.pi/4
+  local px=x+math.cos(angle)*4.2
+  local py=y+math.sin(angle)*4.2
+  local pillar=hp("Queen chamber curved chitin",px,py,10,
+   Vector3.new(2.8,19,2.8),resin)
+  pillar.CFrame=pillar.CFrame*CFrame.Angles(0,0,math.sin(angle)*.18)
+  hp("Queen throne luminous cyst",px,py,18,
+   Vector3.new(3,3,3),glow,Enum.Material.Neon,Enum.PartType.Ball)
+ end
+ local heart=hp("Violet queen spawning pool",x,y,2.6,
+  Vector3.new(11,.35,11),violet,Enum.Material.Neon,Enum.PartType.Ball)
+ heart.Transparency=.35
+ local l=Instance.new("PointLight");l.Color=glow;l.Brightness=2;l.Range=42;l.Parent=heart
+end
+
 -- A sector change is a deployment transition, not a permanent respawn location.
 -- Always relocate the character for BOTH sectors, including after a death.
 local function teleport(player,character)
  if not player:GetAttribute("AlienBreachDeployed") then return end
  local sector=player:GetAttribute("AlienBreachSelectedMap")
- if sector~="research" and sector~="containment" and sector~="reactor" then return end
+ if sector~="research" and sector~="containment" and sector~="reactor" and sector~="nest" then return end
  local hrp=character:WaitForChild("HumanoidRootPart",10)
  if not hrp or character~=player.Character or not character.Parent then return end
  if not player:GetAttribute("AlienBreachDeployed") or player:GetAttribute("AlienBreachSelectedMap")~=sector then return end
@@ -597,6 +689,8 @@ local function teleport(player,character)
   character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
  elseif sector=="reactor" then
   character:PivotTo(CFrame.new(pos(reactor.x-.5,reactor.y-.5,5)))
+ elseif sector=="nest" then
+  character:PivotTo(CFrame.new(pos(nestSpawn.x-.5,nestSpawn.y-.5,5)))
  else
   local spawn=root:FindFirstChild("Starting Room Spawn")
   if spawn then character:PivotTo(spawn.CFrame*CFrame.new(0,4,0)) end
