@@ -279,57 +279,48 @@ for y,row in ipairs(map) do
         else x+=1 end
     end
 end
--- The Omega vault has true full-height perimeter wall extensions.
--- Existing collision walls stay in place; tall sections close the gap
--- between the 18-stud base walls and 66-stud chamber ceiling.
-for y=14,30 do
- for x=132,159 do
-  if map[y] and map[y]:sub(x,x)=="1" then
-   local adjacent=false
-   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
-    local xx,yy=x+d[1],y+d[2]
-    if xx>=132 and xx<=159 and yy>=14 and yy<=30
-     and map[yy] and map[yy]:sub(xx,xx)=="0" then adjacent=true end
-   end
-   if adjacent then
-    block("Omega vault full height wall",Vector3.new(TILE,48,TILE),
-     CFrame.new(pos(x-.5,y-.5,42)),Color3.fromRGB(52,67,82))
-   end
-  end
- end
-end
--- Full-height vault perimeter walls, including boundaries outside the
--- original high-room rectangle. Open entry passages remain unobstructed.
-for y=OMEGA_Y1-1,OMEGA_Y2+1 do
- for x=OMEGA_X1-1,OMEGA_X2+1 do
-  if map[y] and map[y]:sub(x,x)=="1" then
-   local touches=false
+-- Continuous structural walls: every walkable high-ceiling tile has
+-- a full-height boundary wherever it touches solid geometry.
+-- This includes the outside edge of Omega, previously missed by the old loop.
+for y=1,HEIGHT do
+ for x=1,WIDTH do
+  if map[y]:sub(x,x)=="1" then
+   local needed=18
+   local warm=false
    for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
     local nx,ny=x+d[1],y+d[2]
-    if nx>=OMEGA_X1 and nx<=OMEGA_X2 and ny>=OMEGA_Y1 and ny<=OMEGA_Y2
-      and map[ny] and map[ny]:sub(nx,nx)=="0" then touches=true end
+    if nx>=1 and nx<=WIDTH and ny>=1 and ny<=HEIGHT
+      and map[ny]:sub(nx,nx)=="0" then
+     if nx>=132 and nx<=159 and ny>=14 and ny<=30 then
+      needed=66;warm=true
+     elseif tallRoom(nx,ny) then
+      needed=math.max(needed,34)
+     end
+    end
    end
-   if touches then
-    block("Omega vault wall to ceiling",Vector3.new(TILE,48+OMEGA_DROP,TILE),
-     CFrame.new(pos(x-.5,y-.5,(66+18-OMEGA_DROP)/2)),
-     Color3.fromRGB(94,46,35))
+   if needed>WALL_HEIGHT then
+    local lower=warm and OMEGA_DROP or 0
+    block("Full-height sealed ceiling wall",Vector3.new(TILE,needed-WALL_HEIGHT+lower,TILE),
+     CFrame.new(pos(x-.5,y-.5,(needed+WALL_HEIGHT-lower)/2)),
+     warm and Color3.fromRGB(108,58,38) or Color3.fromRGB(61,77,88))
    end
   end
  end
 end
--- Physical steps: 8 studs wide, 1 stud riser each, anchored and collidable.
--- Four flights descend from the upper passages into the 8-stud-deep vault.
+-- Eight solid, collidable treads per flight, with visible amber nosings.
+-- Descend from the four chamber approaches into the 8-stud sunken floor.
 local function stairFlight(startX,startY,dx,dy)
  for i=1,8 do
   local x=startX+dx*(i-1)
   local y=startY+dy*(i-1)
   local top=-i
-  local step=block("Omega WALKABLE stair "..i,
+  local step=block("Omega walkable stair "..i,
    Vector3.new(dx~=0 and TILE or TILE*3,1,dy~=0 and TILE or TILE*3),
    CFrame.new(pos(x-.5,y-.5,top-.5)),
    Color3.fromRGB(113,69,45),Enum.Material.DiamondPlate)
   step.CanCollide=true
-  local stripe=block("Omega stair tread amber marker",Vector3.new(dx~=0 and .6 or TILE*2.7,.08,dy~=0 and .6 or TILE*2.7),
+  local stripe=block("Omega stair tread amber marker",
+   Vector3.new(dx~=0 and .6 or TILE*2.7,.08,dy~=0 and .6 or TILE*2.7),
    CFrame.new(pos(x-.5,y-.5,top+.06)),Color3.fromRGB(255,174,57),Enum.Material.Neon)
   stripe.CanCollide=false;stripe.CanQuery=false
  end
