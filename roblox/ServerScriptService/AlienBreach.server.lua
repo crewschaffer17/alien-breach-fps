@@ -2,6 +2,8 @@
 -- Put in ServerScriptService as a Script. Generated from the original GitHub map.
 -- Source: index.html; does not modify the browser game.
 local Players = game:GetService("Players")
+-- Do not allow Roblox to spawn players before the generated facility and its spawn exist.
+Players.CharacterAutoLoads = false
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
@@ -623,6 +625,35 @@ spawn.Neutral=true
 spawn.Transparency=0.5
 spawn.Color=neon
 spawn.Parent=root
+-- Spawn only after the map's safe starting room is ready. The home UI stays visible
+-- until the player explicitly deploys; subsequent deaths return here too.
+local function loadAtCommand(player)
+    if not player.Parent then return end
+    player.RespawnLocation=spawn
+    player:SetAttribute("AlienBreachDeployed",false)
+    player:SetAttribute("AlienBreachSelectedMap","containment")
+    player:LoadCharacter()
+end
+local function setupPlayerSpawn(player)
+    player.RespawnLocation=spawn
+    player.CharacterAdded:Connect(function(character)
+        local humanoid=character:WaitForChild("Humanoid",10)
+        if humanoid then
+            humanoid.Died:Connect(function()
+                task.delay(3,function()
+                    if player.Parent and player.Character==character then
+                        loadAtCommand(player)
+                    end
+                end)
+            end)
+        end
+    end)
+    if not player.Character then
+        task.defer(loadAtCommand,player)
+    end
+end
+Players.PlayerAdded:Connect(setupPlayerSpawn)
+for _,player in ipairs(Players:GetPlayers()) do setupPlayerSpawn(player) end
 -- Original browser game: 90-second supply rotation, laser 1/150,
 -- medkit probability (1/20 + 1/7 - 1/150), otherwise 15-35 ammo.
 -- The larger facility deploys 12 caches per rotation instead of 5.
