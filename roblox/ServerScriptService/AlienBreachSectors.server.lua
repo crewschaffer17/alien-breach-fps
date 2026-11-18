@@ -314,34 +314,105 @@ for _,x in ipairs({145,147}) do
   end
  end
 end
--- Four distinct maintenance bays with believable large machinery.
+-- Purpose-built industrial equipment, not anonymous rectangular blocks.
+local pipeYellow=Color3.fromRGB(232,177,37) -- PAINTED metal, never Neon
+local pipeDark=Color3.fromRGB(100,72,34)
+local function cylinder(name,x,y,h,length,diameter,axis,color)
+ local p=fixture(name,x,y,h,Vector3.new(length,diameter,diameter),
+  color or pipeYellow,Enum.Material.Metal)
+ p.Shape=Enum.PartType.Cylinder
+ if axis=="y" then p.CFrame=p.CFrame*CFrame.Angles(0,0,math.pi/2)
+ elseif axis=="z" then p.CFrame=p.CFrame*CFrame.Angles(0,math.pi/2,0) end
+ return p
+end
+local function industrialPipe(name,x,y,h,length,diameter,axis)
+ cylinder(name.." painted yellow pressure line",x,y,h,length,diameter,axis,pipeYellow)
+ for _,offset in ipairs({-.36,.36}) do
+  local x2,y2,h2=x,y,h
+  if axis=="x" then x2=x+offset*length
+  elseif axis=="z" then y2=y+offset*length
+  else h2=h+offset*length end
+  cylinder(name.." dark bolted coupling",x2,y2,h2,.65,diameter+1.2,axis,pipeDark)
+ end
+end
+-- Large industrial yellow pipes: high and wall-mounted, so the center of
+-- every hallway remains clear for combat and the staircase entrances.
+for _,y in ipairs({5,39}) do
+ for x=128,160,8 do
+  industrialPipe("North south service main",x,y,12.6,54,3.4,"x")
+ end
+end
+for _,x in ipairs({121,170}) do
+ for y=12,32,8 do
+  industrialPipe("East west service main",x,y,12.5,52,3.2,"z")
+ end
+end
+-- Distinct machine assemblies with cylindrical tanks, shafts, impellers,
+-- instrument consoles and warning bands.
 local bays={
- {129,13,"TURBINE / 01",Color3.fromRGB(244,164,68)},
+ {129,13,"TURBINE / 01",orange},
  {161,13,"CONTROL / 02",teal},
- {129,32,"COOLANT / 03",Color3.fromRGB(89,188,255)},
+ {129,32,"COOLANT / 03",Color3.fromRGB(255,207,85)},
  {161,32,"GENERATOR / 04",orange}
 }
 for _,bay in ipairs(bays) do
  local x,y,label,accent=bay[1],bay[2],bay[3],bay[4]
- local base=fixture(label.." machinery skid",x,y,1.2,Vector3.new(13,2.2,9),darkSteel)
- local housing=fixture(label.." armored machine housing",x,y,4.5,
-  Vector3.new(10,5,7),panelSteel)
- fixture(label.." illuminated diagnostic strip",x,y-3.6,6.5,
-  Vector3.new(7,.5,.3),accent,Enum.Material.Neon)
- for _,dx in ipairs({-4,4}) do
-  fixture(label.." vibration isolator",x+dx,y,7.5,
-   Vector3.new(1.2,2.4,6),darkSteel)
+ fixture(label.." reinforced mounting platform",x,y,1,
+  Vector3.new(17,2,12),darkSteel)
+ for _,dx in ipairs({-5,5}) do
+  fixture(label.." vibration damping foot",x+dx,y,2.3,
+   Vector3.new(2,2,9),panelSteel)
  end
- local screen=fixture(label.." diagnostic terminal",x+5,y+3,5.5,
-  Vector3.new(2.8,3,.3),accent,Enum.Material.Neon)
- screen.Transparency=.15
- local signGui=Instance.new("SurfaceGui")
- signGui.Name="Bay identification";signGui.Face=Enum.NormalId.Front
- signGui.AlwaysOnTop=false;signGui.Parent=screen
- local labelGui=Instance.new("TextLabel")
- labelGui.Size=UDim2.fromScale(1,1);labelGui.BackgroundTransparency=1
- labelGui.Font=Enum.Font.Code;labelGui.TextScaled=true
- labelGui.TextColor3=Color3.new(0,0,0);labelGui.Text=label;labelGui.Parent=signGui
+ if label:find("TURBINE") then
+  cylinder("Turbine heavy rotor housing",x,y,6,12,7,"x",panelSteel)
+  cylinder("Turbine central shaft",x,y,6,15,2.2,"x",pipeDark)
+  for _,dx in ipairs({-5,0,5}) do
+   cylinder("Turbine service flange",x+dx,y,6,.8,8,"x",pipeYellow)
+  end
+ elseif label:find("CONTROL") then
+  fixture("Control bay angled operator desk",x,y,3.1,
+   Vector3.new(13,3,5),panelSteel)
+  for _,dx in ipairs({-4,0,4}) do
+   fixture("Control bay instrumentation monitor",x+dx,y-2,7.5,
+    Vector3.new(3.3,3.2,.35),accent,Enum.Material.Neon)
+   fixture("Control bay monitor bezel",x+dx,y-1.7,9.4,
+    Vector3.new(4,.5,.8),darkSteel)
+  end
+  for _,dx in ipairs({-4,0,4}) do
+   cylinder("Control bay analog pressure gauge",x+dx,y+2.5,5,
+    .6,1.8,"z",pipeYellow)
+  end
+ elseif label:find("COOLANT") then
+  for _,dx in ipairs({-4,4}) do
+   cylinder("Coolant vertical storage tank",x+dx,y,6,11,5,"y",panelSteel)
+   cylinder("Coolant tank safety band",x+dx,y,9,.7,5.6,"y",pipeYellow)
+  end
+  industrialPipe("Coolant crossover",x,y,12,13,2.5,"x")
+  fixture("Coolant pump control housing",x,y+4,4,
+   Vector3.new(5,5,4),darkSteel)
+ else
+  cylinder("Generator alternator casing",x,y,6,13,7,"x",panelSteel)
+  for _,dx in ipairs({-4,4}) do
+   cylinder("Generator drive collar",x+dx,y,6,1.2,8,"x",pipeYellow)
+  end
+  fixture("Generator cooling radiator",x,y-4,6,
+   Vector3.new(11,8,1.5),darkSteel)
+  for dx=-4,4,2 do
+   fixture("Generator radiator fin",x+dx,y-4.8,6,
+    Vector3.new(.6,7,.3),pipeYellow)
+  end
+ end
+ local screen=fixture(label.." diagnostic readout",x+6,y+4,6,
+  Vector3.new(3.5,3,.3),accent,Enum.Material.Neon)
+ screen.Transparency=.12
+ local gui=Instance.new("SurfaceGui")
+ gui.Name="Equipment identification";gui.Face=Enum.NormalId.Front
+ gui.Parent=screen
+ local txt=Instance.new("TextLabel")
+ txt.Size=UDim2.fromScale(1,1);txt.BackgroundTransparency=1
+ txt.Font=Enum.Font.Code;txt.TextScaled=true
+ txt.TextColor3=Color3.fromRGB(28,20,15)
+ txt.Text=label;txt.Parent=gui
 end
 -- Service pipes, floor-edge guides, and distinct access doors around each bay.
 for _,p in ipairs({{129,9},{160,9},{129,36},{160,36}}) do
