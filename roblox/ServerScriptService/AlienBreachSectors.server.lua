@@ -218,24 +218,34 @@ for _,p in ipairs({{70,8},{78,12},{103,12},{109,18},{71,30},{81,35},{90,30},{97,
   screen.Transparency=.3
  end
 end
--- Retain selected map when the character respawns after dying.
--- Menu still controls whether the player is deployed and may shoot.
+-- A sector change is a deployment transition, not a permanent respawn location.
+-- Always relocate the character for BOTH sectors, including after a death.
 local function teleport(player,character)
- if player:GetAttribute("AlienBreachSelectedMap")~="research" then return end
+ if not player:GetAttribute("AlienBreachDeployed") then return end
+ local sector=player:GetAttribute("AlienBreachSelectedMap")
+ if sector~="research" and sector~="containment" then return end
  local hrp=character:WaitForChild("HumanoidRootPart",10)
- if not hrp or not character.Parent then return end
- character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
+ if not hrp or character~=player.Character or not character.Parent then return end
+ if not player:GetAttribute("AlienBreachDeployed") or player:GetAttribute("AlienBreachSelectedMap")~=sector then return end
+ if sector=="research" then
+  character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
+ else
+  local spawn=root:FindFirstChild("Starting Room Spawn")
+  if spawn then character:PivotTo(spawn.CFrame*CFrame.new(0,4,0)) end
+ end
 end
 local function track(player)
+ local function move()
+  if player.Character and player:GetAttribute("AlienBreachDeployed") then
+   task.defer(teleport,player,player.Character)
+  end
+ end
  player.CharacterAdded:Connect(function(character)
   task.defer(teleport,player,character)
  end)
- player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(function()
-  if player:GetAttribute("AlienBreachDeployed") and player.Character then
-   task.defer(teleport,player,player.Character)
-  end
- end)
- if player.Character then task.defer(teleport,player,player.Character) end
+ player:GetAttributeChangedSignal("AlienBreachSelectedMap"):Connect(move)
+ player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(move)
+ move()
 end
 Players.PlayerAdded:Connect(track)
 for _,player in ipairs(Players:GetPlayers()) do track(player) end
