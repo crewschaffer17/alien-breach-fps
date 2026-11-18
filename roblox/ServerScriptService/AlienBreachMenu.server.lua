@@ -71,6 +71,8 @@ Players.PlayerAdded:Connect(function(p)
  task.defer(function()
   if not p.Parent then return end
   p:SetAttribute("AlienBreachSelectedMap",d.selectedMap)
+  local leader=p:FindFirstChild("leaderstats")
+  if leader and leader:FindFirstChild("Credits") then leader.Credits.Value=d.credits end
   for id,level in pairs(d.levels) do p:SetAttribute("WeaponLevel_"..id,math.clamp(tonumber(level) or 3,1,5)) end
   snapshot(p)
  end)
