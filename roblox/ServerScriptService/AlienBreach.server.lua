@@ -356,16 +356,12 @@ alarm.Volume=1.8
 alarm.Looped=true
 alarm.Parent=root
 local flickerUntil=0
-local nextFlicker=os.clock()+math.random(30,40)/10
+local nextFlicker=math.huge -- Keep sector lights instantly and continuously illuminated.
 task.spawn(function()
     while root.Parent do
         local now=os.clock()
-        -- 0.3 second dip, followed by 3-4 seconds of steady full brightness.
-        if now>=nextFlicker then
-            flickerUntil=now+0.3
-            nextFlicker=flickerUntil+math.random(30,40)/10
-        end
-        local flicker=now<flickerUntil and 0.18 or 1
+        -- No delayed/flickering ambient lighting during sector transitions.
+        local flicker=1
         Lighting.Brightness=1.45*flicker
         Lighting.ExposureCompensation=-0.35-(1-flicker)*0.5
         for _,fixture in ipairs(lightingFixtures) do
