@@ -221,7 +221,7 @@ end
 -- Retain selected map when the character respawns after dying.
 -- Menu still controls whether the player is deployed and may shoot.
 local function teleport(player,character)
- if player:GetAttribute("AlienBreachSelectedMap")~="research" then return end
+ if not player:GetAttribute("AlienBreachDeployed") or player:GetAttribute("AlienBreachSelectedMap")~="research" then return end
  local hrp=character:WaitForChild("HumanoidRootPart",10)
  if not hrp or not character.Parent then return end
  character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
@@ -229,6 +229,11 @@ end
 local function track(player)
  player.CharacterAdded:Connect(function(character)
   task.defer(teleport,player,character)
+ end)
+ player:GetAttributeChangedSignal("AlienBreachSelectedMap"):Connect(function()
+  if player:GetAttribute("AlienBreachDeployed") and player.Character then
+   task.defer(teleport,player,player.Character)
+  end
  end)
  player:GetAttributeChangedSignal("AlienBreachDeployed"):Connect(function()
   if player:GetAttribute("AlienBreachDeployed") and player.Character then
