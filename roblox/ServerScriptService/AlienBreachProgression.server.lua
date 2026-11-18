@@ -12,6 +12,9 @@ kills.Parent=RS
 local names={"RECRUIT","PRIVATE","CORPORAL","SERGEANT","LIEUTENANT","CAPTAIN","MAJOR","COMMANDER","LEGEND"}
 local prices={[1]=300,[2]=600,[3]=1100,[4]=1800}
 local valid={pulse=true,shotgun=true,rifle=true,viper=true,ar51=true,phantom=true,titan=true,plasma=true,obliterator=true}
+local purchases=Instance.new("BindableEvent")
+purchases.Name="AlienBreachWeaponPurchased"
+purchases.Parent=RS
 local profiles={}
 local function rank(xp)
  local index=math.clamp(math.floor(math.sqrt(xp/125))+1,1,#names)
@@ -49,6 +52,14 @@ Players.PlayerAdded:Connect(function(player)
 end)
 Players.PlayerRemoving:Connect(function(player)save(player);profiles[player]=nil end)
 game:BindToClose(function()for player in pairs(profiles) do save(player) end end)
+purchases.Event:Connect(function(player,id)
+ local p=profiles[player]
+ if p and valid[id] and not p.levels[id] then
+  p.levels[id]=1
+  player:SetAttribute("ABWeaponLevel_"..id,1)
+  send(player)
+ end
+end)
 kills.Event:Connect(function(player,kind)
  local p=profiles[player]
  if not p then return end
@@ -61,7 +72,6 @@ remote.OnServerEvent:Connect(function(player,action,id)
  if action=="sync" then send(player);return end
  if action~="upgrade" or type(id)~="string" or not valid[id] then return end
  local menuEvent=RS:FindFirstChild("AlienBreachMenuEvent")
- local owned=player:GetAttribute("AlienBreachAllowedWeapons") or ""
  -- Ownership is checked against server-side menu data through a BindableFunction.
  local owns=RS:FindFirstChild("AlienBreachOwnsWeapon")
  if not owns or not owns:Invoke(player,id) then return end
