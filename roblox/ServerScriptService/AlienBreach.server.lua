@@ -1055,7 +1055,13 @@ end
 -- A breach starts only after all aliens from the preceding wave are eliminated.
 task.spawn(function()
     while root.Parent do
-        if (function() for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then return false end end return true end)() then
+        local hasDeployed=false
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p:GetAttribute("AlienBreachDeployed") then hasDeployed=true;break end
+        end
+        if not hasDeployed then
+            task.wait(.5)
+        elseif (function() for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then return false end end return true end)() then
             breachIntermission=true
             alarm:Play()
             for remaining=7,1,-1 do
