@@ -261,6 +261,11 @@ local timerValue=state("NextBreachIn",0)
 local root = Instance.new("Folder")
 root.Name = "AlienBreachRoblox"
 root.Parent = workspace
+local versionTag=Instance.new("StringValue")
+versionTag.Name="NEST_MAP_BUILD_2026_11_18_V2"
+versionTag.Value="Winding burrows / grass floor / rooted wall sacs"
+versionTag.Parent=root
+print("[Alien Breach] NEST_MAP_BUILD_2026_11_18_V2 loaded")
 local enemies = Instance.new("Folder")
 enemies.Name = "Aliens"
 enemies.Parent = root
