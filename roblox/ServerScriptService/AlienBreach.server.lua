@@ -48,7 +48,8 @@ local map = {
 }
 -- Preserve the original 35x27 layout in the northwest corner, then expand
 -- into new east research wings and a south office/maintenance complex.
-local WIDTH,HEIGHT=174,45
+local WIDTH,HEIGHT=260,45
+local NEST_START=180
 local REACTOR_START=119
 local RESEARCH_START=66
 local cells={}
@@ -168,6 +169,24 @@ carve(126,18,130,19)    -- west diagnostics annex
 carve(161,18,166,19)    -- east diagnostics annex
 carve(126,26,130,27)    -- west pump annex
 carve(161,26,166,27)    -- east pump annex
+-- Alien Nest: 78-tile-long hive (1.5x the 52-tile Reactor footprint).
+-- Twisting connected galleries, egg caverns and three possible queen sanctums.
+carve(181,5,257,8)
+carve(181,37,257,40)
+carve(181,8,185,37)
+carve(253,8,257,37)
+carve(216,8,221,37)
+carve(185,20,253,24)
+for _,room in ipairs({
+ {188,10,204,18},{207,10,229,18},{233,10,250,18},
+ {188,27,204,35},{207,27,229,35},{233,27,250,35},
+ {190,17,200,28},{209,16,228,29},{237,17,248,28}
+}) do carve(room[1],room[2],room[3],room[4]) end
+for _,door in ipairs({
+ {192,8,196,12},{216,8,221,12},{241,8,245,12},
+ {192,33,196,37},{216,33,221,37},{241,33,245,37},
+ {202,16,209,19},{228,16,235,19},{202,26,209,29},{228,26,235,29}
+}) do carve(door[1],door[2],door[3],door[4]) end
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
@@ -275,7 +294,7 @@ for y,row in ipairs(map) do
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
-                 first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
+                 first>=NEST_START and Color3.fromRGB(31,62,37) or first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
 end
@@ -779,6 +798,10 @@ spawn.Parent=root
 -- Research Lab uses the exact same chest rewards, quantity and rotation.
 local researchChestPoints={}
 local reactorChestPoints={}
+local nestChestPoints={}
+for y=5,40,3 do for x=182,256,3 do
+ if map[y] and map[y]:sub(x,x)=="0" then table.insert(nestChestPoints,{x-.5,y-.5}) end
+end end
 for y=4,40,3 do
  for x=123,169,3 do
   if map[y] and map[y]:sub(x,x)=="0" then table.insert(reactorChestPoints,{x-0.5,y-0.5}) end
@@ -794,7 +817,7 @@ end
 -- Wave selection must exist even though caches now rotate independently.
 -- Without this function the wave coroutine errors before creating any aliens.
 local function activeChestSector()
- local counts={containment=0,research=0,reactor=0}
+ local counts={containment=0,research=0,reactor=0,nest=0}
  for _,player in ipairs(Players:GetPlayers()) do
   if player:GetAttribute("AlienBreachDeployed") then
    local hum=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -805,7 +828,7 @@ local function activeChestSector()
   end
  end
  local selected="containment"
- for _,sector in ipairs({"research","reactor"}) do
+ for _,sector in ipairs({"research","reactor","nest"}) do
   if counts[sector]>counts[selected] then selected=sector end
  end
  return selected
@@ -867,7 +890,8 @@ local function rotateChests()
  for _,entry in ipairs({
   {sector="containment",points=chestPoints},
   {sector="research",points=researchChestPoints},
-  {sector="reactor",points=reactorChestPoints}
+  {sector="reactor",points=reactorChestPoints},
+  {sector="nest",points=nestChestPoints}
  }) do
   local shuffled=table.clone(entry.points)
   for i=#shuffled,2,-1 do
@@ -1194,8 +1218,9 @@ local function makeAlien(x,y,kind,wave)
     return model
 end
 local wave=0
-local sectorWaves={containment=0,research=0,reactor=0}
+local sectorWaves={containment=0,research=0,reactor=0,nest=0}
 local lastWaveSector=nil
+local nestQueenSpot=({{195,14},{218,22},{243,31}})[math.random(1,3)]
 local function spawnWave(number,selectedSector)
     -- ONE shared spawn-count curve for Containment, Research Lab and Reactor Core.
     -- Wave 1 is exactly 9 normal aliens; later waves follow Reactor Core's
@@ -1211,7 +1236,8 @@ local function spawnWave(number,selectedSector)
     local minX,maxX=2,55
     local minY,maxY=3,43
     if selectedSector=="research" then minX,maxX=68,111;maxY=41
-    elseif selectedSector=="reactor" then minX,maxX=122,170;maxY=41 end
+    elseif selectedSector=="reactor" then minX,maxX=122,170;maxY=41
+    elseif selectedSector=="nest" then minX,maxX=182,256;maxY=40 end
     for i=1,count do
         local kind="stalker"
         if bossWave then
@@ -1226,13 +1252,19 @@ local function spawnWave(number,selectedSector)
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
                 local alien=makeAlien(x,y,kind,number)
+                if selectedSector=="nest" then
+                    alien:SetAttribute("HiveSpawn",true)
+                    for _,piece in ipairs(alien:GetDescendants()) do
+                        if piece:IsA("BasePart") then piece.Color=Color3.fromRGB(132,65,195) end
+                    end
+                end
                 if selectedSector~="containment" then alien:SetAttribute("SectorEnemy",selectedSector) end
                 spawned+=1
                 break
             end
         end
     end
-    if bossWave then
+    if bossWave and selectedSector~="nest" then
         for attempt=1,100 do
             local x=math.random(minX,maxX)+0.5
             local y=math.random(minY,maxY)+0.5
@@ -1244,12 +1276,21 @@ local function spawnWave(number,selectedSector)
             end
         end
     end
+    if selectedSector=="nest" and bossWave then
+        local q=makeAlien(nestQueenSpot[1]-.5,nestQueenSpot[2]-.5,"boss",number)
+        q.Name="THE HIVE QUEEN"
+        q:SetAttribute("SectorEnemy","nest")
+        q:SetAttribute("HiveQueen",true)
+        q:SetAttribute("HP",1800+number*180)
+        q:SetAttribute("Speed",6.5)
+        spawned+=1
+    end
     aliveValue.Value=spawned
 end
 -- Remove enemies abandoned in a sector. Otherwise they keep the global wave
 -- blocked when the last player leaves Research Lab for Containment (or vice versa).
 local function clearEmptySectors()
- local occupied={containment=false,research=false,reactor=false}
+ local occupied={containment=false,research=false,reactor=false,nest=false}
  for _,player in ipairs(Players:GetPlayers()) do
   if player:GetAttribute("AlienBreachDeployed") then
    local character=player.Character
@@ -1272,7 +1313,7 @@ end
 task.spawn(function()
     while root.Parent do
         local occupied=clearEmptySectors()
-        local hasDeployed=occupied.containment or occupied.research or occupied.reactor
+        local hasDeployed=occupied.containment or occupied.research or occupied.reactor or occupied.nest
         local selectedSector=activeChestSector()
         if not hasDeployed then
             -- New deployment sessions always begin at Wave 1.
@@ -1300,7 +1341,7 @@ task.spawn(function()
                     task.wait(1)
                     if not root.Parent then return end
                     local current=clearEmptySectors()
-                    if not (current.containment or current.research or current.reactor)
+                    if not (current.containment or current.research or current.reactor or current.nest)
                       or activeChestSector()~=selectedSector then
                         interrupted=true
                         break
@@ -1323,6 +1364,40 @@ task.spawn(function()
     end
 end)
 
+-- Queen summons violet broodlings while alive. Summons count toward the
+-- active wave, preventing a wave from finishing before the nest is cleared.
+task.spawn(function()
+ while root.Parent do
+  for _,queen in ipairs(enemies:GetChildren()) do
+   if queen:GetAttribute("HiveQueen") and queen.PrimaryPart then
+    local now=os.clock()
+    if now-(queen:GetAttribute("LastBrood") or 0)>=11 then
+     queen:SetAttribute("LastBrood",now)
+     local qx,qy=0,0 -- convert world coordinates to map tiles
+     qx=math.floor(queen.PrimaryPart.Position.X/TILE+WIDTH/2)+1
+     qy=math.floor(queen.PrimaryPart.Position.Z/TILE+HEIGHT/2)+1
+     for i=1,3 do
+      for attempt=1,16 do
+       local x=qx+math.random(-5,5)
+       local y=qy+math.random(-5,5)
+       if free(x-.5,y-.5) then
+        local brood=makeAlien(x-.5,y-.5,"crawler",math.max(1,wave))
+        brood.Name="VIOLET QUEEN BROOD"
+        brood:SetAttribute("SectorEnemy","nest")
+        brood:SetAttribute("HiveSpawn",true)
+        for _,piece in ipairs(brood:GetDescendants()) do
+         if piece:IsA("BasePart") then piece.Color=Color3.fromRGB(156,68,218) end
+        end
+        break
+       end
+      end
+     end
+    end
+   end
+  end
+  task.wait(1)
+ end
+end)
 local damageClock={}
 local function alienShoot(alien,origin,target,hum)
     local direction=target-origin
@@ -1472,13 +1547,45 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                 end
-                if playerDistance<=75 and os.clock()-(damageClock[alien] or 0)>1.8 then
+                if playerDistance<= (alien:GetAttribute("HiveQueen") and 115 or 75)
+                    and os.clock()-(damageClock[alien] or 0)>(alien:GetAttribute("HiveQueen") and 2.8 or 1.8) then
                     damageClock[alien]=os.clock()
                     local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
                     if hum and hum.Health>0 then
                         local muzzle=part.Position+Vector3.new(0,1.0,0)
                         local aim=hrp.Position+Vector3.new(0,1.2,0)
-                        alienShoot(alien,muzzle,aim,hum)
+                        if alien:GetAttribute("HiveQueen") then
+                            local orb=Instance.new("Part")
+                            orb.Name="Queen violet plasma orb"
+                            orb.Shape=Enum.PartType.Ball
+                            orb.Material=Enum.Material.Neon
+                            orb.Color=Color3.fromRGB(175,70,255)
+                            orb.Size=Vector3.new(3.2,3.2,3.2)
+                            orb.Anchored=true;orb.CanCollide=false;orb.CanTouch=false;orb.CanQuery=false
+                            orb.Position=muzzle;orb.Parent=root
+                            local start=muzzle
+                            local direction=(aim-start).Unit
+                            local travel=0
+                            task.spawn(function()
+                                while orb.Parent and travel<110 do
+                                    local dtOrb=task.wait(.045)
+                                    local step=direction*math.min(65*dtOrb,110-travel)
+                                    local hit=workspace:Raycast(orb.Position,step)
+                                    orb.Position+=step;travel+=step.Magnitude
+                                    if hit then
+                                        local victim=Players:GetPlayerFromCharacter(hit.Instance:FindFirstAncestorOfClass("Model"))
+                                        if victim and victim:GetAttribute("AlienBreachSelectedMap")=="nest" then
+                                            local h=victim.Character and victim.Character:FindFirstChildOfClass("Humanoid")
+                                            if h then h:TakeDamage(28) end
+                                        end
+                                        break
+                                    end
+                                end
+                                orb:Destroy()
+                            end)
+                        else
+                            alienShoot(alien,muzzle,aim,hum)
+                        end
                     end
                 end
             end
