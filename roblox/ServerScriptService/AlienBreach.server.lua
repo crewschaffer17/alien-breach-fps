@@ -355,24 +355,17 @@ alarm.SoundId="rbxasset://sounds/alarm.wav"
 alarm.Volume=1.8
 alarm.Looped=true
 alarm.Parent=root
-local flickerUntil=0
-local nextFlicker=os.clock()+math.random(30,40)/10
+-- Keep both facilities fully illuminated from the first frame.
+-- Do not periodically dim global Lighting or the white fixtures.
 task.spawn(function()
     while root.Parent do
-        local now=os.clock()
-        -- 0.3 second dip, followed by 3-4 seconds of steady full brightness.
-        if now>=nextFlicker then
-            flickerUntil=now+0.3
-            nextFlicker=flickerUntil+math.random(30,40)/10
-        end
-        local flicker=now<flickerUntil and 0.18 or 1
-        Lighting.Brightness=1.45*flicker
-        Lighting.ExposureCompensation=-0.35-(1-flicker)*0.5
+        Lighting.Brightness=1.45
+        Lighting.ExposureCompensation=-0.35
         for _,fixture in ipairs(lightingFixtures) do
-            fixture.light.Brightness=1.0*flicker
-            fixture.part.Color=flicker<1 and Color3.fromRGB(143,185,181)
-                or Color3.fromRGB(193,245,236)
+            fixture.light.Brightness=1.0
+            fixture.part.Color=Color3.fromRGB(193,245,236)
         end
+        local now=os.clock()
         local redPulse=breachIntermission and (math.sin(now*11)>0 and 4.2 or 0.3) or 0
         for _,fixture in ipairs(redFixtures) do
             fixture.light.Brightness=redPulse
@@ -1084,13 +1077,31 @@ local function spawnWave(number)
     end
     aliveValue.Value=spawned
 end
+-- Remove enemies abandoned in a sector. Otherwise they keep the global wave
+-- blocked when the last player leaves Research Lab for Containment (or vice versa).
+local function clearEmptySectors()
+ local occupied={containment=false,research=false}
+ for _,player in ipairs(Players:GetPlayers()) do
+  if player:GetAttribute("AlienBreachDeployed") then
+   local character=player.Character
+   local hum=character and character:FindFirstChildOfClass("Humanoid")
+   if hum and hum.Health>0 then
+    local sector=player:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"
+    occupied[sector]=true
+   end
+  end
+ end
+ for _,alien in ipairs(enemies:GetChildren()) do
+  local sector=alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"
+  if not occupied[sector] then alien:Destroy() end
+ end
+ return occupied
+end
 -- A breach starts only after all aliens from the preceding wave are eliminated.
 task.spawn(function()
     while root.Parent do
-        local hasDeployed=false
-        for _,p in ipairs(Players:GetPlayers()) do
-            if p:GetAttribute("AlienBreachDeployed") then hasDeployed=true;break end
-        end
+        local occupied=clearEmptySectors()
+        local hasDeployed=occupied.containment or occupied.research
         if not hasDeployed then
             task.wait(.5)
         elseif #enemies:GetChildren()==0 then
@@ -1184,7 +1195,8 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local field=player:GetAttribute("AlienBreachDeployed") and fields[player]
+            local sameSector=(player:GetAttribute("AlienBreachSelectedMap")=="research")==(alien:GetAttribute("SectorEnemy")=="research")
+            local field=sameSector and player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
                 bestDistance=d;bestPlayer=player;bestField=field
