@@ -169,7 +169,6 @@ for _,entry in ipairs({
  local b=make("TextButton",card,{Text="LOADING",Font=Enum.Font.SciFi,TextScaled=true,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(.07,.67),Size=UDim2.fromScale(.86,.26)})
  round(b,6)
  b.Activated:Connect(function()
-  if id=="nest" then return end
   if (state.maps or {})[id] then
    event:FireServer("selectMap",id)
   else
@@ -220,8 +219,8 @@ render=function()
  for id,entry in pairs(sectorButtons) do
   local owned=(state.maps or {})[id]
   local selected=state.selectedMap==id
-  entry.button.Text=(id=="nest") and "COMING SOON" or selected and "SELECTED" or owned and "SELECT SECTOR" or ("UNLOCK  •  "..entry.price.." CREDITS")
-  entry.button.BackgroundColor3=(id=="nest") and C.muted or selected and C.muted or owned and C.green or C.gold
+  entry.button.Text=selected and "SELECTED" or owned and "SELECT SECTOR" or ("UNLOCK  •  "..entry.price.." CREDITS")
+  entry.button.BackgroundColor3=selected and C.muted or owned and C.green or C.gold
  end
  local st=state.stats or {}
  statsBody.Text="RANK: "..tostring(progressState.rank).."\nXP: "..tostring(progressState.xp).." / "..tostring(progressState.nextXP).."\n\nGAMES: "..tostring(st.games or 0).."\n\nKILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
