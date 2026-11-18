@@ -11,7 +11,7 @@ gui.IgnoreGuiInset=true
 gui.DisplayOrder=100
 gui.Parent=player:WaitForChild("PlayerGui")
 local C={bg=Color3.fromRGB(6,14,19),panel=Color3.fromRGB(13,32,34),edge=Color3.fromRGB(58,116,98),green=Color3.fromRGB(105,232,167),white=Color3.fromRGB(223,246,235),muted=Color3.fromRGB(155,184,177),gold=Color3.fromRGB(250,214,125)}
-local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={},xp=0,rankName="RECRUIT",nextXP=125,levels={pulse=1},maps={containment=true},selectedMap="containment"}
+local state={credits=500,owned={pulse=true},medkit=0,speed=0,slots={"pulse","","","medkit","speed"},stats={}}
 local function make(class,parent,props)
  local o=Instance.new(class)
  for k,v in pairs(props or {}) do o[k]=v end
@@ -103,13 +103,12 @@ end
 local home=page("Home")
 local shop=page("Shop")
 local load=page("Loadout")
-local mapsPage=page("Maps")
 local function show(id)
  for name,p in pairs(pages) do p.Visible=(name==id) end
 end
-local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,14)})
+local homeLayout=make("UIListLayout",home,{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,18)})
 local function homeCard(heading,description,action)
- local card=make("Frame",home,{Size=UDim2.new(0.23,0,0.66,0),BackgroundColor3=C.panel,BorderSizePixel=0})
+ local card=make("Frame",home,{Size=UDim2.new(0.3,0,0.62,0),BackgroundColor3=C.panel,BorderSizePixel=0})
  round(card,12);stroke(card)
  make("UIGradient",card,{Rotation=90,Color=ColorSequence.new(Color3.fromRGB(24,58,57),C.panel)})
  local accentBar=make("Frame",card,{Size=UDim2.new(1,0,0,4),BackgroundColor3=C.green,BorderSizePixel=0})
@@ -127,7 +126,6 @@ homeCard("▶  DEPLOY","Enter the breach. Survive the unknown.",function()
 end)
 homeCard("▣  ARMORY","Upgrade weapons and stock your supplies.",function()show("Shop")end)
 homeCard("▤  LOADOUT","Prepare your gear before the next breach.",function()show("Loadout")end)
-homeCard("◇  SECTORS","Unlock new maps and choose your next mission.",function()show("Maps")end)
 local function topbar(parent,heading)
  local bar=make("Frame",parent,{Size=UDim2.new(1,0,0,62),BackgroundTransparency=1})
  local headingText=text(bar,heading,25,C.green,true);headingText.Size=UDim2.new(0.6,0,1,0)
@@ -150,25 +148,6 @@ for _,p in ipairs(catalog) do
  local buy=make("TextButton",item,{Text="BUY",Font=Enum.Font.SciFi,TextSize=14,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(0.06,0.72),Size=UDim2.fromScale(0.88,0.23)})
  round(buy,5);buy.Activated:Connect(function()event:FireServer("buy",p[1])end)
  buyButtons[p[1]]=buy
-end
-local mapsCredits=topbar(mapsPage,"ALIEN BREACH  /  SECTOR ACCESS")
-local mapsScroll=make("ScrollingFrame",mapsPage,{Position=UDim2.fromOffset(0,72),Size=UDim2.new(1,0,1,-128),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=7,CanvasSize=UDim2.fromScale(0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y})
-make("UIGridLayout",mapsScroll,{CellSize=UDim2.new(.47,0,0,170),CellPadding=UDim2.new(.025,0,0,12)})
-local mapEntries={{"containment","CONTAINMENT WING",0},{"research","RESEARCH LAB",2500},{"reactor","REACTOR CORE",5000},{"nest","ALIEN NEST",8500}}
-local mapButtons={}
-for _,entry in ipairs(mapEntries) do
- local id,name,price=entry[1],entry[2],entry[3]
- local card=make("Frame",mapsScroll,{BackgroundColor3=C.panel,BorderSizePixel=0})
- round(card,10);stroke(card)
- local h=text(card,name,21,C.green,true);h.Position=UDim2.fromScale(.06,.09);h.Size=UDim2.fromScale(.88,.28)
- local desc=text(card,id=="containment" and "ORIGINAL FACILITY" or "UNLOCKABLE SECTOR",14,C.muted)
- desc.Position=UDim2.fromScale(.06,.4)
- local b=make("TextButton",card,{Text="LOCKED",Font=Enum.Font.SciFi,TextSize=17,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(.07,.72),Size=UDim2.fromScale(.86,.23)})
- round(b,7)
- b.Activated:Connect(function()
-  if state.maps[id] then event:FireServer("selectMap",id) else event:FireServer("buyMap",id) end
- end)
- mapButtons[id]={button=b,price=price}
 end
 local loadCredits=topbar(load,"ALIEN BREACH  /  LOADOUT")
 local tabs=make("Frame",load,{Position=UDim2.fromOffset(0,58),Size=UDim2.new(0.72,0,0,42),BackgroundTransparency=1})
@@ -206,14 +185,8 @@ end
 render=function()
  shopCredits.Text="CREDITS: "..tostring(state.credits)
  loadCredits.Text=shopCredits.Text
- mapsCredits.Text=shopCredits.Text
- for id,entry in pairs(mapButtons) do
-  local owned=state.maps and state.maps[id]
-  entry.button.Text=owned and (state.selectedMap==id and "SELECTED" or "SELECT MAP") or ("UNLOCK  •  "..entry.price.." CREDITS")
-  entry.button.BackgroundColor3=owned and C.green or C.gold
- end
  local st=state.stats or {}
- statsBody.Text="RANK: "..tostring(state.rankName or "RECRUIT").."\nXP: "..tostring(state.xp or 0).." / "..tostring(state.nextXP or 125).."\n\nGAMES: "..tostring(st.games or 0).."\n\nKILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
+ statsBody.Text="GAMES PLAYED: "..tostring(st.games or 0).."\n\nTOTAL KILLS: "..tostring(st.kills or 0).."\n\nBEST WAVE: "..tostring(st.bestWave or 0)
  for _,p in ipairs(catalog) do
   local b=buyButtons[p[1]]
   local owned=state.owned[p[1]]
@@ -239,16 +212,7 @@ render=function()
    detail.Size=UDim2.fromScale(.86,.18)
    local equipped=false
    for _,slotId in ipairs(state.slots or {}) do if slotId==id then equipped=true end end
-   local level=math.clamp(tonumber((state.levels or {})[id]) or 3,1,5)
    local status=text(card,not isOwned and "LOCKED" or (equipped and "IN LOADOUT" or "IN INVENTORY"),12,equipped and C.gold or C.muted,true)
-   if selected=="guns" and isOwned and id~="laser" then
-    status.Text="LEVEL "..level.."  •  "..(equipped and "EQUIPPED" or "OWNED")
-    status.Position=UDim2.fromScale(.07,.70)
-    local costs={[1]=300,[2]=600,[3]=1100,[4]=1800}
-    local upgrade=make("TextButton",card,{Text=level==5 and "MAX LEVEL" or ("UPGRADE  "..costs[level].." CR"),Font=Enum.Font.SciFi,TextSize=13,BackgroundColor3=C.green,TextColor3=C.bg,Position=UDim2.fromScale(.07,.85),Size=UDim2.fromScale(.86,.14)})
-    round(upgrade,5)
-    upgrade.Activated:Connect(function()if level<5 then event:FireServer("upgrade",id) end end)
-   end
    status.Position=UDim2.fromScale(.07,.80)
    status.Size=UDim2.fromScale(.88,.16)
   end
