@@ -2,8 +2,6 @@
 -- Put in ServerScriptService as a Script. Generated from the original GitHub map.
 -- Source: index.html; does not modify the browser game.
 local Players = game:GetService("Players")
--- Do not allow Roblox to spawn players before the generated facility and its spawn exist.
-Players.CharacterAutoLoads = true
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
@@ -358,12 +356,16 @@ alarm.Volume=1.8
 alarm.Looped=true
 alarm.Parent=root
 local flickerUntil=0
-local nextFlicker=math.huge -- Keep sector lights instantly and continuously illuminated.
+local nextFlicker=os.clock()+math.random(30,40)/10
 task.spawn(function()
     while root.Parent do
         local now=os.clock()
-        -- No delayed/flickering ambient lighting during sector transitions.
-        local flicker=1
+        -- 0.3 second dip, followed by 3-4 seconds of steady full brightness.
+        if now>=nextFlicker then
+            flickerUntil=now+0.3
+            nextFlicker=flickerUntil+math.random(30,40)/10
+        end
+        local flicker=now<flickerUntil and 0.18 or 1
         Lighting.Brightness=1.45*flicker
         Lighting.ExposureCompensation=-0.35-(1-flicker)*0.5
         for _,fixture in ipairs(lightingFixtures) do
@@ -625,41 +627,6 @@ spawn.Neutral=true
 spawn.Transparency=0.5
 spawn.Color=neon
 spawn.Parent=root
--- Spawn only after the map's safe starting room is ready. The home UI stays visible
--- until the player explicitly deploys; subsequent deaths return here too.
-local function loadAtCommand(player)
-    if not player.Parent then return end
-    player.RespawnLocation=spawn
-    player:SetAttribute("AlienBreachDeployed",false)
-    player:SetAttribute("AlienBreachSelectedMap","containment")
-    player:LoadCharacter()
-end
-local function setupPlayerSpawn(player)
-    player.RespawnLocation=spawn
-    player.CharacterAdded:Connect(function(character)
-        local humanoid=character:WaitForChild("Humanoid",10)
-        if humanoid then
-            humanoid.Died:Connect(function()
-                task.delay(3,function()
-                    if player.Parent and player.Character==character then
-                        loadAtCommand(player)
-                    end
-                end)
-            end)
-        end
-    end)
-    if player.Character then
-        task.defer(function()
-            if player.Parent and player.Character then
-                player.Character:PivotTo(spawn.CFrame*CFrame.new(0,4,0))
-            end
-        end)
-    else
-        task.defer(loadAtCommand,player)
-    end
-end
-Players.PlayerAdded:Connect(setupPlayerSpawn)
-for _,player in ipairs(Players:GetPlayers()) do setupPlayerSpawn(player) end
 -- Original browser game: 90-second supply rotation, laser 1/150,
 -- medkit probability (1/20 + 1/7 - 1/150), otherwise 15-35 ammo.
 -- The larger facility deploys 12 caches per rotation instead of 5.
@@ -1072,21 +1039,18 @@ local function spawnWave(number)
     local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
     local spawned=0
     local bossWave=number%3==0
-    local occupied={containment=false,research=false}
+    local researchPlayers=0
+    local originalPlayers=0
     for _,p in ipairs(Players:GetPlayers()) do
         if p:GetAttribute("AlienBreachDeployed") then
-            occupied[p:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"]=true
+            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchPlayers+=1
+            else originalPlayers+=1 end
         end
     end
-    for _,alien in ipairs(enemies:GetChildren()) do
-        occupied[alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"]=false
-    end
-    for sector,active in pairs(occupied) do
-      if active then
-        local spawnResearch=sector=="research"
-        local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
-        local minY,maxY=3,spawnResearch and 41 or 43
-        for i=1,count do
+    local spawnResearch=researchPlayers>0 and researchPlayers>=originalPlayers
+    local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
+    local minY,maxY=3,spawnResearch and 41 or 43
+    for i=1,count do
         local kind="stalker"
         if bossWave then
             kind=i<=math.floor(count/2) and "armored" or "stalker"
@@ -1117,8 +1081,6 @@ local function spawnWave(number)
                 break
             end
         end
-        end
-      end
     end
     aliveValue.Value=spawned
 end
@@ -1146,22 +1108,6 @@ task.spawn(function()
             breachIntermission=false
             alarm:Stop()
         else
-            local present={containment=false,research=false}
-            local counts={containment=0,research=0}
-            for _,p in ipairs(Players:GetPlayers()) do
-                if p:GetAttribute("AlienBreachDeployed") then
-                    present[p:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"]=true
-                end
-            end
-            for _,alien in ipairs(enemies:GetChildren()) do
-                counts[alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"]+=1
-            end
-            for sector,active in pairs(present) do
-                if active and counts[sector]==0 then
-                    spawnWave(math.max(1,wave))
-                    break
-                end
-            end
             aliveValue.Value=#enemies:GetChildren()
             task.wait(0.4)
         end
@@ -1238,8 +1184,7 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local sameSector=(player:GetAttribute("AlienBreachSelectedMap")=="research")==(alien:GetAttribute("SectorEnemy")=="research")
-            local field=sameSector and player:GetAttribute("AlienBreachDeployed") and fields[player]
+            local field=player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
                 bestDistance=d;bestPlayer=player;bestField=field
