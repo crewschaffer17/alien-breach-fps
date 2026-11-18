@@ -104,24 +104,34 @@ end
 for _,x in ipairs({76,92,106}) do
  for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
 end
--- Reactor Core: isolated industrial plant, no walkable link to the other sectors.
-carve(122,4,170,7) -- upper turbine access
-carve(122,9,135,20) -- cooling pumps
-carve(138,9,153,20) -- massive reactor chamber
-carve(156,9,170,20) -- control gallery
-carve(122,22,170,25) -- main industrial concourse
-carve(122,27,136,40) -- power distribution
-carve(139,27,153,40) -- maintenance and coolant
-carve(156,27,170,40) -- emergency generator wing
-for _,coords in ipairs({{127,7,130,10},{144,7,147,10},{162,7,165,10},{127,19,130,23},{144,19,147,23},{162,19,165,23},{127,24,130,28},{144,24,147,28},{162,24,165,28}}) do
- carve(coords[1],coords[2],coords[3],coords[4])
-end
-for _,x in ipairs({129,146,163}) do
- for y=10,19 do if y~=14 and y~=15 then cells[y][x]="1" end end
-end
-for _,x in ipairs({129,146,163}) do
- for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
-end
+-- Reactor Core: asymmetric ring of corridors surrounding a huge sunken experiment vault.
+-- Unlike Research Lab this is a radial facility with a single monumental center.
+carve(120,4,171,7)       -- north service ring
+carve(120,38,171,41)     -- south service ring
+carve(120,7,124,38)      -- west perimeter ring
+carve(167,7,171,38)      -- east perimeter ring
+carve(126,10,165,34)     -- enormous central vault and viewing gallery
+carve(124,19,168,24)     -- east-west access
+carve(142,7,149,38)      -- north-south access
+-- Side wings: each has a different footprint and distinct corridors.
+carve(125,9,138,16)      -- turbine diagnostics
+carve(154,9,166,17)      -- control observation
+carve(125,27,140,37)     -- coolant storage
+carve(152,28,166,37)     -- backup power
+carve(121,17,130,25)     -- west intake
+carve(160,18,170,26)     -- east exhaust
+-- Divide the peripheral wings, leaving deliberate doorways.
+for y=10,16 do if y~=13 then cells[y][133]="1" end end
+for x=125,138 do if x~=130 then cells[13][x]="1" end end
+for y=28,37 do if y~=32 then cells[y][133]="1" end end
+for x=154,166 do if x~=160 then cells[33][x]="1" end end
+-- Central experiment pit is a massive open arena (not a copy of lab rooms).
+carve(134,15,157,29)
+-- Keep four wide approaches so aliens and players can reach the experiment.
+carve(142,7,149,18)
+carve(142,27,149,38)
+carve(124,20,138,24)
+carve(153,20,169,24)
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
