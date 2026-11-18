@@ -1035,18 +1035,21 @@ local function spawnWave(number)
     local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
     local spawned=0
     local bossWave=number%3==0
-    local researchPlayers=0
-    local originalPlayers=0
+    local occupied={containment=false,research=false}
     for _,p in ipairs(Players:GetPlayers()) do
         if p:GetAttribute("AlienBreachDeployed") then
-            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchPlayers+=1
-            else originalPlayers+=1 end
+            occupied[p:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"]=true
         end
     end
-    local spawnResearch=researchPlayers>0 and researchPlayers>=originalPlayers
-    local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
-    local minY,maxY=3,spawnResearch and 41 or 43
-    for i=1,count do
+    for _,alien in ipairs(enemies:GetChildren()) do
+        occupied[alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"]=false
+    end
+    for sector,active in pairs(occupied) do
+      if active then
+        local spawnResearch=sector=="research"
+        local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
+        local minY,maxY=3,spawnResearch and 41 or 43
+        for i=1,count do
         local kind="stalker"
         if bossWave then
             kind=i<=math.floor(count/2) and "armored" or "stalker"
@@ -1077,6 +1080,8 @@ local function spawnWave(number)
                 break
             end
         end
+        end
+      end
     end
     aliveValue.Value=spawned
 end
@@ -1104,6 +1109,22 @@ task.spawn(function()
             breachIntermission=false
             alarm:Stop()
         else
+            local present={containment=false,research=false}
+            local counts={containment=0,research=0}
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p:GetAttribute("AlienBreachDeployed") then
+                    present[p:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"]=true
+                end
+            end
+            for _,alien in ipairs(enemies:GetChildren()) do
+                counts[alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"]+=1
+            end
+            for sector,active in pairs(present) do
+                if active and counts[sector]==0 then
+                    spawnWave(math.max(1,wave))
+                    break
+                end
+            end
             aliveValue.Value=#enemies:GetChildren()
             task.wait(0.4)
         end
@@ -1180,7 +1201,8 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local field=player:GetAttribute("AlienBreachDeployed") and fields[player]
+            local sameSector=(player:GetAttribute("AlienBreachSelectedMap")=="research")==(alien:GetAttribute("SectorEnemy")=="research")
+            local field=sameSector and player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
                 bestDistance=d;bestPlayer=player;bestField=field
