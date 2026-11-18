@@ -765,6 +765,8 @@ local function tracer(startPos,endPos,id)
 end
 local function hurtAlien(player,alien,amount)
  if not alien or alien.Parent~=enemies then return end
+ local sector=alien:GetAttribute("SectorEnemy")
+ if sector and player:GetAttribute("AlienBreachSelectedMap")~=sector then return end
  local hp=(alien:GetAttribute("HP") or 50)-amount*25
  alien:SetAttribute("HP",hp)
  if hp<=0 then
@@ -1013,7 +1015,7 @@ end
 -- A breach starts only after all aliens from the preceding wave are eliminated.
 task.spawn(function()
     while root.Parent do
-        if #enemies:GetChildren()==0 then
+        if (function() for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then return false end end return true end)() then
             breachIntermission=true
             alarm:Play()
             for remaining=7,1,-1 do
@@ -1028,7 +1030,9 @@ task.spawn(function()
             breachIntermission=false
             alarm:Stop()
         else
-            aliveValue.Value=#enemies:GetChildren()
+            local originalAlive=0
+            for _,e in ipairs(enemies:GetChildren()) do if not e:GetAttribute("SectorEnemy") then originalAlive+=1 end end
+            aliveValue.Value=originalAlive
             task.wait(0.4)
         end
     end
@@ -1098,6 +1102,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
     for _,alien in ipairs(enemies:GetChildren()) do
+        if alien:GetAttribute("SectorEnemy") then continue end
         local part=alien.PrimaryPart
         if not part then continue end
         local ax,ay=gridOf(part.Position)
