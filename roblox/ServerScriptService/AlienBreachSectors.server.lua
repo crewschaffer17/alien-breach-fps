@@ -258,54 +258,97 @@ for y=4,41 do
   end
  end
 end
--- Architectural corridor features: repeated beams, luminous navigation
--- strips and sealed service doors, kept out of walkable centerlines.
-for _,y in ipairs({5,39}) do
- for x=124,168,8 do
-  rp("Reactor hallway overhead truss",x,y,15.5,Vector3.new(1.3,2.5,23),steel)
-  rp("Reactor hallway direction light",x,y,14.15,Vector3.new(1,0.25,14),
-   Color3.fromRGB(99,217,245),Enum.Material.Neon)
+-- REACTOR SERVICE NETWORK. Modular infrastructure hugs the corridor walls.
+-- The middle of each passage stays open for players, chests, and enemy AI.
+local teal=Color3.fromRGB(76,215,240)
+local darkSteel=Color3.fromRGB(36,49,63)
+local panelSteel=Color3.fromRGB(89,111,124)
+local function fixture(name,x,y,h,size,color,material)
+ return rp(name,x,y,h,size,color,material)
+end
+-- North/south ring: heavy structural arches, ventilation, and paired conduits.
+for _,y in ipairs({5.5,39.5}) do
+ for x=126,166,5 do
+  fixture("Service gallery overhead I-beam",x,y,16.1,Vector3.new(2,2.5,30),darkSteel)
+  fixture("Service gallery recessed ceiling light",x,y,14.5,
+   Vector3.new(4,.35,10),teal,Enum.Material.Neon)
+  for _,side in ipairs({-1,1}) do
+   local sy=y+side*1.8
+   fixture("Wall side coolant conduit",x,sy,11.8,Vector3.new(24,1.4,1.1),panelSteel)
+   fixture("Wall side conduit glow",x,sy,12.7,Vector3.new(14,.25,.35),teal,Enum.Material.Neon)
+   fixture("Emergency service locker",x,sy,5.8,Vector3.new(4,9,1.4),darkSteel)
+   fixture("Service locker status indicator",x,sy-side*.75,8,
+    Vector3.new(2,2,.2),x%2==0 and teal or orange,Enum.Material.Neon)
+  end
  end
 end
-for _,x in ipairs({121,170}) do
- for y=10,36,7 do
-  rp("Reactor side corridor wall conduit",x,y,8,Vector3.new(.7,1.4,17),steel)
-  rp("Reactor side corridor safety beacon",x,y,13,Vector3.new(1.3,1.3,1.3),
-   orange,Enum.Material.Neon)
+-- Side passages: vertical ventilation risers and hazard-marked access hatches.
+for _,x in ipairs({121.5,169.5}) do
+ for y=11,35,5 do
+  fixture("Service corridor ceiling crossbar",x,y,15.4,Vector3.new(27,1.6,2),darkSteel)
+  fixture("Service corridor navigation lamp",x,y,14.4,
+   Vector3.new(9,.25,1.1),teal,Enum.Material.Neon)
+  local wallX=x==121.5 and x-1.7 or x+1.7
+  fixture("Side corridor equipment riser",wallX,y,8,Vector3.new(1.2,13,3),panelSteel)
+  fixture("Side corridor diagnostic light",wallX,y,11,
+   Vector3.new(.3,2.5,1.4),orange,Enum.Material.Neon)
  end
 end
--- Hallway storytelling: organized wall-side service equipment, safety
--- lighting, pipework, and signage. All nonblocking for combat and AI.
-local teal=Color3.fromRGB(77,222,231)
-for _,y in ipairs({5,39}) do
- for x=126,166,8 do
-  -- Wall-mounted cabinets and instruments are lifted off the floor.
-  rp("Reactor hallway emergency equipment cabinet",x,y-1.35,8,
-   Vector3.new(5,8,1.5),Color3.fromRGB(86,104,114))
-  rp("Reactor hallway status screen",x,y-1.35,9,
-   Vector3.new(3,3,.2),teal,Enum.Material.Neon)
-  rp("Reactor hallway pipe clamp",x+3,y+1.4,12,
-   Vector3.new(1.1,1.1,4),orange)
-  rp("Reactor hallway overhead coolant pipe",x,y+1.45,13.5,
-   Vector3.new(18,1.3,1.3),steel)
+-- Central cross passages: long overhead cable trays and illuminated ribs.
+for _,y in ipairs({21,23.5}) do
+ for x=126,165,7 do
+  if open(x,y) then
+   fixture("Main reactor cable tray",x,y,15.5,Vector3.new(19,1.2,2),darkSteel)
+   fixture("Main reactor cable tray indicator",x,y,14.75,
+    Vector3.new(12,.2,.6),teal,Enum.Material.Neon)
+  end
  end
 end
-for _,x in ipairs({121,170}) do
- for y=11,35,6 do
-  rp("Reactor vertical power conduit",x+((x==121) and 1.25 or -1.25),y,10,
-   Vector3.new(1.2,12,1.2),steel)
-  rp("Reactor warning power indicator",x+((x==121) and 1.25 or -1.25),y,14,
-   Vector3.new(1.5,1.6,1.5),orange,Enum.Material.Neon)
+for _,x in ipairs({145,147}) do
+ for y=10,36,6 do
+  if open(x,y) and not (y>=14 and y<=30) then
+   fixture("Spine corridor service bulkhead",x,y,15.6,
+    Vector3.new(2,1.5,23),panelSteel)
+   fixture("Spine corridor emergency guidance",x,y,14.5,
+    Vector3.new(.5,.2,12),orange,Enum.Material.Neon)
+  end
  end
 end
--- Entrance gantries to the four utility rooms; ceiling-mounted so
--- hallways remain open and alien navigation is unchanged.
+-- Four distinct maintenance bays with believable large machinery.
+local bays={
+ {129,13,"TURBINE / 01",Color3.fromRGB(244,164,68)},
+ {161,13,"CONTROL / 02",teal},
+ {129,32,"COOLANT / 03",Color3.fromRGB(89,188,255)},
+ {161,32,"GENERATOR / 04",orange}
+}
+for _,bay in ipairs(bays) do
+ local x,y,label,accent=bay[1],bay[2],bay[3],bay[4]
+ local base=fixture(label.." machinery skid",x,y,1.2,Vector3.new(13,2.2,9),darkSteel)
+ local housing=fixture(label.." armored machine housing",x,y,4.5,
+  Vector3.new(10,5,7),panelSteel)
+ fixture(label.." illuminated diagnostic strip",x,y-3.6,6.5,
+  Vector3.new(7,.5,.3),accent,Enum.Material.Neon)
+ for _,dx in ipairs({-4,4}) do
+  fixture(label.." vibration isolator",x+dx,y,7.5,
+   Vector3.new(1.2,2.4,6),darkSteel)
+ end
+ local screen=fixture(label.." diagnostic terminal",x+5,y+3,5.5,
+  Vector3.new(2.8,3,.3),accent,Enum.Material.Neon)
+ screen.Transparency=.15
+ local signGui=Instance.new("SurfaceGui")
+ signGui.Name="Bay identification";signGui.Face=Enum.NormalId.Front
+ signGui.AlwaysOnTop=false;signGui.Parent=screen
+ local labelGui=Instance.new("TextLabel")
+ labelGui.Size=UDim2.fromScale(1,1);labelGui.BackgroundTransparency=1
+ labelGui.Font=Enum.Font.Code;labelGui.TextScaled=true
+ labelGui.TextColor3=Color3.new(0,0,0);labelGui.Text=label;labelGui.Parent=signGui
+end
+-- Service pipes, floor-edge guides, and distinct access doors around each bay.
 for _,p in ipairs({{129,9},{160,9},{129,36},{160,36}}) do
  local x,y=p[1],p[2]
- rp("Reactor utility entrance overhead gantry",x,y,15,
-  Vector3.new(23,2,2),Color3.fromRGB(106,117,124))
- rp("Reactor utility entrance warning bar",x,y,13.8,
-  Vector3.new(17,.4,2),orange,Enum.Material.Neon)
+ fixture("Reactor bay entry lintel",x,y,16.4,Vector3.new(27,1.2,1.5),darkSteel)
+ fixture("Reactor bay hazard strip",x,y,15.65,Vector3.new(18,.25,1.6),
+  orange,Enum.Material.Neon)
 end
 -- Sunken chamber appearance: dark central basin and an elevated observation
 -- lip. The walkable collision plane remains flat for the existing alien AI.
@@ -371,13 +414,13 @@ particles.Rate=220;particles.Lifetime=NumberRange.new(1.1,2.4)
 particles.Speed=NumberRange.new(10,25);particles.SpreadAngle=Vector2.new(180,180)
 particles.Color=ColorSequence.new(violet,Color3.fromRGB(84,219,255))
 particles.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,3),NumberSequenceKeypoint.new(.35,5),NumberSequenceKeypoint.new(1,0)});particles.LightEmission=1;particles.Parent=core
--- Clean landmark architecture in the four broad access corridors.
-for _,p in ipairs({{145,10},{145,35},{127,22},{164,22}}) do
+-- Reactor vault entry arches stay above the path, never blocking it.
+for _,p in ipairs({{145,12},{145,33},{135,22},{156,22}}) do
  local x,y=p[1],p[2]
- rp("Reactor access gateway left",x-2,y,8,Vector3.new(2,16,2),steel)
- rp("Reactor access gateway right",x+2,y,8,Vector3.new(2,16,2),steel)
- rp("Reactor access gateway illuminated header",x,y,15.5,
-  Vector3.new(34,1.2,2),Color3.fromRGB(86,185,218),Enum.Material.Neon)
+ fixture("Omega access arch crown",x,y,16.4,Vector3.new(30,1.3,2),
+  panelSteel)
+ fixture("Omega access arch warning band",x,y,15.6,Vector3.new(22,.35,2),
+  orange,Enum.Material.Neon)
 end
 -- Additional highly visible plasma sparks orbit the glass containment vessel.
 for i=1,8 do
@@ -397,12 +440,6 @@ end
 for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
  rp("Omega containment pillar",p[1],p[2],9,Vector3.new(4,18,4),steel)
  rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
-end
--- Exactly one primary machine per utility room; preserve uncluttered hallways.
-for _,p in ipairs({{129,13,"Turbine compressor"},{161,13,"Observation console"},
- {129,32,"Coolant pump"},{161,32,"Emergency generator"}}) do
- rp(p[3],p[1],p[2],3,Vector3.new(10,6,7),Color3.fromRGB(87,91,101))
- rp(p[3].." indicator",p[1],p[2],6.2,Vector3.new(6,.4,4),orange,Enum.Material.Neon)
 end
 task.spawn(function()
  local phase=0
