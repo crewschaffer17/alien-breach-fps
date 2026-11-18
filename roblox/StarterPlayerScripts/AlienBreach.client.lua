@@ -380,6 +380,8 @@ local function mapBounds()
   return 66,2,113,43
  elseif player:GetAttribute("AlienBreachSelectedMap")=="reactor" then
   return 119,2,172,43
+ elseif player:GetAttribute("AlienBreachSelectedMap")=="nest" then
+  return 180,2,258,43
  end
  return 1,1,57,45
 end
