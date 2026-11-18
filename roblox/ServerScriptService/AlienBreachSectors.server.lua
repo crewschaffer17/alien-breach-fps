@@ -7,6 +7,7 @@ local root=workspace:WaitForChild("AlienBreachRoblox")
 local TILE=8
 local W,H=#map[1],#map
 local research={x=89,y=15}
+local reactor={x=145,y=15}
 local decor=Instance.new("Folder")
 decor.Name="ResearchLabEnvironment"
 decor.Parent=root
@@ -218,17 +219,75 @@ for _,p in ipairs({{70,8},{78,12},{103,12},{109,18},{71,30},{81,35},{90,30},{97,
   screen.Transparency=.3
  end
 end
+-- Reactor Core: orange-lit industrial plant, with navigable turbine bays and
+-- a distinct floor, hazard rails, cooling pipes, and a central energy stack.
+local reactorDecor=Instance.new("Folder")
+reactorDecor.Name="ReactorCoreEnvironment"
+reactorDecor.Parent=root
+local orange=Color3.fromRGB(255,135,42)
+local copper=Color3.fromRGB(111,65,39)
+local dark=Color3.fromRGB(32,35,41)
+local function reactorPart(name,x,y,h,size,color,material,collide)
+ local p=Instance.new("Part")
+ p.Name=name;p.Anchored=true;p.CanCollide=collide==true
+ p.CanTouch=false;p.CastShadow=false
+ p.Size=size;p.CFrame=CFrame.new(pos(x,y,h))
+ p.Color=color;p.Material=material or Enum.Material.Metal
+ p.Parent=reactorDecor
+ return p
+end
+local function reactorLamp(x,y)
+ local mount=reactorPart("Amber ceiling warning beacon",x,y,16,Vector3.new(2.8,.4,2.8),orange,Enum.Material.Neon)
+ local glow=Instance.new("PointLight")
+ glow.Color=orange;glow.Brightness=2.4;glow.Range=34;glow.Shadows=false;glow.Parent=mount
+end
+-- Color every traversable reactor tile without replacing the game's collision floor.
+for y=4,40 do
+ for x=122,170 do
+  if open(x,y) then
+   local color=((x+y)%7==0) and Color3.fromRGB(82,61,40) or dark
+   reactorPart("Reactor grated floor",x-.5,y-.5,.18,Vector3.new(TILE-.12,.25,TILE-.12),color,Enum.Material.DiamondPlate,false)
+   if x%6==0 and y%6==0 then reactorLamp(x-.5,y-.5) end
+  end
+ end
+end
+-- Tall reactor containment stack: decorative nonblocking layers keep combat paths open.
+for i=0,7 do
+ local h=2+i*3.1
+ local core=reactorPart("Core energy chamber "..i,145.5,14.5,h,Vector3.new(10,2.4,10),
+  i%2==0 and orange or copper,i%2==0 and Enum.Material.Neon or Enum.Material.Metal,false)
+ core.Transparency=i%2==0 and .28 or 0
+end
+for _,point in ipairs({{140,11},{151,11},{140,18},{151,18}}) do
+ local x,y=point[1],point[2]
+ reactorPart("Reactor pressure column",x,y,9,Vector3.new(2,18,2),copper,Enum.Material.Metal,false)
+ reactorPart("Reactor coolant pipe",x,y,19,Vector3.new(3,1.4,3),orange,Enum.Material.Neon,false)
+end
+for _,point in ipairs({{125,12},{133,17},{158,12},{166,17},{125,30},{134,36},{159,30},{167,36}}) do
+ local x,y=point[1],point[2]
+ reactorPart("Industrial generator housing",x,y,2.2,Vector3.new(5,4,5),copper,Enum.Material.Metal,false)
+ reactorPart("Generator power indicator",x,y,4.5,Vector3.new(3,.35,3),orange,Enum.Material.Neon,false)
+end
+for _,y in ipairs({5,23,32}) do
+ for x=124,168,8 do
+  if open(x,y) then
+   reactorPart("Overhead coolant conduit",x-.5,y-.5,13.5,Vector3.new(6,1.1,1.3),copper,Enum.Material.Metal,false)
+  end
+ end
+end
 -- A sector change is a deployment transition, not a permanent respawn location.
 -- Always relocate the character for BOTH sectors, including after a death.
 local function teleport(player,character)
  if not player:GetAttribute("AlienBreachDeployed") then return end
  local sector=player:GetAttribute("AlienBreachSelectedMap")
- if sector~="research" and sector~="containment" then return end
+ if sector~="research" and sector~="containment" and sector~="reactor" then return end
  local hrp=character:WaitForChild("HumanoidRootPart",10)
  if not hrp or character~=player.Character or not character.Parent then return end
  if not player:GetAttribute("AlienBreachDeployed") or player:GetAttribute("AlienBreachSelectedMap")~=sector then return end
  if sector=="research" then
   character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
+ elseif sector=="reactor" then
+  character:PivotTo(CFrame.new(pos(reactor.x-.5,reactor.y-.5,5)))
  else
   local spawn=root:FindFirstChild("Starting Room Spawn")
   if spawn then character:PivotTo(spawn.CFrame*CFrame.new(0,4,0)) end
