@@ -3,7 +3,7 @@
 -- Source: index.html; does not modify the browser game.
 local Players = game:GetService("Players")
 -- Do not allow Roblox to spawn players before the generated facility and its spawn exist.
-Players.CharacterAutoLoads = false
+Players.CharacterAutoLoads = true
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
@@ -648,7 +648,13 @@ local function setupPlayerSpawn(player)
             end)
         end
     end)
-    if not player.Character then
+    if player.Character then
+        task.defer(function()
+            if player.Parent and player.Character then
+                player.Character:PivotTo(spawn.CFrame*CFrame.new(0,4,0))
+            end
+        end)
+    else
         task.defer(loadAtCommand,player)
     end
 end
