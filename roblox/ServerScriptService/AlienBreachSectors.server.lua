@@ -104,12 +104,25 @@ for y=4,41 do
      Vector3.new(7.2,.38,.7),Color3.fromRGB(73,96,112))
     local lamp=part("Surgical cyan light",x-.5,y-.5,ceilingY-.85,
      Vector3.new(4,.25,1.1),cyan,Enum.Material.Neon)
-    light(lamp,cyan,1.05,32)
+    light(lamp,Color3.fromRGB(188,237,246),2.1,48)
    elseif (x*3+y)%19==0 then
     local warning=part("Emergency red lamp",x-.5,y-.5,ceilingY-.6,
      Vector3.new(1,.24,1),red,Enum.Material.Neon)
-    light(warning,red,.65,18)
+    light(warning,red,.55,16)
    end
+  end
+ end
+end
+-- Soft white overhead fill lights keep the lab readable while retaining
+-- cyan/red emergency accents. Local lights do not wash out the original map.
+for y=6,39,7 do
+ for x=71,109,7 do
+  if open(x,y) then
+   local high=x>=81 and x<=99 and y>=9 and y<=20
+   local fixture=part("Research wide-area white floodlight",x-.5,y-.5,
+    high and 31.5 or 16,Vector3.new(3,.22,3),
+    Color3.fromRGB(199,225,238),Enum.Material.Neon)
+   light(fixture,Color3.fromRGB(204,228,246),2.3,57)
   end
  end
 end
