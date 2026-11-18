@@ -39,7 +39,8 @@ local map = {
 }
 -- Preserve the original 35x27 layout in the northwest corner, then expand
 -- into new east research wings and a south office/maintenance complex.
-local WIDTH,HEIGHT=116,45
+local WIDTH,HEIGHT=174,45
+local REACTOR_START=119
 local RESEARCH_START=66
 local cells={}
 for y=1,HEIGHT do
@@ -101,6 +102,24 @@ for _,x in ipairs({73,91,106}) do
  for y=10,19 do if y~=14 and y~=15 then cells[y][x]="1" end end
 end
 for _,x in ipairs({76,92,106}) do
+ for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
+end
+-- Reactor Core: isolated industrial plant, no walkable link to the other sectors.
+carve(122,4,170,7) -- upper turbine access
+carve(122,9,135,20) -- cooling pumps
+carve(138,9,153,20) -- massive reactor chamber
+carve(156,9,170,20) -- control gallery
+carve(122,22,170,25) -- main industrial concourse
+carve(122,27,136,40) -- power distribution
+carve(139,27,153,40) -- maintenance and coolant
+carve(156,27,170,40) -- emergency generator wing
+for _,coords in ipairs({{127,7,130,10},{144,7,147,10},{162,7,165,10},{127,19,130,23},{144,19,147,23},{162,19,165,23},{127,24,130,28},{144,24,147,28},{162,24,165,28}}) do
+ carve(coords[1],coords[2],coords[3],coords[4])
+end
+for _,x in ipairs({129,146,163}) do
+ for y=10,19 do if y~=14 and y~=15 then cells[y][x]="1" end end
+end
+for _,x in ipairs({129,146,163}) do
  for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
 end
 -- Seal the outside boundary.
@@ -196,7 +215,7 @@ for y,row in ipairs(map) do
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
-                 first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
+                 first>=REACTOR_START and Color3.fromRGB(71,45,32) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
 end
@@ -328,7 +347,7 @@ for y,row in ipairs(map) do
             local h=high and 34 or WALL_HEIGHT
             local ceiling=block(high and "High laboratory ceiling" or "Corridor ceiling",
                 Vector3.new(count*TILE,0.5,TILE),
-                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
+                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=REACTOR_START and Color3.fromRGB(34,24,24) or first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
             ceiling.CanCollide=false
         else x+=1 end
     end
@@ -625,6 +644,12 @@ spawn.Parent=root
 -- The larger facility deploys 12 caches per rotation instead of 5.
 -- Research Lab uses the exact same chest rewards, quantity and rotation.
 local researchChestPoints={}
+local reactorChestPoints={}
+for y=4,40,3 do
+ for x=123,169,3 do
+  if map[y] and map[y]:sub(x,x)=="0" then table.insert(reactorChestPoints,{x-0.5,y-0.5}) end
+ end
+end
 for y=4,40,3 do
     for x=69,110,3 do
         if map[y] and map[y]:sub(x,x)=="0" then
@@ -633,14 +658,18 @@ for y=4,40,3 do
     end
 end
 local function activeChestSector()
-    local researchCount,containmentCount=0,0
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p:GetAttribute("AlienBreachDeployed") then
-            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchCount+=1
-            else containmentCount+=1 end
-        end
-    end
-    return researchCount>0 and researchCount>=containmentCount and "research" or "containment"
+ local counts={containment=0,research=0,reactor=0}
+ for _,p in ipairs(Players:GetPlayers()) do
+  if p:GetAttribute("AlienBreachDeployed") then
+   local sector=p:GetAttribute("AlienBreachSelectedMap")
+   counts[sector] = (counts[sector] or 0)+1
+  end
+ end
+ local selected="containment"
+ for _,sector in ipairs({"research","reactor"}) do
+  if counts[sector]>counts[selected] then selected=sector end
+ end
+ return selected
 end
 local activeChests=Instance.new("Folder")
 activeChests.Name="SupplyCaches"
@@ -693,7 +722,7 @@ local function newChest(x,y,index)
 end
 local function rotateChests()
     activeChests:ClearAllChildren()
-    local shuffled=table.clone(activeChestSector()=="research" and researchChestPoints or chestPoints)
+    local shuffled=table.clone(activeChestSector()=="reactor" and reactorChestPoints or activeChestSector()=="research" and researchChestPoints or chestPoints)
     for i=#shuffled,2,-1 do
         local j=math.random(1,i)
         shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
@@ -1032,17 +1061,11 @@ local function spawnWave(number)
     local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
     local spawned=0
     local bossWave=number%3==0
-    local researchPlayers=0
-    local originalPlayers=0
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p:GetAttribute("AlienBreachDeployed") then
-            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchPlayers+=1
-            else originalPlayers+=1 end
-        end
-    end
-    local spawnResearch=researchPlayers>0 and researchPlayers>=originalPlayers
-    local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
-    local minY,maxY=3,spawnResearch and 41 or 43
+    local selectedSector=activeChestSector()
+    local minX,maxX=2,55
+    local minY,maxY=3,43
+    if selectedSector=="research" then minX,maxX=68,111;maxY=41
+    elseif selectedSector=="reactor" then minX,maxX=122,170;maxY=41 end
     for i=1,count do
         local kind="stalker"
         if bossWave then
@@ -1057,7 +1080,7 @@ local function spawnWave(number)
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
                 local alien=makeAlien(x,y,kind,number)
-                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
+                if selectedSector~="containment" then alien:SetAttribute("SectorEnemy",selectedSector) end
                 spawned+=1
                 break
             end
@@ -1069,7 +1092,7 @@ local function spawnWave(number)
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
                 local alien=makeAlien(x,y,"boss",number)
-                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
+                if selectedSector~="containment" then alien:SetAttribute("SectorEnemy",selectedSector) end
                 spawned+=1
                 break
             end
@@ -1080,19 +1103,19 @@ end
 -- Remove enemies abandoned in a sector. Otherwise they keep the global wave
 -- blocked when the last player leaves Research Lab for Containment (or vice versa).
 local function clearEmptySectors()
- local occupied={containment=false,research=false}
+ local occupied={containment=false,research=false,reactor=false}
  for _,player in ipairs(Players:GetPlayers()) do
   if player:GetAttribute("AlienBreachDeployed") then
    local character=player.Character
    local hum=character and character:FindFirstChildOfClass("Humanoid")
    if hum and hum.Health>0 then
-    local sector=player:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"
+    local sector=player:GetAttribute("AlienBreachSelectedMap") or "containment"
     occupied[sector]=true
    end
   end
  end
  for _,alien in ipairs(enemies:GetChildren()) do
-  local sector=alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"
+  local sector=alien:GetAttribute("SectorEnemy") or "containment"
   if not occupied[sector] then alien:Destroy() end
  end
  return occupied
@@ -1101,7 +1124,7 @@ end
 task.spawn(function()
     while root.Parent do
         local occupied=clearEmptySectors()
-        local hasDeployed=occupied.containment or occupied.research
+        local hasDeployed=occupied.containment or occupied.research or occupied.reactor
         if not hasDeployed then
             task.wait(.5)
         elseif #enemies:GetChildren()==0 then
@@ -1195,7 +1218,7 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local sameSector=(player:GetAttribute("AlienBreachSelectedMap")=="research")==(alien:GetAttribute("SectorEnemy")=="research")
+            local sameSector=(player:GetAttribute("AlienBreachSelectedMap") or "containment")==(alien:GetAttribute("SectorEnemy") or "containment")
             local field=sameSector and player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
