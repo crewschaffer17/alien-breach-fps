@@ -788,6 +788,8 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
  if not head or (origin-head.Position).Magnitude>12 then return end
  local id=player:GetAttribute("Weapon") or "pulse"
  local w=weaponStats[id] or weaponStats.pulse
+ local level=math.clamp(tonumber(player:GetAttribute("ABWeaponLevel_"..id)) or 3,1,5)
+ local damageScale=({0.55,0.78,1,1.3,1.65})[level]
  local now=os.clock()
  if now-(lastShot[player] or 0)<w.delay-.012 then return end
  local mag=player:GetAttribute("Magazine") or 0
@@ -813,10 +815,8 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
  end
  for alien,count in pairs(hits) do
   if id=="laser" then
-   hurtAlien(player,alien,alien:GetAttribute("Kind")=="armored" and 2 or 100)
+   hurtAlien(player,alien,(alien:GetAttribute("Kind")=="boss" and 5 or alien:GetAttribute("Kind")=="armored" and 2 or 100)*damageScale)
   else
-   local level=math.clamp(tonumber(player:GetAttribute("ABWeaponLevel_"..id)) or 3,1,5)
-   local damageScale=({0.55,0.78,1,1.3,1.65})[level]
    hurtAlien(player,alien,w.damage*count*damageScale)
   end
  end
@@ -825,7 +825,7 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
    local center=target.PrimaryPart
    if center then
     for _,alien in ipairs(enemies:GetChildren()) do
-     if alien~=target and alien.PrimaryPart and (alien.PrimaryPart.Position-center.Position).Magnitude<1.8*TILE then hurtAlien(player,alien,1.8) end
+     if alien~=target and alien.PrimaryPart and (alien.PrimaryPart.Position-center.Position).Magnitude<1.8*TILE then hurtAlien(player,alien,1.8*damageScale) end
     end
    end
   end
@@ -835,7 +835,7 @@ remote.OnServerEvent:Connect(function(player,origin,direction)
     local delta=alien.PrimaryPart.Position-origin
     if delta.Magnitude<maxDist and delta.Magnitude>0 and direction:Dot(delta.Unit)>math.cos(.075) then
      local r=workspace:Raycast(origin,delta,params)
-     if r and r.Instance:IsDescendantOf(alien) then hurtAlien(player,alien,6) end
+     if r and r.Instance:IsDescendantOf(alien) then hurtAlien(player,alien,6*damageScale) end
     end
    end
   end
