@@ -219,118 +219,114 @@ for _,p in ipairs({{70,8},{78,12},{103,12},{109,18},{71,30},{81,35},{90,30},{97,
   screen.Transparency=.3
  end
 end
--- Reactor Core: a gigantic circular observation vault surrounds a sunken
--- experimental plasma orb. Geometry is decorative/nonblocking so existing
--- AI flow fields, chests, and player movement continue to work.
+-- REACTOR CORE: clean industrial architecture, lit before scenery generation.
 local reactorDecor=Instance.new("Folder")
 reactorDecor.Name="ReactorCoreEnvironment"
 reactorDecor.Parent=root
-local orange=Color3.fromRGB(255,115,37)
-local violet=Color3.fromRGB(164,63,255)
-local cyanPlasma=Color3.fromRGB(52,225,255)
-local copper=Color3.fromRGB(107,56,39)
-local dark=Color3.fromRGB(27,30,39)
-local function reactorPart(name,x,y,h,size,color,material)
+local orange=Color3.fromRGB(255,151,65)
+local violet=Color3.fromRGB(172,86,255)
+local steel=Color3.fromRGB(75,85,96)
+local function rp(name,x,y,h,size,color,material,collide)
  local p=Instance.new("Part")
- p.Name=name;p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false
- p.CastShadow=false;p.Size=size;p.CFrame=CFrame.new(pos(x,y,h))
- p.Color=color;p.Material=material or Enum.Material.Metal;p.Parent=reactorDecor
+ p.Name=name;p.Anchored=true;p.CanCollide=collide==true
+ p.CanTouch=false;p.CanQuery=collide==true;p.CastShadow=false
+ p.Size=size;p.CFrame=CFrame.new(pos(x,y,h));p.Color=color
+ p.Material=material or Enum.Material.Metal;p.Parent=reactorDecor
  return p
 end
-local function reactorLamp(x,y,color)
- local mount=reactorPart("Emergency reactor light",x,y,17,Vector3.new(3,.4,3),color or orange,Enum.Material.Neon)
- local glow=Instance.new("PointLight")
- glow.Color=color or orange;glow.Brightness=2.6;glow.Range=45;glow.Shadows=false;glow.Parent=mount
+local function beacon(x,y,color,brightness,range)
+ local lamp=rp("Always-on reactor ceiling light",x,y,16.7,Vector3.new(6,.5,3),color,Enum.Material.Neon)
+ local l=Instance.new("PointLight")
+ l.Color=color;l.Brightness=brightness;l.Range=range;l.Shadows=false;l.Parent=lamp
 end
--- Dark industrial platework and orange safety stripe details.
+-- Establish full visibility IMMEDIATELY: lights first, no flicker or startup delay.
+for _,p in ipairs({{129,13},{161,13},{129,32},{161,32},{145,6},{145,39},
+ {121,21},{170,21},{137,22},{153,22},{145,17},{145,27},
+ {128,6},{161,6},{128,39},{161,39}}) do
+ beacon(p[1],p[2],Color3.fromRGB(255,224,185),3.8,105)
+end
+-- Floors are tidy large panels, not hundreds of random loose objects.
 for y=4,41 do
  for x=120,171 do
   if open(x,y) then
-   local cx,cy=x-.5,y-.5
-   local inVault=x>=134 and x<=157 and y>=15 and y<=29
-   local tone=inVault and Color3.fromRGB(15,19,30) or ((x+y)%8==0 and Color3.fromRGB(79,53,39) or dark)
-   reactorPart(inVault and "Sunken vault floor" or "Reactor steel deck",cx,cy,.16,Vector3.new(TILE-.16,.25,TILE-.16),tone,Enum.Material.DiamondPlate)
-   if x%7==0 and y%6==0 then reactorLamp(cx,cy) end
+   local center=x>=132 and x<=159 and y>=14 and y<=30
+   rp(center and "Omega vault floor" or "Reactor corridor floor",x-.5,y-.5,.15,
+    Vector3.new(7.85,.24,7.85),
+    center and Color3.fromRGB(58,64,77) or Color3.fromRGB(77,82,88),
+    Enum.Material.DiamondPlate)
   end
  end
 end
--- A raised observation rim, with broad flights of steps descending toward
--- the orb from all four compass directions. Kept nonblocking for alien AI.
+-- Central chamber: high perimeter framing defines a real room.
+-- Four clear entrances remain open for combat and navigation.
+for _,x in ipairs({133,137,141,149,153,157}) do
+ for _,y in ipairs({16,28}) do
+  rp("Omega structural support",x,y,9,Vector3.new(2,18,2),steel)
+ end
+end
+for _,y in ipairs({18,26}) do
+ for _,x in ipairs({133,158}) do
+  rp("Omega chamber steel support",x,y,9,Vector3.new(2,18,2),steel)
+ end
+end
+-- Large but orderly observation ring. No scattered concentric debris.
 local cx,cy=145.5,22
-for _,ring in ipairs({{14,4.8},{16,6.4},{18,8}}) do
- local radius,height=ring[1],ring[2]
- for i=0,31 do
-  local angle=(i+.5)*math.pi/16
-  local x=cx+math.cos(angle)*radius
-  local y=cy+math.sin(angle)*radius
-  local tile=reactorPart("Circular reactor observation ring",x,y,height,Vector3.new(5,1.1,9),copper,Enum.Material.Metal)
-  tile.CFrame=CFrame.new(pos(x,y,height))*CFrame.Angles(0,-angle,0)
+for i=0,23 do
+ local angle=(i+.5)*math.pi/12
+ local x,y=cx+math.cos(angle)*10.5,cy+math.sin(angle)*7
+ local rim=rp("Omega observation railing",x,y,4,Vector3.new(7,3,.7),orange)
+ rim.CFrame=CFrame.new(pos(x,y,4))*CFrame.Angles(0,-angle-math.pi/2,0)
+end
+-- Four visual stairways face the orb; these are nonblocking until the
+-- navigation system supports a real second elevation.
+for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+ for step=1,4 do
+  local dist=8+step*1.4
+  local x,y=cx+d[1]*dist,cy+d[2]*dist
+  local stair=rp("Omega descent step",x,y,1+step*.55,
+   Vector3.new(d[1]==0 and 15 or 7,.55,d[2]==0 and 15 or 7),
+   Color3.fromRGB(103,108,116),Enum.Material.DiamondPlate)
  end
 end
-for _,direction in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
- local dx,dy=direction[1],direction[2]
- for step=0,8 do
-  local distance=14-step*1.35
-  local height=math.max(.6,6.8-step*.7)
-  local stair=reactorPart("Vault descent stair "..step,cx+dx*distance,cy+dy*distance,height,
-   Vector3.new(dx==0 and 19 or 9,.7,dy==0 and 19 or 9),Color3.fromRGB(67,66,72),Enum.Material.DiamondPlate)
-  if step%2==0 then
-   reactorPart("Stair edge warning strip",cx+dx*distance,cy+dy*distance,height+.42,
-    Vector3.new(dx==0 and 18 or 1,.1,dy==0 and 18 or 1),orange,Enum.Material.Neon)
-  end
- end
-end
--- Experiment: a giant suspended glass sphere containing unstable plasma.
-local center=pos(cx,cy,12)
+-- Main experiment, centered and scaled to fit inside the vault.
 local shell=Instance.new("Part")
-shell.Name="EXPERIMENT OMEGA - plasma containment orb"
-shell.Shape=Enum.PartType.Ball;shell.Size=Vector3.new(55,55,55)
-shell.CFrame=CFrame.new(center+Vector3.new(0,20,0))
+shell.Name="EXPERIMENT OMEGA | Containment orb"
+shell.Shape=Enum.PartType.Ball;shell.Size=Vector3.new(44,44,44)
+shell.CFrame=CFrame.new(pos(cx,cy,33))
 shell.Anchored=true;shell.CanCollide=false;shell.CanTouch=false;shell.CanQuery=false
-shell.Material=Enum.Material.Glass;shell.Color=Color3.fromRGB(98,162,199)
-shell.Transparency=.67;shell.CastShadow=false;shell.Parent=reactorDecor
+shell.Material=Enum.Material.Glass;shell.Color=Color3.fromRGB(124,172,204)
+shell.Transparency=.68;shell.CastShadow=false;shell.Parent=reactorDecor
 local core=Instance.new("Part")
-core.Name="Unstable plasma heart"
-core.Shape=Enum.PartType.Ball;core.Size=Vector3.new(32,32,32)
-core.CFrame=shell.CFrame;core.Anchored=true;core.CanCollide=false;core.CanTouch=false;core.CanQuery=false
-core.Material=Enum.Material.Neon;core.Color=violet;core.Transparency=.22;core.Parent=reactorDecor
-local glow=Instance.new("PointLight")
-glow.Color=violet;glow.Brightness=7;glow.Range=95;glow.Shadows=false;glow.Parent=core
-local aura=Instance.new("ParticleEmitter")
-aura.Name="Plasma turbulence";aura.Rate=85;aura.Lifetime=NumberRange.new(.4,1.1)
-aura.Speed=NumberRange.new(4,14);aura.SpreadAngle=Vector2.new(180,180)
-aura.Color=ColorSequence.new(violet,cyanPlasma)
-aura.Size=NumberSequence.new(2.5,0);aura.LightEmission=1;aura.Parent=core
--- Four huge electromagnetic restraints, warning pylons and electrical arcs.
-for i=0,3 do
- local angle=i*math.pi/2
- local x,y=cx+math.cos(angle)*10,cy+math.sin(angle)*10
- reactorPart("Orb containment pylon",x,y,11,Vector3.new(5,22,5),copper)
- reactorPart("Containment warning lens",x,y,23,Vector3.new(5,2,5),orange,Enum.Material.Neon)
- local beam=reactorPart("Plasma magnetic tether",(x+cx)/2,(y+cy)/2,29,
-  Vector3.new(2,2,80),cyanPlasma,Enum.Material.Neon)
- beam.CFrame=CFrame.lookAt(pos(x,y,29),shell.Position)*CFrame.new(0,0,-(pos(x,y,29)-shell.Position).Magnitude/2)
- beam.Size=Vector3.new(1.6,1.6,(pos(x,y,29)-shell.Position).Magnitude)
+core.Name="Omega plasma heart"
+core.Shape=Enum.PartType.Ball;core.Size=Vector3.new(25,25,25)
+core.CFrame=shell.CFrame;core.Anchored=true;core.CanCollide=false
+core.CanTouch=false;core.CanQuery=false;core.Material=Enum.Material.Neon
+core.Color=violet;core.Transparency=.16;core.Parent=reactorDecor
+local light=Instance.new("PointLight")
+light.Color=violet;light.Brightness=5;light.Range=100;light.Shadows=false;light.Parent=core
+local particles=Instance.new("ParticleEmitter")
+particles.Name="Contained plasma"
+particles.Rate=28;particles.Lifetime=NumberRange.new(.3,.8)
+particles.Speed=NumberRange.new(2,7);particles.SpreadAngle=Vector2.new(180,180)
+particles.Color=ColorSequence.new(violet,Color3.fromRGB(84,219,255))
+particles.Size=NumberSequence.new(1.4,0);particles.LightEmission=1;particles.Parent=core
+for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
+ rp("Omega containment pillar",p[1],p[2],9,Vector3.new(4,18,4),steel)
+ rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
 end
--- Side rooms have different machines rather than repeated Research Lab benches.
-for _,point in ipairs({{126,11},{136,11},{157,11},{165,14},{126,33},{137,34},{158,34},{165,37}}) do
- local x,y=point[1],point[2]
- reactorPart("High voltage transformer",x,y,3.5,Vector3.new(7,7,6),copper)
- reactorPart("Transformer hazard coil",x,y,7.5,Vector3.new(5,1,5),orange,Enum.Material.Neon)
- reactorLamp(x,y)
+-- Exactly one primary machine per utility room; preserve uncluttered hallways.
+for _,p in ipairs({{129,13,"Turbine compressor"},{161,13,"Observation console"},
+ {129,32,"Coolant pump"},{161,32,"Emergency generator"}}) do
+ rp(p[3],p[1],p[2],3,Vector3.new(10,6,7),Color3.fromRGB(87,91,101))
+ rp(p[3].." indicator",p[1],p[2],6.2,Vector3.new(6,.4,4),orange,Enum.Material.Neon)
 end
-for _,point in ipairs({{123,5},{169,5},{123,39},{169,39}}) do
- reactorPart("Overhead coolant duct",point[1],point[2],12,Vector3.new(22,2,4),copper)
-end
--- Animate only the small core; no expensive per-tile animation.
 task.spawn(function()
  local phase=0
  while core.Parent do
-  phase+=.055
-  core.Size=Vector3.new(32,32,32)*(1+math.sin(phase)*.09)
-  core.Color=Color3.fromRGB(140+math.floor(40*math.sin(phase)),55,230)
-  glow.Brightness=6+math.sin(phase*2)*1.5
-  task.wait(.12)
+  phase+=.08
+  core.Size=Vector3.new(25,25,25)*(1+.055*math.sin(phase))
+  light.Brightness=5+.6*math.sin(phase*2)
+  task.wait(.15)
  end
 end)
 -- A sector change is a deployment transition, not a permanent respawn location.
