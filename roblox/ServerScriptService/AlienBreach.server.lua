@@ -1311,7 +1311,8 @@ local function spawnWave(number,selectedSector)
             end
         end
     end
-    if selectedSector=="nest" and bossWave then
+    -- TEMPORARY QUEEN TEST: spawn on Nest Wave 1 as well as boss waves.
+    if selectedSector=="nest" and (number==1 or bossWave) then
         local q=makeAlien(nestQueenSpot[1]-.5,nestQueenSpot[2]-.5,"boss",number)
         q.Name="THE HIVE QUEEN"
         q:SetAttribute("SectorEnemy","nest")
