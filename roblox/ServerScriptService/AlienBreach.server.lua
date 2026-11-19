@@ -1256,6 +1256,46 @@ local wave=0
 local sectorWaves={containment=0,research=0,reactor=0,nest=0}
 local lastWaveSector=nil
 local nestQueenSpot=({{195,14},{218,22},{243,31}})[math.random(1,3)]
+-- Choose a nearby OPEN tile with unobstructed map-grid sight from deployment.
+-- Bosses never spawn in a disconnected room or outside their own sector.
+local bossEntry={containment={4,4},research={89,15},reactor={145,7},nest={219,6}}
+local function bossVisibleTile(sector)
+    local origin=bossEntry[sector] or bossEntry.containment
+    local ox,oy=origin[1],origin[2]
+    local bestX,bestY,bestScore=nil,nil,-math.huge
+    for radius=5,11 do
+        for dy=-radius,radius do
+            for dx=-radius,radius do
+                local distance=math.sqrt(dx*dx+dy*dy)
+                if distance>=radius-.7 and distance<=radius+.7 then
+                    local tx,ty=ox+dx,oy+dy
+                    if free(tx-.5,ty-.5) then
+                        local clear=true
+                        local steps=math.max(2,math.ceil(distance*4))
+                        for s=1,steps do
+                            local t=s/steps
+                            if not free(ox-.5+dx*t,oy-.5+dy*t) then clear=false;break end
+                        end
+                        if clear then
+                            local score=distance-(math.abs(dy)*.08)
+                            if score>bestScore then bestX,bestY,bestScore=tx,ty,score end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if bestX then return bestX,bestY end
+    -- Safe fallback directly in the entry pocket.
+    for radius=0,4 do
+        for dy=-radius,radius do
+            for dx=-radius,radius do
+                if free(ox+dx-.5,oy+dy-.5) then return ox+dx,oy+dy end
+            end
+        end
+    end
+    return ox,oy
+end
 local function spawnWave(number,selectedSector)
     -- ONE shared spawn-count curve for Containment, Research Lab and Reactor Core.
     -- Wave 1 is exactly 9 normal aliens; later waves follow Reactor Core's
@@ -1300,27 +1340,22 @@ local function spawnWave(number,selectedSector)
         end
     end
     if bossWave and selectedSector~="nest" then
-        for attempt=1,100 do
-            local x=math.random(minX,maxX)+0.5
-            local y=math.random(minY,maxY)+0.5
-            if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
-                local alien=makeAlien(x,y,"boss",number)
-                if selectedSector~="containment" then alien:SetAttribute("SectorEnemy",selectedSector) end
-                spawned+=1
-                break
-            end
-        end
+        local bx,by=bossVisibleTile(selectedSector)
+        local boss=makeAlien(bx-.5,by-.5,"boss",number)
+        boss.Name="BREACH OVERLORD"
+        boss:SetAttribute("SectorEnemy",selectedSector)
+        boss:SetAttribute("BossWave",number)
+        spawned+=1
+        print("[Alien Breach] "..selectedSector.." boss spawned on wave "..number.." at "..bx..","..by)
     end
-    -- TEMPORARY QUEEN TEST: spawn on Nest Wave 1 as well as boss waves.
-    if selectedSector=="nest" and (number==1 or bossWave) then
-        -- Wave-one test places the Queen near the hive entry instead of
-        -- hiding her in one of three distant sanctuaries.
-        local queenTile=number==1 and {219,11} or nestQueenSpot
+    -- Queen returns to her regular boss waves (3, 6, 9...).
+    if selectedSector=="nest" and bossWave then
+        local bx,by=bossVisibleTile("nest")
+        local queenTile={bx,by}
         local q=makeAlien(queenTile[1]-.5,queenTile[2]-.5,"boss",number)
         q.Name="THE HIVE QUEEN"
         q:SetAttribute("SectorEnemy","nest")
         q:SetAttribute("HiveQueen",true)
-        q:SetAttribute("QueenTestWaveOne",number==1)
         print("[Alien Nest] HIVE QUEEN spawned for wave "..number.." at tile "..queenTile[1]..","..queenTile[2])
         q:SetAttribute("HP",1800+number*180)
         q:SetAttribute("Speed",6.5)
