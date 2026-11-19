@@ -1313,10 +1313,15 @@ local function spawnWave(number,selectedSector)
     end
     -- TEMPORARY QUEEN TEST: spawn on Nest Wave 1 as well as boss waves.
     if selectedSector=="nest" and (number==1 or bossWave) then
-        local q=makeAlien(nestQueenSpot[1]-.5,nestQueenSpot[2]-.5,"boss",number)
+        -- Wave-one test places the Queen near the hive entry instead of
+        -- hiding her in one of three distant sanctuaries.
+        local queenTile=number==1 and {219,11} or nestQueenSpot
+        local q=makeAlien(queenTile[1]-.5,queenTile[2]-.5,"boss",number)
         q.Name="THE HIVE QUEEN"
         q:SetAttribute("SectorEnemy","nest")
         q:SetAttribute("HiveQueen",true)
+        q:SetAttribute("QueenTestWaveOne",number==1)
+        print("[Alien Nest] HIVE QUEEN spawned for wave "..number.." at tile "..queenTile[1]..","..queenTile[2])
         q:SetAttribute("HP",1800+number*180)
         q:SetAttribute("Speed",6.5)
         -- Eight-legged spider anatomy attached to the moving enemy model.
