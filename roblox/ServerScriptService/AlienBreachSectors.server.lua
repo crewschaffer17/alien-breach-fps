@@ -693,6 +693,41 @@ for _,v in ipairs({{192,13},{199,17},{210,11},{239,13},{188,30},{205,34},{231,35
   end
  end
 end
+-- Overgrown living landscape: sculpted fern fans and clustered mushrooms.
+-- All are sparse, noncolliding and deliberately away from the main paths.
+local function foliage(x,y)
+ local base=world(x,y,1.3)
+ local stemTop=base+Vector3.new(0,2.6,0)
+ stem("Moss fern stem",base,stemTop,.34,rootGreen)
+ for i=1,4 do
+  local angle=i*math.pi/2+.3
+  local tip=base+Vector3.new(math.cos(angle)*2.2,1.5,math.sin(angle)*2.2)
+  local leaf=stem("Curved fern frond",stemTop,tip,.62,moss)
+ end
+end
+for _,v in ipairs({
+ {189,11},{201,13},{205,22},{213,29},{224,16},{237,18},
+ {247,26},{235,34},{211,36},{193,32},{184,24},{249,13},
+ {201,18},{225,27},{231,10},{192,27},{242,35},{217,12}
+}) do
+ if open(v[1],v[2]) then foliage(v[1],v[2]) end
+end
+-- Veins connect wall sacs to nearby roots instead of looking like
+-- disconnected spheres stuck onto plain walls.
+for _,v in ipairs({
+ {192,12},{199,17},{210,11},{239,13},
+ {188,30},{205,34},{231,35},{248,29}
+}) do
+ local x,y=v[1],v[2]
+ if open(x,y) then
+  local base=world(x,y,1.4)
+  local top=world(x+1.1,y+.7,12)
+  stem("Living wall-to-ground vascular root",base,top,1.1,bark)
+  local bulb=hp("Overgrown spore pod",x-.5,y-.5,3.2,
+    Vector3.new(3.8,4.2,3.8),sacGreen,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  bulb.Transparency=.22
+ end
+end
 -- Three hidden sanctuaries. The server chooses one for the Queen.
 for _,site in ipairs({{195,14},{218,22},{243,31}}) do
  local x,y=site[1],site[2]
