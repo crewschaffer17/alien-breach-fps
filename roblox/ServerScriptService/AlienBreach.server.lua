@@ -1133,6 +1133,72 @@ local function makeAlien(x,y,kind,wave)
     model:SetAttribute("HP",kind=="boss" and (650+wave*65) or kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
+    -- Optional professionally rigged models: ServerStorage/AlienModels/
+    -- Stalker, Armored, Crawler. Each model needs a PrimaryPart (prefer
+    -- HumanoidRootPart), Motor6D joints and an AnimationController/Animator.
+    -- AnimationId attributes WalkAnimationId, AttackAnimationId, IdleAnimationId
+    -- can be set on each template to use animations owned by this experience.
+    -- No external assets or unverified IDs are injected into the game.
+    if kind~="boss" then
+        local library=game:GetService("ServerStorage"):FindFirstChild("AlienModels")
+        local template=library and library:FindFirstChild(
+            kind=="armored" and "Armored" or kind=="crawler" and "Crawler" or "Stalker")
+        if template and template:IsA("Model") then
+            local rig=template:Clone()
+            local rigRoot=rig.PrimaryPart or rig:FindFirstChild("HumanoidRootPart",true)
+            if rigRoot and rigRoot:IsA("BasePart") then
+                for _,p in ipairs(rig:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.CanCollide=false;p.CanTouch=false
+                        p.Anchored=(p==rigRoot)
+                        p.CastShadow=(p==rigRoot)
+                    end
+                end
+                rig.PrimaryPart=rigRoot
+                rig:PivotTo(CFrame.new(origin+Vector3.new(0,3,0)))
+                rig.Name="AnimatedAlienRig"
+                rig.Parent=model
+                model.PrimaryPart=rigRoot
+                local controller=rig:FindFirstChildOfClass("AnimationController")
+                if not controller then
+                    controller=Instance.new("AnimationController")
+                    controller.Parent=rig
+                end
+                local animator=controller:FindFirstChildOfClass("Animator")
+                if not animator then
+                    animator=Instance.new("Animator")
+                    animator.Parent=controller
+                end
+                local tracks={}
+                for _,name in ipairs({"Idle","Walk","Attack"}) do
+                    local id=template:GetAttribute(name.."AnimationId")
+                    if typeof(id)=="string" and id:match("^rbxassetid://%d+$") then
+                        local animation=Instance.new("Animation")
+                        animation.Name=name.."Animation"
+                        animation.AnimationId=id
+                        animation.Parent=rig
+                        local ok,track=pcall(function() return animator:LoadAnimation(animation) end)
+                        if ok and track then
+                            track.Priority=name=="Attack" and Enum.AnimationPriority.Action
+                                or name=="Walk" and Enum.AnimationPriority.Movement
+                                or Enum.AnimationPriority.Idle
+                            track.Looped=name~="Attack"
+                            tracks[string.lower(name)]=track
+                        end
+                    end
+                end
+                if tracks.idle then tracks.idle:Play(.2) end
+                alienAnimation[model]={rig=true,tracks=tracks,phase=0,animationState="idle",lastAttack=0}
+                model.Destroying:Connect(function()
+                    alienAnimation[model]=nil
+                    for _,track in pairs(tracks) do track:Stop(0) end
+                end)
+                return model
+            end
+            rig:Destroy()
+            warn("[Alien Breach] AlienModels/"..template.Name.." needs a PrimaryPart")
+        end
+    end
     -- Prefer a single imported MeshPart for a continuous alien silhouette.
     -- Put an imported MeshPart named AlienMesh in ServerStorage to activate it.
     local meshTemplate=game:GetService("ServerStorage"):FindFirstChild("AlienMesh")
@@ -1649,6 +1715,17 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                 end
+                if animation and animation.rig then
+                    local moving=playerDistance>27 and delta.Magnitude>0.12
+                    local desired=moving and "walk" or "idle"
+                    if desired~=animation.animationState then
+                        local previous=animation.tracks[animation.animationState]
+                        if previous then previous:Stop(.18) end
+                        local nextTrack=animation.tracks[desired]
+                        if nextTrack then nextTrack:Play(.18) end
+                        animation.animationState=desired
+                    end
+                end
                 if animation then
                     animation.phase+=dt*(alien:GetAttribute("Kind")=="crawler" and 14 or 8)
                     for _,joint in ipairs(animation.joints or {}) do
@@ -1662,6 +1739,10 @@ RunService.Heartbeat:Connect(function(dt)
                 if playerDistance<= (alien:GetAttribute("HiveQueen") and 115 or 75)
                     and os.clock()-(damageClock[alien] or 0)>(alien:GetAttribute("HiveQueen") and 2.8 or 1.8) then
                     damageClock[alien]=os.clock()
+                    local rigAnim=alienAnimation[alien]
+                    if rigAnim and rigAnim.rig and rigAnim.tracks.attack then
+                        rigAnim.tracks.attack:Play(.08)
+                    end
                     local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
                     if hum and hum.Health>0 then
                         local muzzle=part.Position+Vector3.new(0,1.0,0)
