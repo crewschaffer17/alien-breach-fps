@@ -70,7 +70,7 @@ Players.PlayerAdded:Connect(function(p)
   d.maps=type(saved.maps)=="table" and saved.maps or d.maps
   d.maps.containment=true
   d.selectedMap=type(saved.selectedMap)=="string" and saved.selectedMap or "containment"
-  if not d.maps[d.selectedMap] or (d.selectedMap~="research" and d.selectedMap~="containment") then d.selectedMap="containment" end
+  if not d.maps[d.selectedMap] or (d.selectedMap~="research" and d.selectedMap~="containment" and d.selectedMap~="reactor" and d.selectedMap~="nest") then d.selectedMap="containment" end
   if type(saved.slots)=="table" then
    for i=1,3 do if type(saved.slots[i])=="string" then d.slots[i]=saved.slots[i] end end
   end
@@ -119,7 +119,7 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   end
  elseif action=="buyMap" then
   if type(arg1)~="string" or not sectorPrices[arg1] then return end
-  if arg1~="research" then event:FireClient(p,"notice","SECTOR UNDER CONSTRUCTION");return end
+  if arg1~="research" and arg1~="reactor" and arg1~="nest" then event:FireClient(p,"notice","SECTOR UNDER CONSTRUCTION");return end
   if d.maps[arg1] then event:FireClient(p,"notice","SECTOR ALREADY UNLOCKED");return end
   local ls=p:FindFirstChild("leaderstats")
   local credits=ls and ls:FindFirstChild("Credits")
@@ -131,7 +131,7 @@ event.OnServerEvent:Connect(function(p,action,arg1,arg2)
   event:FireClient(p,"notice","SECTOR UNLOCKED: "..string.upper(arg1))
  elseif action=="selectMap" then
   if type(arg1)~="string" or not sectorPrices[arg1] or not d.maps[arg1] then return end
-  if arg1~="research" and arg1~="containment" then event:FireClient(p,"notice","SECTOR UNDER CONSTRUCTION");return end
+  if arg1~="research" and arg1~="containment" and arg1~="reactor" and arg1~="nest" then event:FireClient(p,"notice","SECTOR UNDER CONSTRUCTION");return end
   d.selectedMap=arg1
   event:FireClient(p,"notice","SECTOR SELECTED: "..string.upper(arg1))
  elseif action=="slot" then

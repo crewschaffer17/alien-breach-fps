@@ -6,6 +6,15 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local RunService = game:GetService("RunService")
+-- Set baseline illumination before generating any map geometry.
+-- This removes startup darkness even while fixtures are still being built.
+Lighting.ClockTime=14
+Lighting.Brightness=3
+Lighting.ExposureCompensation=0.2
+Lighting.GlobalShadows=false
+Lighting.Ambient=Color3.fromRGB(165,176,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(140,153,165)
+Lighting.FogEnd=900
 local TILE = 8
 local WALL_HEIGHT = 18
 local map = {
@@ -39,7 +48,9 @@ local map = {
 }
 -- Preserve the original 35x27 layout in the northwest corner, then expand
 -- into new east research wings and a south office/maintenance complex.
-local WIDTH,HEIGHT=116,45
+local WIDTH,HEIGHT=260,45
+local NEST_START=180
+local REACTOR_START=119
 local RESEARCH_START=66
 local cells={}
 for y=1,HEIGHT do
@@ -103,6 +114,101 @@ end
 for _,x in ipairs({76,92,106}) do
  for y=28,39 do if y~=33 and y~=34 then cells[y][x]="1" end end
 end
+-- Reactor Core: connected perimeter hallways, enclosed utility rooms,
+-- and one vast central chamber. Walls are real map collision geometry.
+carve(120,4,171,7)     -- north corridor
+carve(120,38,171,41)   -- south corridor
+carve(120,7,123,38)    -- west corridor
+carve(168,7,171,38)   -- east corridor
+carve(143,7,148,38)   -- central north-south hallway
+carve(123,20,168,24)  -- central east-west hallway
+-- Four large, separate equipment rooms, each connected to a hallway.
+carve(126,10,139,17)  -- north-west turbine room
+carve(152,10,165,17)  -- north-east control room
+carve(126,28,139,35)  -- south-west coolant room
+carve(152,28,165,35)  -- south-east generator room
+-- Doorways between the outer ring and each equipment room.
+carve(128,7,131,10)
+carve(159,7,162,10)
+carve(128,35,131,38)
+carve(159,35,162,38)
+-- Doors leading from equipment rooms toward the central corridors.
+carve(137,16,143,18)
+carve(148,16,154,18)
+carve(137,25,143,29)
+carve(148,25,154,29)
+-- THE OMEGA VAULT: one huge uninterrupted central room with four entrances.
+carve(132,17,159,27)
+carve(138,14,153,30)
+-- Reinstate solid partitions between machinery rooms and outer corridors,
+-- leaving only the intentional four-tile door openings.
+for x=125,140 do
+ if x<128 or x>131 then cells[9][x]="1" end
+ if x<128 or x>131 then cells[36][x]="1" end
+end
+for x=151,166 do
+ if x<159 or x>162 then cells[9][x]="1" end
+ if x<159 or x>162 then cells[36][x]="1" end
+end
+-- Distinct service closets and side passages, not one continuous empty floor.
+carve(125,18,130,19)
+carve(161,18,166,19)
+carve(125,26,130,27)
+carve(161,26,166,27)
+-- Expanded reactor service wings: additional rooms and looped hallways
+-- inside the sector's existing reserved footprint, away from other maps.
+carve(125,8,139,8)      -- north-west service gallery
+carve(152,8,166,8)      -- north-east service gallery
+carve(125,37,139,37)    -- south-west service gallery
+carve(152,37,166,37)    -- south-east service gallery
+carve(125,10,125,17)    -- west utility passage
+carve(166,10,166,17)    -- east utility passage
+carve(125,28,125,35)    -- lower west utility passage
+carve(166,28,166,35)    -- lower east utility passage
+carve(126,18,130,19)    -- west diagnostics annex
+carve(161,18,166,19)    -- east diagnostics annex
+carve(126,26,130,27)    -- west pump annex
+carve(161,26,166,27)    -- east pump annex
+-- Alien Nest: a continuous, winding subterranean burrow, not rectangular rooms.
+-- 78x38 tile footprint: 1.5x Reactor's length, with three secluded queen dens.
+local function burrow(cx,cy,rx,ry)
+ for yy=math.max(3,math.floor(cy-ry)),math.min(42,math.ceil(cy+ry)) do
+  for xx=math.max(181,math.floor(cx-rx)),math.min(257,math.ceil(cx+rx)) do
+   local dx=(xx-cx)/rx
+   local dy=(yy-cy)/ry
+   local wobble=.09*math.sin(xx*.59+yy*.27)+.06*math.cos(xx*.31-yy*.62)
+   if dx*dx+dy*dy<=1+wobble then cells[yy][xx]="0" end
+  end
+ end
+end
+local function tunnel(x1,y1,x2,y2,radius)
+ local steps=math.max(math.abs(x2-x1),math.abs(y2-y1))*2
+ for i=0,steps do
+  local t=i/steps
+  local x=x1+(x2-x1)*t+math.sin(t*math.pi*2)*1.4
+  local y=y1+(y2-y1)*t+math.sin(t*math.pi*3)*1.1
+  burrow(x,y,radius,radius*.78)
+ end
+end
+-- Main winding spine and branching return loops.
+for _,v in ipairs({
+ {185,7,195,14,3.4},{195,14,208,9,3.2},{208,9,219,7,3.4},
+ {219,7,231,14,3.4},{231,14,245,12,3.5},{245,12,253,21,3.4},
+ {253,21,243,31,3.5},{243,31,228,36,3.3},{228,36,216,34,3.4},
+ {216,34,202,35,3.4},{202,35,187,29,3.3},{187,29,185,7,3.3},
+ {195,14,208,23,3.2},{208,23,218,22,3.6},{218,22,231,24,3.5},
+ {231,24,243,31,3.3},{208,23,202,35,3.0},{218,22,216,34,3.2},
+ {231,14,231,24,3.2},{195,14,187,29,3.1}
+}) do tunnel(v[1],v[2],v[3],v[4],v[5]) end
+-- Irregular incubation caverns, fungal groves and the three queen dens.
+for _,v in ipairs({
+ {195,14,8.2,6.5},{218,22,10.3,8.3},{243,31,8.6,7},
+ {207,9,6.5,5.1},{234,12,6.2,5.2},{188,29,6.3,5.5},
+ {202,35,7.4,5.0},{228,36,7.2,4.8},{252,21,5.2,7.0},
+ {219,7,6.3,4.1}
+}) do burrow(v[1],v[2],v[3],v[4]) end
+-- Dedicated, safely walkable entry pocket.
+burrow(219,6,5,3)
 -- Seal the outside boundary.
 for x=1,WIDTH do cells[1][x]="1";cells[HEIGHT][x]="1" end
 for y=1,HEIGHT do cells[y][1]="1";cells[y][WIDTH]="1" end
@@ -134,12 +240,12 @@ mapValue.Value=table.concat(map,"\n")
 mapValue.Parent=ReplicatedStorage
 -- Apply visibility immediately, before constructing any geometry.
 Lighting.ClockTime=14
-Lighting.Brightness=1.45
-Lighting.ExposureCompensation=-0.35
+Lighting.Brightness=3
+Lighting.ExposureCompensation=0.2
 Lighting.GlobalShadows=false
-Lighting.Ambient=Color3.fromRGB(124,137,139)
-Lighting.OutdoorAmbient=Color3.fromRGB(100,112,118)
-Lighting.FogEnd=320
+Lighting.Ambient=Color3.fromRGB(165,176,185)
+Lighting.OutdoorAmbient=Color3.fromRGB(140,153,165)
+Lighting.FogEnd=900
 Lighting.FogColor=Color3.fromRGB(18,31,36)
 local breachState=ReplicatedStorage:FindFirstChild("AlienBreachState") or Instance.new("Folder")
 breachState.Name="AlienBreachState"
@@ -155,6 +261,11 @@ local timerValue=state("NextBreachIn",0)
 local root = Instance.new("Folder")
 root.Name = "AlienBreachRoblox"
 root.Parent = workspace
+local versionTag=Instance.new("StringValue")
+versionTag.Name="NEST_MAP_BUILD_2026_11_18_V2"
+versionTag.Value="Winding burrows / grass floor / rooted wall sacs"
+versionTag.Parent=root
+print("[Alien Breach] NEST_MAP_BUILD_2026_11_18_V2 loaded")
 local enemies = Instance.new("Folder")
 enemies.Name = "Aliens"
 enemies.Parent = root
@@ -176,6 +287,7 @@ local function pos(x,y,h)
     return Vector3.new((x - #map[1]/2)*TILE, h, (y - #map/2)*TILE)
 end
 local function tallRoom(x,y)
+    if x>=REACTOR_START then return x>=132 and x<=159 and y>=14 and y<=30 end
     if x>=RESEARCH_START then return x>=81 and x<=99 and y>=9 and y<=20 end
     return (x>=38 and x<=53 and y>=3 and y<=10)
         or (x>=38 and x<=53 and y>=15 and y<=24)
@@ -186,7 +298,28 @@ local function free(x,y)
     return row ~= nil and row:sub(math.floor(x)+1,math.floor(x)+1) == "0"
 end
 -- Expanded 57x45 facility, retaining the original 35x27 section. Runs of walls are combined for performance.
-block("Industrial foundation",Vector3.new(#map[1]*TILE,1,#map*TILE),CFrame.new(pos(#map[1]/2,#map/2,-0.5)),metal)
+-- Leave a true opening under the Omega chamber; a separate lower
+-- collision floor and four physical stairways are built below.
+local OMEGA_X1,OMEGA_X2,OMEGA_Y1,OMEGA_Y2=132,159,14,30
+local OMEGA_DROP=8
+local function foundationRect(x1,x2,y1,y2)
+ block("Industrial foundation",Vector3.new((x2-x1+1)*TILE,1,(y2-y1+1)*TILE),
+  CFrame.new(pos((x1+x2-1)/2,(y1+y2-1)/2,-.5)),metal)
+end
+foundationRect(1,NEST_START-1,1,OMEGA_Y1-1)
+foundationRect(1,NEST_START-1,OMEGA_Y2+1,HEIGHT)
+foundationRect(1,OMEGA_X1-1,OMEGA_Y1,OMEGA_Y2)
+foundationRect(OMEGA_X2+1,NEST_START-1,OMEGA_Y1,OMEGA_Y2)
+-- One single, collidable grassy hive floor instead of thousands of tiles.
+local nestGround=block("ALIEN NEST continuous overgrown floor",
+ Vector3.new((WIDTH-NEST_START+1)*TILE,1,HEIGHT*TILE),
+ CFrame.new(pos((NEST_START+WIDTH-1)/2,(HEIGHT-1)/2,.65)),
+ Color3.fromRGB(49,91,43),Enum.Material.Grass)
+nestGround.CastShadow=false
+-- Grass top is at Y=1.15, safely above any default Studio Baseplate
+-- or old industrial foundation at Y=0, preventing coplanar z-fighting.
+block("Omega lowered collision floor",Vector3.new((OMEGA_X2-OMEGA_X1+1)*TILE,1,(OMEGA_Y2-OMEGA_Y1+1)*TILE),CFrame.new(pos((OMEGA_X1+OMEGA_X2-1)/2,(OMEGA_Y1+OMEGA_Y2-1)/2,-OMEGA_DROP-.5)),metal)
+
 for y,row in ipairs(map) do
     local x=1
     while x<=#row do
@@ -196,9 +329,83 @@ for y,row in ipairs(map) do
             local count=x-first
             block("Lab wall",Vector3.new(count*TILE,WALL_HEIGHT,TILE),
                 CFrame.new(pos(first-1+count/2,y-0.5,WALL_HEIGHT/2)),
-                 first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
+                 first>=NEST_START and Color3.fromRGB(29,55,32) or first>=REACTOR_START and Color3.fromRGB(55,68,81) or first>=RESEARCH_START and Color3.fromRGB(22,39,53) or wallColor)
         else x+=1 end
     end
+end
+-- Continuous structural walls: every walkable high-ceiling tile has
+-- a full-height boundary wherever it touches solid geometry.
+-- This includes the outside edge of Omega, previously missed by the old loop.
+for y=1,HEIGHT do
+ for x=1,WIDTH do
+  if map[y]:sub(x,x)=="1" then
+   local needed=18
+   local warm=false
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    local nx,ny=x+d[1],y+d[2]
+    if nx>=1 and nx<=WIDTH and ny>=1 and ny<=HEIGHT
+      and map[ny]:sub(nx,nx)=="0" then
+     if nx>=132 and nx<=159 and ny>=14 and ny<=30 then
+      needed=66;warm=true
+     elseif tallRoom(nx,ny) then
+      needed=math.max(needed,34)
+     end
+    end
+   end
+   if needed>WALL_HEIGHT then
+    local lower=warm and OMEGA_DROP or 0
+    block("Full-height sealed ceiling wall",Vector3.new(TILE,needed-WALL_HEIGHT+lower,TILE),
+     CFrame.new(pos(x-.5,y-.5,(needed+WALL_HEIGHT-lower)/2)),
+     warm and Color3.fromRGB(108,58,38) or Color3.fromRGB(61,77,88))
+   end
+  end
+ end
+end
+-- Eight solid, collidable treads per flight, with visible amber nosings.
+-- Descend from the four chamber approaches into the 8-stud sunken floor.
+local function stairFlight(startX,startY,dx,dy)
+ for i=1,8 do
+  local x=startX+dx*(i-1)
+  local y=startY+dy*(i-1)
+  local top=-i
+  local step=block("Omega walkable stair "..i,
+   Vector3.new(dx~=0 and TILE or TILE*3,1,dy~=0 and TILE or TILE*3),
+   CFrame.new(pos(x-.5,y-.5,top-.5)),
+   Color3.fromRGB(113,69,45),Enum.Material.DiamondPlate)
+  step.CanCollide=true
+  local stripe=block("Omega stair tread amber marker",
+   Vector3.new(dx~=0 and .6 or TILE*2.7,.08,dy~=0 and .6 or TILE*2.7),
+   CFrame.new(pos(x-.5,y-.5,top+.06)),Color3.fromRGB(255,174,57),Enum.Material.Neon)
+  stripe.CanCollide=false;stripe.CanQuery=false
+ end
+end
+stairFlight(145,14,0,1)
+stairFlight(145,30,0,-1)
+stairFlight(132,22,1,0)
+stairFlight(159,22,-1,0)
+-- Seal every HIGH-TO-LOW ceiling transition. These boundaries are
+-- WALKABLE on both sides, so solid-tile perimeter checks miss them.
+-- Only fill ABOVE the 18-stud doorway height; passages stay open.
+for y=1,HEIGHT do
+ for x=1,WIDTH do
+  if map[y]:sub(x,x)=="0" and tallRoom(x,y) then
+   local ceilingHeight=x>=REACTOR_START and 66 or 34
+   for _,d in ipairs({{1,0},{0,1},{-1,0},{0,-1}}) do
+    local nx,ny=x+d[1],y+d[2]
+    if nx>=1 and nx<=WIDTH and ny>=1 and ny<=HEIGHT
+      and map[ny]:sub(nx,nx)=="0" and not tallRoom(nx,ny) then
+     local center=pos(x-.5+d[1]*.5,y-.5+d[2]*.5,(ceilingHeight+WALL_HEIGHT)/2)
+     local size=d[1]~=0
+      and Vector3.new(.9,ceilingHeight-WALL_HEIGHT,TILE+.2)
+      or Vector3.new(TILE+.2,ceilingHeight-WALL_HEIGHT,.9)
+     local seal=block("SEALED HIGH-CEILING UPPER BULKHEAD",size,
+      CFrame.new(center),
+      x>=REACTOR_START and Color3.fromRGB(107,52,35) or Color3.fromRGB(61,77,88))
+     seal.CastShadow=false
+    end
+   end
+  end
+ end
 end
 -- Industrial grating copied from the original browser game's floor design:
 -- framed steel panels, dark recessed channels, silver raised ribs.
@@ -325,10 +532,10 @@ for y,row in ipairs(map) do
             local high=tallRoom(x,y)
             while x<=#row and row:sub(x,x)=="0" and tallRoom(x,y)==high do x+=1 end
             local count=x-first
-            local h=high and 34 or WALL_HEIGHT
+            local h=high and (first>=REACTOR_START and 66 or 34) or WALL_HEIGHT
             local ceiling=block(high and "High laboratory ceiling" or "Corridor ceiling",
                 Vector3.new(count*TILE,0.5,TILE),
-                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
+                CFrame.new(pos(first-1+count/2,y-0.5,h+0.4)),first>=REACTOR_START and Color3.fromRGB(34,24,24) or first>=RESEARCH_START and Color3.fromRGB(14,27,41) or Color3.fromRGB(49,61,68))
             ceiling.CanCollide=false
         else x+=1 end
     end
@@ -359,8 +566,8 @@ alarm.Parent=root
 -- Do not periodically dim global Lighting or the white fixtures.
 task.spawn(function()
     while root.Parent do
-        Lighting.Brightness=1.45
-        Lighting.ExposureCompensation=-0.35
+        Lighting.Brightness=3
+        Lighting.ExposureCompensation=0.2
         for _,fixture in ipairs(lightingFixtures) do
             fixture.light.Brightness=1.0
             fixture.part.Color=Color3.fromRGB(193,245,236)
@@ -625,6 +832,16 @@ spawn.Parent=root
 -- The larger facility deploys 12 caches per rotation instead of 5.
 -- Research Lab uses the exact same chest rewards, quantity and rotation.
 local researchChestPoints={}
+local reactorChestPoints={}
+local nestChestPoints={}
+for y=5,40,3 do for x=182,256,3 do
+ if map[y] and map[y]:sub(x,x)=="0" then table.insert(nestChestPoints,{x-.5,y-.5}) end
+end end
+for y=4,40,3 do
+ for x=123,169,3 do
+  if map[y] and map[y]:sub(x,x)=="0" then table.insert(reactorChestPoints,{x-0.5,y-0.5}) end
+ end
+end
 for y=4,40,3 do
     for x=69,110,3 do
         if map[y] and map[y]:sub(x,x)=="0" then
@@ -632,23 +849,33 @@ for y=4,40,3 do
         end
     end
 end
+-- Wave selection must exist even though caches now rotate independently.
+-- Without this function the wave coroutine errors before creating any aliens.
 local function activeChestSector()
-    local researchCount,containmentCount=0,0
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p:GetAttribute("AlienBreachDeployed") then
-            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchCount+=1
-            else containmentCount+=1 end
-        end
-    end
-    return researchCount>0 and researchCount>=containmentCount and "research" or "containment"
+ local counts={containment=0,research=0,reactor=0,nest=0}
+ for _,player in ipairs(Players:GetPlayers()) do
+  if player:GetAttribute("AlienBreachDeployed") then
+   local hum=player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+   if hum and hum.Health>0 then
+    local sector=player:GetAttribute("AlienBreachSelectedMap") or "containment"
+    counts[sector]=(counts[sector] or 0)+1
+   end
+  end
+ end
+ local selected="containment"
+ for _,sector in ipairs({"research","reactor","nest"}) do
+  if counts[sector]>counts[selected] then selected=sector end
+ end
+ return selected
 end
 local activeChests=Instance.new("Folder")
 activeChests.Name="SupplyCaches"
 activeChests.Parent=root
-local function newChest(x,y,index)
+local function newChest(x,y,index,sector)
     local base=pos(x,y,0)
     local model=Instance.new("Model")
-    model.Name="Armored supply cache "..index
+    model.Name=sector.." armored supply cache "..index
+    model:SetAttribute("Sector",sector)
     model.Parent=activeChests
     local box=block("Heavy reinforced storage case",Vector3.new(5.5,2.8,3.8),CFrame.new(base+Vector3.new(0,1.5,0)),Color3.fromRGB(62,83,77),Enum.Material.Metal,model)
     local lid=block("Hinged steel lid",Vector3.new(5.8,0.6,4.0),CFrame.new(base+Vector3.new(0,3.15,0)),Color3.fromRGB(95,117,97),Enum.Material.Metal,model)
@@ -691,39 +918,37 @@ local function newChest(x,y,index)
         task.delay(2,function() if model.Parent then model:Destroy() end end)
     end)
 end
+-- Independent supply rotation in EACH sector: twelve caches per map,
+-- ninety-second refresh, identical loot odds and rewards everywhere.
 local function rotateChests()
-    activeChests:ClearAllChildren()
-    local shuffled=table.clone(activeChestSector()=="research" and researchChestPoints or chestPoints)
-    for i=#shuffled,2,-1 do
-        local j=math.random(1,i)
-        shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
-    end
-    local count=0
-    for _,p in ipairs(shuffled) do
-        if free(p[1],p[2]) then
-            count+=1
-            newChest(p[1],p[2],count)
-            if count>=12 then break end
-        end
-    end
+ activeChests:ClearAllChildren()
+ for _,entry in ipairs({
+  {sector="containment",points=chestPoints},
+  {sector="research",points=researchChestPoints},
+  {sector="reactor",points=reactorChestPoints},
+  {sector="nest",points=nestChestPoints}
+ }) do
+  local shuffled=table.clone(entry.points)
+  for i=#shuffled,2,-1 do
+   local j=math.random(1,i)
+   shuffled[i],shuffled[j]=shuffled[j],shuffled[i]
+  end
+  local count=0
+  for _,p in ipairs(shuffled) do
+   if free(p[1],p[2]) then
+    count+=1
+    newChest(p[1],p[2],count,entry.sector)
+    if count>=12 then break end
+   end
+  end
+ end
 end
 rotateChests()
-local lastChestSector=activeChestSector()
 task.spawn(function()
-    while root.Parent do
-        local current=activeChestSector()
-        if current~=lastChestSector then
-            lastChestSector=current
-            rotateChests()
-        end
-        task.wait(1)
-    end
-end)
-task.spawn(function()
-    while root.Parent do
-        task.wait(90)
-        if root.Parent then rotateChests() end
-    end
+ while root.Parent do
+  task.wait(90)
+  if root.Parent then rotateChests() end
+ end
 end)
 StarterPlayer.CameraMode=Enum.CameraMode.LockFirstPerson
 Players.PlayerAdded:Connect(function(player)
@@ -908,6 +1133,93 @@ local function makeAlien(x,y,kind,wave)
     model:SetAttribute("HP",kind=="boss" and (650+wave*65) or kind=="armored" and 100 or 50)
     model.Parent=enemies
     local origin=pos(x,y,0)
+    -- Optional professionally rigged models: ServerStorage/AlienModels/
+    -- Stalker, Armored, Crawler. Each model needs a PrimaryPart (prefer
+    -- HumanoidRootPart), Motor6D joints and an AnimationController/Animator.
+    -- AnimationId attributes WalkAnimationId, AttackAnimationId, IdleAnimationId
+    -- can be set on each template to use animations owned by this experience.
+    -- No external assets or unverified IDs are injected into the game.
+    if kind~="boss" then
+        local library=game:GetService("ServerStorage"):FindFirstChild("AlienModels")
+        local template=library and library:FindFirstChild(
+            kind=="armored" and "Armored" or kind=="crawler" and "Crawler" or "Stalker")
+        if not library then
+            warn("[Alien Breach Models] MISSING ServerStorage/AlienModels folder")
+        elseif not template then
+            warn("[Alien Breach Models] MISSING "..(kind=="armored" and "Armored" or kind=="crawler" and "Crawler" or "Stalker").." inside AlienModels")
+        elseif not template:IsA("Model") then
+            warn("[Alien Breach Models] Template "..template.Name.." is not a Model")
+        end
+        if template and template:IsA("Model") then
+            local rig=template:Clone()
+            local rigRoot=rig.PrimaryPart or rig:FindFirstChild("HumanoidRootPart",true)
+            if rigRoot and rigRoot:IsA("BasePart") then
+                for _,p in ipairs(rig:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.CanCollide=false;p.CanTouch=false
+                        p.Anchored=(p==rigRoot)
+                        p.CastShadow=(p==rigRoot)
+                    end
+                end
+                rig.PrimaryPart=rigRoot
+                rig:PivotTo(CFrame.new(origin+Vector3.new(0,3,0)))
+                print("[Alien Breach Models] LOADED "..template.Name.." for "..kind.." enemy")
+                rig.Name="AnimatedAlienRig"
+                rig.Parent=model
+                model.PrimaryPart=rigRoot
+                local controller=rig:FindFirstChildOfClass("AnimationController")
+                if not controller then
+                    controller=Instance.new("AnimationController")
+                    controller.Parent=rig
+                end
+                local animator=controller:FindFirstChildOfClass("Animator")
+                if not animator then
+                    animator=Instance.new("Animator")
+                    animator.Parent=controller
+                end
+                local tracks={}
+                for _,name in ipairs({"Idle","Walk","Attack"}) do
+                    local id=template:GetAttribute(name.."AnimationId")
+                    if typeof(id)=="string" and id:match("^rbxassetid://%d+$") then
+                        local animation=Instance.new("Animation")
+                        animation.Name=name.."Animation"
+                        animation.AnimationId=id
+                        animation.Parent=rig
+                        local ok,track=pcall(function() return animator:LoadAnimation(animation) end)
+                        if ok and track then
+                            track.Priority=name=="Attack" and Enum.AnimationPriority.Action
+                                or name=="Walk" and Enum.AnimationPriority.Movement
+                                or Enum.AnimationPriority.Idle
+                            track.Looped=name~="Attack"
+                            tracks[string.lower(name)]=track
+                        end
+                    end
+                end
+                -- Built-in procedural gait works immediately with the supplied
+                -- Motor6D models, without uploaded Roblox animation IDs.
+                local motors={}
+                for _,joint in ipairs(rig:GetDescendants()) do
+                    if joint:IsA("Motor6D") then
+                        local n=joint.Name
+                        if n:find("UpperArm") or n:find("Thigh")
+                          or n:find("UpperLeg") or n:find("LowerLeg")
+                          or n:find("Forearm") or n:find("Head") then
+                            table.insert(motors,{motor=joint,name=n})
+                        end
+                    end
+                end
+                if tracks.idle then tracks.idle:Play(.2) end
+                alienAnimation[model]={rig=true,tracks=tracks,motors=motors,phase=0,animationState="idle",lastAttack=0,kind=kind}
+                model.Destroying:Connect(function()
+                    alienAnimation[model]=nil
+                    for _,track in pairs(tracks) do track:Stop(0) end
+                end)
+                return model
+            end
+            rig:Destroy()
+            warn("[Alien Breach] AlienModels/"..template.Name.." needs a PrimaryPart")
+        end
+    end
     -- Prefer a single imported MeshPart for a continuous alien silhouette.
     -- Put an imported MeshPart named AlienMesh in ServerStorage to activate it.
     local meshTemplate=game:GetService("ServerStorage"):FindFirstChild("AlienMesh")
@@ -1028,21 +1340,66 @@ local function makeAlien(x,y,kind,wave)
     return model
 end
 local wave=0
-local function spawnWave(number)
-    local count=math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))
-    local spawned=0
-    local bossWave=number%3==0
-    local researchPlayers=0
-    local originalPlayers=0
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p:GetAttribute("AlienBreachDeployed") then
-            if p:GetAttribute("AlienBreachSelectedMap")=="research" then researchPlayers+=1
-            else originalPlayers+=1 end
+local sectorWaves={containment=0,research=0,reactor=0,nest=0}
+local lastWaveSector=nil
+local nestQueenSpot=({{195,14},{218,22},{243,31}})[math.random(1,3)]
+-- Choose a nearby OPEN tile with unobstructed map-grid sight from deployment.
+-- Bosses never spawn in a disconnected room or outside their own sector.
+local bossEntry={containment={4,4},research={89,15},reactor={145,7},nest={219,6}}
+local function bossVisibleTile(sector)
+    local origin=bossEntry[sector] or bossEntry.containment
+    local ox,oy=origin[1],origin[2]
+    local bestX,bestY,bestScore=nil,nil,-math.huge
+    for radius=5,11 do
+        for dy=-radius,radius do
+            for dx=-radius,radius do
+                local distance=math.sqrt(dx*dx+dy*dy)
+                if distance>=radius-.7 and distance<=radius+.7 then
+                    local tx,ty=ox+dx,oy+dy
+                    if free(tx-.5,ty-.5) then
+                        local clear=true
+                        local steps=math.max(2,math.ceil(distance*4))
+                        for s=1,steps do
+                            local t=s/steps
+                            if not free(ox-.5+dx*t,oy-.5+dy*t) then clear=false;break end
+                        end
+                        if clear then
+                            local score=distance-(math.abs(dy)*.08)
+                            if score>bestScore then bestX,bestY,bestScore=tx,ty,score end
+                        end
+                    end
+                end
+            end
         end
     end
-    local spawnResearch=researchPlayers>0 and researchPlayers>=originalPlayers
-    local minX,maxX=spawnResearch and 68 or 2,spawnResearch and 111 or 55
-    local minY,maxY=3,spawnResearch and 41 or 43
+    if bestX then return bestX,bestY end
+    -- Safe fallback directly in the entry pocket.
+    for radius=0,4 do
+        for dy=-radius,radius do
+            for dx=-radius,radius do
+                if free(ox+dx-.5,oy+dy-.5) then return ox+dx,oy+dy end
+            end
+        end
+    end
+    return ox,oy
+end
+local function spawnWave(number,selectedSector)
+    -- ONE shared spawn-count curve for Containment, Research Lab and Reactor Core.
+    -- Wave 1 is exactly 9 normal aliens; later waves follow Reactor Core's
+    -- existing 15%-reduced scaling. Bosses are added separately on waves 3,6,...
+    local count
+    if number==1 then
+        count=9
+    else
+        count=math.max(1,math.floor(math.min(110,math.ceil(7+number*4+math.max(0,number-1)^1.16))*0.85+0.5))
+    end
+    local spawned=0
+    local bossWave=number%3==0
+    local minX,maxX=2,55
+    local minY,maxY=3,43
+    if selectedSector=="research" then minX,maxX=68,111;maxY=41
+    elseif selectedSector=="reactor" then minX,maxX=122,170;maxY=41
+    elseif selectedSector=="nest" then minX,maxX=182,256;maxY=40 end
     for i=1,count do
         local kind="stalker"
         if bossWave then
@@ -1057,74 +1414,189 @@ local function spawnWave(number)
             local y=math.random(minY,maxY)+0.5
             if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>9) then
                 local alien=makeAlien(x,y,kind,number)
-                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
+                if selectedSector=="nest" then
+                    alien:SetAttribute("HiveSpawn",true)
+                    for _,piece in ipairs(alien:GetDescendants()) do
+                        if piece:IsA("BasePart") then piece.Color=Color3.fromRGB(132,65,195) end
+                    end
+                end
+                if selectedSector~="containment" then alien:SetAttribute("SectorEnemy",selectedSector) end
                 spawned+=1
                 break
             end
         end
     end
-    if bossWave then
-        for attempt=1,100 do
-            local x=math.random(minX,maxX)+0.5
-            local y=math.random(minY,maxY)+0.5
-            if free(x,y) and (math.abs(x-3.5)+math.abs(y-3.5)>12) then
-                local alien=makeAlien(x,y,"boss",number)
-                if spawnResearch then alien:SetAttribute("SectorEnemy","research") end
-                spawned+=1
-                break
+    if bossWave and selectedSector~="nest" then
+        local bx,by=bossVisibleTile(selectedSector)
+        local boss=makeAlien(bx-.5,by-.5,"boss",number)
+        boss.Name="BREACH OVERLORD"
+        boss:SetAttribute("SectorEnemy",selectedSector)
+        boss:SetAttribute("BossWave",number)
+        spawned+=1
+        print("[Alien Breach] "..selectedSector.." boss spawned on wave "..number.." at "..bx..","..by)
+    end
+    -- Queen returns to her regular boss waves (3, 6, 9...).
+    if selectedSector=="nest" and bossWave then
+        local bx,by=bossVisibleTile("nest")
+        local queenTile={bx,by}
+        local q=makeAlien(queenTile[1]-.5,queenTile[2]-.5,"boss",number)
+        q.Name="THE HIVE QUEEN"
+        q:SetAttribute("SectorEnemy","nest")
+        q:SetAttribute("HiveQueen",true)
+        print("[Alien Nest] HIVE QUEEN spawned for wave "..number.." at tile "..queenTile[1]..","..queenTile[2])
+        q:SetAttribute("HP",1800+number*180)
+        q:SetAttribute("Speed",6.5)
+        -- Eight-legged spider anatomy attached to the moving enemy model.
+        local pivot=q.PrimaryPart
+        if pivot then
+            for _,piece in ipairs(q:GetDescendants()) do
+                if piece:IsA("BasePart") then piece.Transparency=1 end
+            end
+            local function anatomy(name,size,cf,color,shape)
+                local p=Instance.new("Part")
+                p.Name=name;p.Size=size;p.Shape=shape or Enum.PartType.Block
+                p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CastShadow=false
+                p.Material=Enum.Material.SmoothPlastic;p.Color=color
+                p.CFrame=pivot.CFrame*cf;p.Parent=q
+                return p
+            end
+            local shell=Color3.fromRGB(65,32,84)
+            anatomy("QUEEN ARMORED ABDOMEN",Vector3.new(12,7,14),CFrame.new(0,3,3),shell,Enum.PartType.Ball)
+            anatomy("QUEEN CEPHALOTHORAX",Vector3.new(9,6,9),CFrame.new(0,4,-4),Color3.fromRGB(115,53,142),Enum.PartType.Ball)
+            anatomy("QUEEN PLASMA SAC",Vector3.new(6,4,7),CFrame.new(0,4,7),Color3.fromRGB(171,59,232),Enum.PartType.Ball).Material=Enum.Material.Neon
+            for side=-1,1,2 do
+                for leg=1,4 do
+                    local z=-8+(leg-1)*4.8
+                    local hip=Vector3.new(side*3.5,4,z)
+                    local knee=Vector3.new(side*(10+leg*.6),7,z+(leg-2.5)*2)
+                    local foot=Vector3.new(side*(14+leg*.7),-2,z+(leg-2.5)*3.5)
+                    for _,pair in ipairs({{hip,knee},{knee,foot}}) do
+                        local d=pair[2]-pair[1]
+                        anatomy("Queen articulated spider leg",Vector3.new(1.5,1.5,d.Magnitude),
+                            CFrame.lookAt((pair[1]+pair[2])/2,pair[2]),shell)
+                    end
+                end
+                for eye=1,3 do
+                    anatomy("Queen glowing eye",Vector3.new(1.3,1.3,1.3),
+                        CFrame.new(side*(1.1+eye*.8),5.3,-8),Color3.fromRGB(180,255,80),Enum.PartType.Ball).Material=Enum.Material.Neon
+                end
             end
         end
+        spawned+=1
     end
     aliveValue.Value=spawned
 end
 -- Remove enemies abandoned in a sector. Otherwise they keep the global wave
 -- blocked when the last player leaves Research Lab for Containment (or vice versa).
 local function clearEmptySectors()
- local occupied={containment=false,research=false}
+ local occupied={containment=false,research=false,reactor=false,nest=false}
  for _,player in ipairs(Players:GetPlayers()) do
   if player:GetAttribute("AlienBreachDeployed") then
    local character=player.Character
    local hum=character and character:FindFirstChildOfClass("Humanoid")
    if hum and hum.Health>0 then
-    local sector=player:GetAttribute("AlienBreachSelectedMap")=="research" and "research" or "containment"
+    local sector=player:GetAttribute("AlienBreachSelectedMap") or "containment"
     occupied[sector]=true
    end
   end
  end
  for _,alien in ipairs(enemies:GetChildren()) do
-  local sector=alien:GetAttribute("SectorEnemy")=="research" and "research" or "containment"
+  local sector=alien:GetAttribute("SectorEnemy") or "containment"
   if not occupied[sector] then alien:Destroy() end
  end
  return occupied
 end
--- A breach starts only after all aliens from the preceding wave are eliminated.
+-- Each sector keeps its own progression. Moving to Research Lab cannot
+-- inherit Wave 3 (20 aliens) from Containment or another sector.
+-- The existing shared HUD follows the currently active sector.
 task.spawn(function()
     while root.Parent do
         local occupied=clearEmptySectors()
-        local hasDeployed=occupied.containment or occupied.research
+        local hasDeployed=occupied.containment or occupied.research or occupied.reactor or occupied.nest
+        local selectedSector=activeChestSector()
         if not hasDeployed then
-            task.wait(.5)
-        elseif #enemies:GetChildren()==0 then
-            breachIntermission=true
-            alarm:Play()
-            for remaining=7,1,-1 do
-                timerValue.Value=remaining
-                task.wait(1)
-                if not root.Parent then return end
-            end
+            -- New deployment sessions always begin at Wave 1.
+            for sector in pairs(sectorWaves) do sectorWaves[sector]=0 end
+            lastWaveSector=nil
+            wave=0;waveValue.Value=0;aliveValue.Value=0
             timerValue.Value=0
-            wave+=1
-            waveValue.Value=wave
-            spawnWave(wave)
-            breachIntermission=false
-            alarm:Stop()
+            task.wait(.5)
         else
-            aliveValue.Value=#enemies:GetChildren()
-            task.wait(0.4)
+            if lastWaveSector~=selectedSector then
+                -- Sector switching must not carry the old sector's enemies
+                -- or wave number into the newly selected sector.
+                for _,alien in ipairs(enemies:GetChildren()) do alien:Destroy() end
+                lastWaveSector=selectedSector
+                wave=sectorWaves[selectedSector]
+                waveValue.Value=wave
+                aliveValue.Value=0
+            end
+            if #enemies:GetChildren()==0 then
+                breachIntermission=true
+                alarm:Play()
+                local interrupted=false
+                for remaining=7,1,-1 do
+                    timerValue.Value=remaining
+                    task.wait(1)
+                    if not root.Parent then return end
+                    local current=clearEmptySectors()
+                    if not (current.containment or current.research or current.reactor or current.nest)
+                      or activeChestSector()~=selectedSector then
+                        interrupted=true
+                        break
+                    end
+                end
+                timerValue.Value=0
+                if not interrupted then
+                    sectorWaves[selectedSector]+=1
+                    wave=sectorWaves[selectedSector]
+                    waveValue.Value=wave
+                    spawnWave(wave,selectedSector)
+                end
+                breachIntermission=false
+                alarm:Stop()
+            else
+                aliveValue.Value=#enemies:GetChildren()
+                task.wait(.4)
+            end
         end
     end
 end)
 
+-- Queen summons violet broodlings while alive. Summons count toward the
+-- active wave, preventing a wave from finishing before the nest is cleared.
+task.spawn(function()
+ while root.Parent do
+  for _,queen in ipairs(enemies:GetChildren()) do
+   if queen:GetAttribute("HiveQueen") and queen.PrimaryPart then
+    local now=os.clock()
+    if now-(queen:GetAttribute("LastBrood") or 0)>=11 then
+     queen:SetAttribute("LastBrood",now)
+     local qx,qy=0,0 -- convert world coordinates to map tiles
+     qx=math.floor(queen.PrimaryPart.Position.X/TILE+WIDTH/2)+1
+     qy=math.floor(queen.PrimaryPart.Position.Z/TILE+HEIGHT/2)+1
+     for i=1,3 do
+      for attempt=1,16 do
+       local x=qx+math.random(-5,5)
+       local y=qy+math.random(-5,5)
+       if free(x-.5,y-.5) then
+        local brood=makeAlien(x-.5,y-.5,"crawler",math.max(1,wave))
+        brood.Name="VIOLET QUEEN BROOD"
+        brood:SetAttribute("SectorEnemy","nest")
+        brood:SetAttribute("HiveSpawn",true)
+        for _,piece in ipairs(brood:GetDescendants()) do
+         if piece:IsA("BasePart") then piece.Color=Color3.fromRGB(156,68,218) end
+        end
+        break
+       end
+      end
+     end
+    end
+   end
+  end
+  task.wait(1)
+ end
+end)
 local damageClock={}
 local function alienShoot(alien,origin,target,hum)
     local direction=target-origin
@@ -1195,7 +1667,7 @@ RunService.Heartbeat:Connect(function(dt)
         local ax,ay=gridOf(part.Position)
         local bestPlayer,bestDistance,bestField=nil,math.huge,nil
         for _,player in ipairs(Players:GetPlayers()) do
-            local sameSector=(player:GetAttribute("AlienBreachSelectedMap")=="research")==(alien:GetAttribute("SectorEnemy")=="research")
+            local sameSector=(player:GetAttribute("AlienBreachSelectedMap") or "containment")==(alien:GetAttribute("SectorEnemy") or "containment")
             local field=sameSector and player:GetAttribute("AlienBreachDeployed") and fields[player]
             local d=field and field[tileKey(ax,ay)]
             if d and d<bestDistance then
@@ -1218,10 +1690,10 @@ RunService.Heartbeat:Connect(function(dt)
                 -- Trace to actual walkable ground, ignoring the alien itself.
                 local groundParams=RaycastParams.new()
                 groundParams.FilterType=Enum.RaycastFilterType.Exclude
-                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character,root}
+                groundParams.FilterDescendantsInstances={alien, bestPlayer.Character}
                 local groundHit=workspace:Raycast(
-                    Vector3.new(part.Position.X,60,part.Position.Z),
-                    Vector3.new(0,-90,0),groundParams)
+                    Vector3.new(part.Position.X,12,part.Position.Z),
+                    Vector3.new(0,-40,0),groundParams)
                 local groundY=groundHit and groundHit.Position.Y or 0
                                 local playerDistance=(hrp.Position-part.Position).Magnitude
                 -- Ranged aliens hold position once they reach firing distance.
@@ -1264,6 +1736,46 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                 end
+                if animation and animation.rig and animation.motors then
+                    local moving=playerDistance>27 and delta.Magnitude>0.12
+                    animation.phase+=dt*(moving and (animation.kind=="crawler" and 13 or animation.kind=="armored" and 5 or 8) or 1.8)
+                    local phase=animation.phase
+                    local strength=moving and 1 or .12
+                    local attacking=os.clock()-(damageClock[alien] or -100)<.42
+                    for _,joint in ipairs(animation.motors) do
+                        local name=joint.name
+                        local side=name:sub(1,1)=="L" and 1 or -1
+                        local rear=name:find("Back")~=nil
+                        local offset=(side==1 and 0 or math.pi)+(rear and math.pi or 0)
+                        local swing=math.sin(phase+offset)*strength
+                        local target=CFrame.identity
+                        if name:find("UpperArm") then
+                            target=CFrame.Angles(attacking and -.85 or swing*.42,0,side*.08)
+                        elseif name:find("Thigh") then
+                            target=CFrame.Angles(swing*.35,0,0)
+                        elseif name:find("UpperLeg") then
+                            target=CFrame.Angles(0,0,side*(.12+swing*.26))
+                        elseif name:find("LowerLeg") then
+                            target=CFrame.Angles(0,0,side*(-.15-swing*.2))
+                        elseif name:find("Forearm") then
+                            target=CFrame.Angles(attacking and -.65 or math.sin(phase+offset+1)*.17,0,0)
+                        elseif name:find("Head") then
+                            target=CFrame.Angles(math.sin(phase*.45)*.045,0,0)
+                        end
+                        joint.motor.Transform=target
+                    end
+                end
+                if animation and animation.rig then
+                    local moving=playerDistance>27 and delta.Magnitude>0.12
+                    local desired=moving and "walk" or "idle"
+                    if desired~=animation.animationState then
+                        local previous=animation.tracks[animation.animationState]
+                        if previous then previous:Stop(.18) end
+                        local nextTrack=animation.tracks[desired]
+                        if nextTrack then nextTrack:Play(.18) end
+                        animation.animationState=desired
+                    end
+                end
                 if animation then
                     animation.phase+=dt*(alien:GetAttribute("Kind")=="crawler" and 14 or 8)
                     for _,joint in ipairs(animation.joints or {}) do
@@ -1274,13 +1786,52 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                 end
-                if playerDistance<=75 and os.clock()-(damageClock[alien] or 0)>1.8 then
+                if playerDistance<= (alien:GetAttribute("HiveQueen") and 115 or 75)
+                    and os.clock()-(damageClock[alien] or 0)>(alien:GetAttribute("HiveQueen") and 2.8 or 1.8) then
                     damageClock[alien]=os.clock()
+                    local rigAnim=alienAnimation[alien]
+                    if rigAnim and rigAnim.rig and rigAnim.tracks.attack then
+                        rigAnim.tracks.attack:Play(.08)
+                    end
                     local hum=bestPlayer.Character:FindFirstChildOfClass("Humanoid")
                     if hum and hum.Health>0 then
                         local muzzle=part.Position+Vector3.new(0,1.0,0)
                         local aim=hrp.Position+Vector3.new(0,1.2,0)
-                        alienShoot(alien,muzzle,aim,hum)
+                        if alien:GetAttribute("HiveQueen") then
+                            local orb=Instance.new("Part")
+                            orb.Name="Queen violet plasma orb"
+                            orb.Shape=Enum.PartType.Ball
+                            orb.Material=Enum.Material.Neon
+                            orb.Color=Color3.fromRGB(175,70,255)
+                            orb.Size=Vector3.new(3.2,3.2,3.2)
+                            orb.Anchored=true;orb.CanCollide=false;orb.CanTouch=false;orb.CanQuery=false
+                            orb.Position=muzzle;orb.Parent=root
+                            local start=muzzle
+                            local direction=(aim-start).Unit
+                            local travel=0
+                            task.spawn(function()
+                                while orb.Parent and travel<110 do
+                                    local dtOrb=task.wait(.045)
+                                    local step=direction*math.min(65*dtOrb,110-travel)
+                                    local rayFilter=RaycastParams.new()
+                                    rayFilter.FilterType=Enum.RaycastFilterType.Exclude
+                                    rayFilter.FilterDescendantsInstances={alien,orb}
+                                    local hit=workspace:Raycast(orb.Position,step,rayFilter)
+                                    orb.Position+=step;travel+=step.Magnitude
+                                    if hit then
+                                        local victim=Players:GetPlayerFromCharacter(hit.Instance:FindFirstAncestorOfClass("Model"))
+                                        if victim and victim:GetAttribute("AlienBreachSelectedMap")=="nest" then
+                                            local h=victim.Character and victim.Character:FindFirstChildOfClass("Humanoid")
+                                            if h then h:TakeDamage(28) end
+                                        end
+                                        break
+                                    end
+                                end
+                                orb:Destroy()
+                            end)
+                        else
+                            alienShoot(alien,muzzle,aim,hum)
+                        end
                     end
                 end
             end

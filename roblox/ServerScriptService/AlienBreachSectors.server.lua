@@ -4,9 +4,16 @@ local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
 local map=string.split(RS:WaitForChild("AlienBreachMap").Value,"\n")
 local root=workspace:WaitForChild("AlienBreachRoblox")
+local versionTag=Instance.new("StringValue")
+versionTag.Name="NEST_DECOR_BUILD_2026_11_18_V2"
+versionTag.Value="Winding burrows / grass floor / rooted wall sacs"
+versionTag.Parent=root
+print("[Alien Breach] NEST_DECOR_BUILD_2026_11_18_V2 loaded")
 local TILE=8
 local W,H=#map[1],#map
 local research={x=89,y=15}
+local reactor={x=145,y=7}
+local nestSpawn={x=219,y=6}
 local decor=Instance.new("Folder")
 decor.Name="ResearchLabEnvironment"
 decor.Parent=root
@@ -218,17 +225,546 @@ for _,p in ipairs({{70,8},{78,12},{103,12},{109,18},{71,30},{81,35},{90,30},{97,
   screen.Transparency=.3
  end
 end
+-- REACTOR CORE: clean industrial architecture, lit before scenery generation.
+local reactorDecor=Instance.new("Folder")
+reactorDecor.Name="ReactorCoreEnvironment"
+reactorDecor.Parent=root
+local orange=Color3.fromRGB(255,102,39)
+local violet=Color3.fromRGB(172,86,255)
+local steel=Color3.fromRGB(111,65,49)
+local function rp(name,x,y,h,size,color,material,collide)
+ local p=Instance.new("Part")
+ p.Name=name;p.Anchored=true;p.CanCollide=collide==true
+ p.CanTouch=false;p.CanQuery=collide==true;p.CastShadow=false
+ p.Size=size;p.CFrame=CFrame.new(pos(x,y,h));p.Color=color
+ p.Material=material or Enum.Material.Metal;p.Parent=reactorDecor
+ return p
+end
+local function beacon(x,y,color,brightness,range)
+ local high=x>=132 and x<=159 and y>=14 and y<=30
+ local lamp=rp("Always-on reactor ceiling light",x,y,high and 64 or 16.7,Vector3.new(6,.5,3),color,Enum.Material.Neon)
+ local l=Instance.new("PointLight")
+ l.Color=color;l.Brightness=brightness;l.Range=range;l.Shadows=false;l.Parent=lamp
+end
+-- Establish full visibility IMMEDIATELY: lights first, no flicker or startup delay.
+for _,p in ipairs({{129,13},{161,13},{129,32},{161,32},{145,6},{145,39},
+ {121,21},{170,21},{137,22},{153,22},{145,17},{145,27},
+ {128,6},{161,6},{128,39},{161,39}}) do
+ beacon(p[1],p[2],Color3.fromRGB(255,176,92),3.8,105)
+end
+-- Floors are tidy large panels, not hundreds of random loose objects.
+for y=4,41 do
+ for x=120,171 do
+  if open(x,y) then
+   local center=x>=132 and x<=159 and y>=14 and y<=30
+   rp(center and "Omega vault floor" or "Reactor corridor floor",x-.5,y-.5,center and -7.85 or .15,
+    Vector3.new(7.85,.24,7.85),
+    center and Color3.fromRGB(105,51,36) or Color3.fromRGB(95,66,47),
+    Enum.Material.DiamondPlate)
+  end
+ end
+end
+-- REACTOR SERVICE NETWORK. Modular infrastructure hugs the corridor walls.
+-- The middle of each passage stays open for players, chests, and enemy AI.
+local teal=Color3.fromRGB(255,193,66)
+local darkSteel=Color3.fromRGB(67,38,34)
+local panelSteel=Color3.fromRGB(125,76,48)
+local function fixture(name,x,y,h,size,color,material)
+ return rp(name,x,y,h,size,color,material)
+end
+-- North/south ring: heavy structural arches, ventilation, and paired conduits.
+for _,y in ipairs({5.5,39.5}) do
+ for x=126,166,5 do
+  fixture("Service gallery overhead I-beam",x,y,16.1,Vector3.new(2,2.5,30),darkSteel)
+  fixture("Service gallery recessed ceiling light",x,y,14.5,
+   Vector3.new(4,.35,10),teal,Enum.Material.Neon)
+  for _,side in ipairs({-1,1}) do
+   local sy=y+side*1.8
+   fixture("Wall side coolant conduit",x,sy,11.8,Vector3.new(24,1.4,1.1),panelSteel)
+   fixture("Wall side conduit glow",x,sy,12.7,Vector3.new(14,.25,.35),teal,Enum.Material.Neon)
+   fixture("Emergency service locker",x,sy,5.8,Vector3.new(4,9,1.4),darkSteel)
+   fixture("Service locker status indicator",x,sy-side*.75,8,
+    Vector3.new(2,2,.2),x%2==0 and teal or orange,Enum.Material.Neon)
+  end
+ end
+end
+-- Side passages: vertical ventilation risers and hazard-marked access hatches.
+for _,x in ipairs({121.5,169.5}) do
+ for y=11,35,5 do
+  fixture("Service corridor ceiling crossbar",x,y,15.4,Vector3.new(27,1.6,2),darkSteel)
+  fixture("Service corridor navigation lamp",x,y,14.4,
+   Vector3.new(9,.25,1.1),teal,Enum.Material.Neon)
+  local wallX=x==121.5 and x-1.7 or x+1.7
+  fixture("Side corridor equipment riser",wallX,y,8,Vector3.new(1.2,13,3),panelSteel)
+  fixture("Side corridor diagnostic light",wallX,y,11,
+   Vector3.new(.3,2.5,1.4),orange,Enum.Material.Neon)
+ end
+end
+-- Central cross passages: long overhead cable trays and illuminated ribs.
+for _,y in ipairs({21,23.5}) do
+ for x=126,165,7 do
+  if open(x,y) then
+   fixture("Main reactor cable tray",x,y,15.5,Vector3.new(19,1.2,2),darkSteel)
+   fixture("Main reactor cable tray indicator",x,y,14.75,
+    Vector3.new(12,.2,.6),teal,Enum.Material.Neon)
+  end
+ end
+end
+for _,x in ipairs({145,147}) do
+ for y=10,36,6 do
+  if open(x,y) and not (y>=14 and y<=30) then
+   fixture("Spine corridor service bulkhead",x,y,15.6,
+    Vector3.new(2,1.5,23),panelSteel)
+   fixture("Spine corridor emergency guidance",x,y,14.5,
+    Vector3.new(.5,.2,12),orange,Enum.Material.Neon)
+  end
+ end
+end
+-- Purpose-built industrial equipment, not anonymous rectangular blocks.
+local pipeYellow=Color3.fromRGB(232,177,37) -- PAINTED metal, never Neon
+local pipeDark=Color3.fromRGB(100,72,34)
+local function cylinder(name,x,y,h,length,diameter,axis,color)
+ local p=fixture(name,x,y,h,Vector3.new(length,diameter,diameter),
+  color or pipeYellow,Enum.Material.Metal)
+ p.Shape=Enum.PartType.Cylinder
+ if axis=="y" then p.CFrame=p.CFrame*CFrame.Angles(0,0,math.pi/2)
+ elseif axis=="z" then p.CFrame=p.CFrame*CFrame.Angles(0,math.pi/2,0) end
+ return p
+end
+local function industrialPipe(name,x,y,h,length,diameter,axis)
+ cylinder(name.." painted yellow pressure line",x,y,h,length,diameter,axis,pipeYellow)
+ for _,offset in ipairs({-.36,.36}) do
+  local x2,y2,h2=x,y,h
+  if axis=="x" then x2=x+offset*length
+  elseif axis=="z" then y2=y+offset*length
+  else h2=h+offset*length end
+  cylinder(name.." dark bolted coupling",x2,y2,h2,.65,diameter+1.2,axis,pipeDark)
+ end
+end
+-- Large industrial yellow pipes: high and wall-mounted, so the center of
+-- every hallway remains clear for combat and the staircase entrances.
+for _,y in ipairs({5,39}) do
+ for x=128,160,8 do
+  industrialPipe("North south service main",x,y,12.6,54,3.4,"x")
+ end
+end
+for _,x in ipairs({121,170}) do
+ for y=12,32,8 do
+  industrialPipe("East west service main",x,y,12.5,52,3.2,"z")
+ end
+end
+-- Distinct machine assemblies with cylindrical tanks, shafts, impellers,
+-- instrument consoles and warning bands.
+local bays={
+ {129,13,"TURBINE / 01",orange},
+ {161,13,"CONTROL / 02",teal},
+ {129,32,"COOLANT / 03",Color3.fromRGB(255,207,85)},
+ {161,32,"GENERATOR / 04",orange}
+}
+for _,bay in ipairs(bays) do
+ local x,y,label,accent=bay[1],bay[2],bay[3],bay[4]
+ fixture(label.." reinforced mounting platform",x,y,1,
+  Vector3.new(17,2,12),darkSteel)
+ for _,dx in ipairs({-5,5}) do
+  fixture(label.." vibration damping foot",x+dx,y,2.3,
+   Vector3.new(2,2,9),panelSteel)
+ end
+ if label:find("TURBINE") then
+  cylinder("Turbine heavy rotor housing",x,y,6,12,7,"x",panelSteel)
+  cylinder("Turbine central shaft",x,y,6,15,2.2,"x",pipeDark)
+  for _,dx in ipairs({-5,0,5}) do
+   cylinder("Turbine service flange",x+dx,y,6,.8,8,"x",pipeYellow)
+  end
+ elseif label:find("CONTROL") then
+  fixture("Control bay angled operator desk",x,y,3.1,
+   Vector3.new(13,3,5),panelSteel)
+  for _,dx in ipairs({-4,0,4}) do
+   fixture("Control bay instrumentation monitor",x+dx,y-2,7.5,
+    Vector3.new(3.3,3.2,.35),accent,Enum.Material.Neon)
+   fixture("Control bay monitor bezel",x+dx,y-1.7,9.4,
+    Vector3.new(4,.5,.8),darkSteel)
+  end
+  for _,dx in ipairs({-4,0,4}) do
+   cylinder("Control bay analog pressure gauge",x+dx,y+2.5,5,
+    .6,1.8,"z",pipeYellow)
+  end
+ elseif label:find("COOLANT") then
+  for _,dx in ipairs({-4,4}) do
+   cylinder("Coolant vertical storage tank",x+dx,y,6,11,5,"y",panelSteel)
+   cylinder("Coolant tank safety band",x+dx,y,9,.7,5.6,"y",pipeYellow)
+  end
+  industrialPipe("Coolant crossover",x,y,12,13,2.5,"x")
+  fixture("Coolant pump control housing",x,y+4,4,
+   Vector3.new(5,5,4),darkSteel)
+ else
+  cylinder("Generator alternator casing",x,y,6,13,7,"x",panelSteel)
+  for _,dx in ipairs({-4,4}) do
+   cylinder("Generator drive collar",x+dx,y,6,1.2,8,"x",pipeYellow)
+  end
+  fixture("Generator cooling radiator",x,y-4,6,
+   Vector3.new(11,8,1.5),darkSteel)
+  for dx=-4,4,2 do
+   fixture("Generator radiator fin",x+dx,y-4.8,6,
+    Vector3.new(.6,7,.3),pipeYellow)
+  end
+ end
+ local screen=fixture(label.." diagnostic readout",x+6,y+4,6,
+  Vector3.new(3.5,3,.3),accent,Enum.Material.Neon)
+ screen.Transparency=.12
+ local gui=Instance.new("SurfaceGui")
+ gui.Name="Equipment identification";gui.Face=Enum.NormalId.Front
+ gui.Parent=screen
+ local txt=Instance.new("TextLabel")
+ txt.Size=UDim2.fromScale(1,1);txt.BackgroundTransparency=1
+ txt.Font=Enum.Font.Code;txt.TextScaled=true
+ txt.TextColor3=Color3.fromRGB(28,20,15)
+ txt.Text=label;txt.Parent=gui
+end
+-- Service pipes, floor-edge guides, and distinct access doors around each bay.
+for _,p in ipairs({{129,9},{160,9},{129,36},{160,36}}) do
+ local x,y=p[1],p[2]
+ fixture("Reactor bay entry lintel",x,y,16.4,Vector3.new(27,1.2,1.5),darkSteel)
+ fixture("Reactor bay hazard strip",x,y,15.65,Vector3.new(18,.25,1.6),
+  orange,Enum.Material.Neon)
+end
+-- The chamber floor is now physically 8 studs lower, not a painted fake pit.
+-- Keep the real staircase treads unobstructed and visible.
+for _,x in ipairs({134,157}) do
+ for y=18,26,4 do
+  rp("Omega tall vault vertical rib",x,y,32,Vector3.new(2,64,2),steel)
+  rp("Omega tall vault warning light",x,y,59,Vector3.new(2,2.5,2.5),orange,Enum.Material.Neon)
+ end
+end
+for _,y in ipairs({16,29}) do
+ for x=137,154,5 do
+  rp("Omega vault overhead support",x,y,61,Vector3.new(2,9,2),steel)
+ end
+end
+-- Central chamber: high perimeter framing defines a real room.
+-- Four clear entrances remain open for combat and navigation.
+for _,x in ipairs({133,137,141,149,153,157}) do
+ for _,y in ipairs({16,28}) do
+  rp("Omega structural support",x,y,9,Vector3.new(2,18,2),steel)
+ end
+end
+for _,y in ipairs({18,26}) do
+ for _,x in ipairs({133,158}) do
+  rp("Omega chamber steel support",x,y,9,Vector3.new(2,18,2),steel)
+ end
+end
+-- Large but orderly observation ring. No scattered concentric debris.
+local cx,cy=145.5,22
+for i=0,23 do
+ local angle=(i+.5)*math.pi/12
+ local x,y=cx+math.cos(angle)*10.5,cy+math.sin(angle)*7
+ local rim=rp("Omega observation railing",x,y,4,Vector3.new(7,3,.7),orange)
+ rim.CFrame=CFrame.new(pos(x,y,4))*CFrame.Angles(0,-angle-math.pi/2,0)
+end
+-- Clear uninterrupted floor around Omega; removed the decorative fake stairs.
+-- Main experiment, centered and scaled to fit inside the vault.
+local shell=Instance.new("Part")
+shell.Name="EXPERIMENT OMEGA | Containment orb"
+shell.Shape=Enum.PartType.Ball;shell.Size=Vector3.new(44,44,44)
+shell.CFrame=CFrame.new(pos(cx,cy,35))
+shell.Anchored=true;shell.CanCollide=false;shell.CanTouch=false;shell.CanQuery=false
+shell.Material=Enum.Material.Glass;shell.Color=Color3.fromRGB(124,172,204)
+shell.Transparency=.68;shell.CastShadow=false;shell.Parent=reactorDecor
+local core=Instance.new("Part")
+core.Name="Omega plasma heart"
+core.Shape=Enum.PartType.Ball;core.Size=Vector3.new(25,25,25)
+core.CFrame=shell.CFrame;core.Anchored=true;core.CanCollide=false
+core.CanTouch=false;core.CanQuery=false;core.Material=Enum.Material.Neon
+core.Color=violet;core.Transparency=.16;core.Parent=reactorDecor
+local light=Instance.new("PointLight")
+light.Color=violet;light.Brightness=5;light.Range=100;light.Shadows=false;light.Parent=core
+local particles=Instance.new("ParticleEmitter")
+particles.Name="Contained plasma"
+particles.Rate=220;particles.Lifetime=NumberRange.new(1.1,2.4)
+particles.Speed=NumberRange.new(10,25);particles.SpreadAngle=Vector2.new(180,180)
+particles.Color=ColorSequence.new(violet,Color3.fromRGB(84,219,255))
+particles.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,3),NumberSequenceKeypoint.new(.35,5),NumberSequenceKeypoint.new(1,0)});particles.LightEmission=1;particles.Parent=core
+-- Reactor vault entry arches stay above the path, never blocking it.
+for _,p in ipairs({{145,12},{145,33},{135,22},{156,22}}) do
+ local x,y=p[1],p[2]
+ fixture("Omega access arch crown",x,y,16.4,Vector3.new(30,1.3,2),
+  panelSteel)
+ fixture("Omega access arch warning band",x,y,15.6,Vector3.new(22,.35,2),
+  orange,Enum.Material.Neon)
+end
+-- Additional highly visible plasma sparks orbit the glass containment vessel.
+for i=1,8 do
+ local angle=i*math.pi/4
+ local x,y=cx+math.cos(angle)*3,cy+math.sin(angle)*3
+ local spark=rp("Omega ion discharge emitter",x,y,35,Vector3.new(1.5,1.5,1.5),
+  Color3.fromRGB(93,221,255),Enum.Material.Neon)
+ local e=Instance.new("ParticleEmitter")
+ e.Name="Visible plasma arcs";e.Rate=36
+ e.Lifetime=NumberRange.new(.5,1.2);e.Speed=NumberRange.new(8,19)
+ e.SpreadAngle=Vector2.new(180,180)
+ e.Size=NumberSequence.new(2.8,0)
+ e.LightEmission=1
+ e.Color=ColorSequence.new(Color3.fromRGB(87,225,255),violet)
+ e.Parent=spark
+end
+for _,p in ipairs({{cx-7,cy-5},{cx+7,cy-5},{cx-7,cy+5},{cx+7,cy+5}}) do
+ rp("Omega containment pillar",p[1],p[2],5,Vector3.new(4,26,4),steel)
+ rp("Omega pillar hazard cap",p[1],p[2],18.5,Vector3.new(4,1,4),orange,Enum.Material.Neon)
+end
+-- EXPERIMENT OMEGA: engineered magnetic containment facility.
+-- Six industrial suspension towers, energy conduits and segmented field rings.
+local function omegaBeam(name,a,b,width,color,material)
+ local part=Instance.new("Part")
+ part.Name=name;part.Anchored=true;part.CanCollide=false
+ part.CanTouch=false;part.CanQuery=false;part.CastShadow=false
+ part.Size=Vector3.new(width,width,(b-a).Magnitude)
+ part.CFrame=CFrame.lookAt((a+b)*.5,b)
+ part.Color=color;part.Material=material or Enum.Material.Metal
+ part.Parent=reactorDecor
+ return part
+end
+local orbCenter=pos(cx,cy,35)
+for i=0,5 do
+ local angle=i*math.pi/3
+ local dx,dz=math.cos(angle),math.sin(angle)
+ local tx,tz=cx+dx*12,cy+dz*10
+ fixture("Omega magnetic tower",tx,tz,27,Vector3.new(4,54,4),darkSteel)
+ fixture("Omega tower transformer",tx,tz,55,Vector3.new(6,4,6),panelSteel)
+ for _,h in ipairs({13,28,43}) do
+  fixture("Omega tower warning collar",tx,tz,h,
+   Vector3.new(5,.5,5),orange,Enum.Material.Neon)
+ end
+ omegaBeam("Omega structural magnetic arm",pos(tx,tz,52),
+  orbCenter+Vector3.new(dx*16,11,dz*16),2,panelSteel)
+ local energy=omegaBeam("Omega glowing magnetic channel",pos(tx,tz,43),
+  orbCenter+Vector3.new(dx*11,4,dz*11),.6,teal,Enum.Material.Neon)
+ energy.Transparency=.2
+end
+fixture("Omega ceiling power collector",cx,cy,62,
+ Vector3.new(20,5,20),darkSteel)
+fixture("Omega ceiling collector light",cx,cy,59,
+ Vector3.new(15,.6,15),teal,Enum.Material.Neon)
+local injector=fixture("Omega vertical plasma injector",cx,cy,52,
+ Vector3.new(2.5,12,2.5),teal,Enum.Material.Neon)
+injector.Transparency=.35
+fixture("Omega lower stabilizer housing",cx,cy,-6,
+ Vector3.new(19,3.5,19),darkSteel)
+fixture("Omega stabilizer hazard ring",cx,cy,-3.9,
+ Vector3.new(17,.4,17),orange,Enum.Material.Neon)
+-- Open segmented rings keep the plasma visible, unlike opaque cylinders.
+for i=1,3 do
+ local radius=25+i*2
+ for j=0,31 do
+  local a=j*math.pi/16
+  local b=(j+1)*math.pi/16
+  local start=orbCenter+Vector3.new(math.cos(a)*radius,math.sin(a)*radius,0)
+  local finish=orbCenter+Vector3.new(math.cos(b)*radius,math.sin(b)*radius,0)
+  local segment=omegaBeam("Omega segmented containment field",start,finish,
+   .65,i==2 and teal or violet,Enum.Material.Neon)
+  segment.Transparency=.25
+ end
+end
+-- Readable science-fiction control stations flank the vault.
+for _,p in ipairs({{137,17},{154,17},{137,28},{154,28}}) do
+ local x,y=p[1],p[2]
+ fixture("Omega diagnostic console housing",x,y,10,
+  Vector3.new(8,8,.6),darkSteel)
+ local display=fixture("Omega active telemetry screen",x,y-.4,10,
+  Vector3.new(6,5,.2),teal,Enum.Material.Neon)
+ display.Transparency=.25
+end
+local arc=Instance.new("ParticleEmitter")
+arc.Name="Omega magnetic discharge sparks"
+arc.Rate=65;arc.Lifetime=NumberRange.new(.25,.8)
+arc.Speed=NumberRange.new(5,18)
+arc.SpreadAngle=Vector2.new(180,180)
+arc.Size=NumberSequence.new(1.8,0)
+arc.LightEmission=1
+arc.Color=ColorSequence.new(teal,violet)
+arc.Parent=core
+task.spawn(function()
+ local phase=0
+ while core.Parent do
+  phase+=.08
+  core.Size=Vector3.new(25,25,25)*(1+.055*math.sin(phase))
+  light.Brightness=5+.6*math.sin(phase*2)
+  task.wait(.15)
+ end
+end)
+
+-- ALIEN NEST: roots, membranous wall sacs, natural stone and a living canopy.
+-- One grass floor is provided by Map; NO per-tile floor parts are generated.
+local hive=Instance.new("Folder")
+hive.Name="AlienNestEnvironment";hive.Parent=root
+local bark=Color3.fromRGB(37,66,34)
+local rootGreen=Color3.fromRGB(55,88,39)
+local moss=Color3.fromRGB(48,96,47)
+local sacGreen=Color3.fromRGB(75,145,61)
+local lightGreen=Color3.fromRGB(119,210,81)
+local purple=Color3.fromRGB(128,63,163)
+local function hp(name,x,y,h,size,color,material,shape)
+ local p=Instance.new("Part")
+ p.Name=name;p.Anchored=true;p.CanCollide=false;p.CanTouch=false;p.CanQuery=false
+ p.CastShadow=false;p.Size=size;p.CFrame=CFrame.new(pos(x,y,h))
+ p.Color=color;p.Material=material or Enum.Material.SmoothPlastic
+ if shape then p.Shape=shape end
+ p.Parent=hive
+ return p
+end
+local function stem(name,a,b,thickness,color)
+ local d=b-a
+ if d.Magnitude<.1 then return end
+ local p=hp(name,0,0,0,Vector3.new(thickness,thickness,d.Magnitude),color)
+ p.CFrame=CFrame.lookAt((a+b)/2,b)
+ return p
+end
+local function world(x,y,h) return pos(x-.5,y-.5,h) end
+local function rootSystem(x,y,side)
+ -- A single thick, forked root emerging from the wall and clinging to it.
+ local wall=world(x+side[1]*.44,y+side[2]*.44,13)
+ local knee=world(x-side[1]*.12,y-side[2]*.12,8)
+ local toe=world(x-side[1]*.36,y-side[2]*.36,.7)
+ stem("Massive twisting wall root",wall,knee,2.4,bark)
+ stem("Root reaching into moss",knee,toe,1.65,rootGreen)
+ for branch=1,2 do
+  local offset=(branch==1 and -1 or 1)*2.1
+  local fork=toe+Vector3.new(side[2]*offset,0,-side[1]*offset)
+  stem("Forked creeping root",knee,fork+Vector3.new(0,1.2,0),.75,rootGreen)
+ end
+end
+local function wallSac(x,y,side,index)
+ local p=hp("GREEN ALIEN WALL SAC",x-.5+side[1]*.38,y-.5+side[2]*.38,
+   7+(index%3)*1.5,Vector3.new(4.3,6.4,3.9),sacGreen,
+   Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ p.Transparency=.12
+ local cap=hp("SAC translucent membrane",x-.5+side[1]*.26,y-.5+side[2]*.26,
+   7.5+(index%3)*1.5,Vector3.new(3,4.7,2.8),lightGreen,
+   Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ cap.Transparency=.38
+ for k=1,3 do
+  local v=hp("Sac organic vein",x-.5+side[1]*.2,y-.5+side[2]*.2,
+   5.6+k*1.6,Vector3.new(.32,2.2,.32),bark,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+ end
+end
+-- Roots and sacs are placed on ACTUAL walls, never randomly in corridors.
+-- Bounded sampling keeps the number of objects manageable on mobile.
+local edgeIndex=0
+for y=4,40 do
+ for x=182,256 do
+  if open(x,y) then
+   local side
+   for _,d in ipairs({{1,0},{-1,0},{0,1},{0,-1}}) do
+    if not open(x+d[1],y+d[2]) then side=d;break end
+   end
+   if side then
+    edgeIndex+=1
+    if (x*7+y*11)%13==0 then rootSystem(x,y,side) end
+    if (x*17+y*5)%19==0 then wallSac(x,y,side,edgeIndex) end
+   end
+  end
+ end
+end
+-- A handful of giant ancient roots bridge the ceiling of major caverns.
+for _,v in ipairs({
+ {195,14,8},{218,22,11},{243,31,9},{207,9,7},
+ {234,12,7},{188,29,7},{202,35,8},{228,36,7}
+}) do
+ local x,y,r=v[1],v[2],v[3]
+ local a=world(x-r*.65,y-r*.2,16.5)
+ local b=world(x,y,13.8)
+ local d=world(x+r*.6,y+r*.25,16.5)
+ stem("Ancient vaulted root",a,b,3.2,bark)
+ stem("Ancient vaulted root",b,d,2.7,rootGreen)
+ local glow=hp("Soft green fungal bloom",x-.5,y-.5,17,
+  Vector3.new(3.2,.8,3.2),lightGreen,Enum.Material.Neon,Enum.PartType.Ball)
+ local l=Instance.new("PointLight")
+ l.Color=Color3.fromRGB(116,205,112);l.Brightness=1.7;l.Range=42;l.Shadows=false;l.Parent=glow
+end
+-- Natural egg incubation areas: clustered sacs, not a grid of loose props.
+for _,v in ipairs({{192,13},{199,17},{210,11},{239,13},{188,30},{205,34},{231,35},{248,29}}) do
+ local x,y=v[1],v[2]
+ for i=1,4 do
+  local ang=i*math.pi*.5
+  local ex=x+math.cos(ang)*1.3
+  local ey=y+math.sin(ang)*1.3
+  if open(math.floor(ex),math.floor(ey)) then
+   hp("Incubation egg in moss",ex-.5,ey-.5,1.7,
+    Vector3.new(2.6,3.2,2.6),i%2==0 and sacGreen or purple,
+    Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  end
+ end
+end
+-- Overgrown living landscape: sculpted fern fans and clustered mushrooms.
+-- All are sparse, noncolliding and deliberately away from the main paths.
+local function foliage(x,y)
+ local base=world(x,y,1.3)
+ local stemTop=base+Vector3.new(0,2.6,0)
+ stem("Moss fern stem",base,stemTop,.34,rootGreen)
+ for i=1,4 do
+  local angle=i*math.pi/2+.3
+  local tip=base+Vector3.new(math.cos(angle)*2.2,1.5,math.sin(angle)*2.2)
+  local leaf=stem("Curved fern frond",stemTop,tip,.62,moss)
+ end
+end
+for _,v in ipairs({
+ {189,11},{201,13},{205,22},{213,29},{224,16},{237,18},
+ {247,26},{235,34},{211,36},{193,32},{184,24},{249,13},
+ {201,18},{225,27},{231,10},{192,27},{242,35},{217,12}
+}) do
+ if open(v[1],v[2]) then foliage(v[1],v[2]) end
+end
+-- Veins connect wall sacs to nearby roots instead of looking like
+-- disconnected spheres stuck onto plain walls.
+for _,v in ipairs({
+ {192,12},{199,17},{210,11},{239,13},
+ {188,30},{205,34},{231,35},{248,29}
+}) do
+ local x,y=v[1],v[2]
+ if open(x,y) then
+  local base=world(x,y,1.4)
+  local top=world(x+1.1,y+.7,12)
+  stem("Living wall-to-ground vascular root",base,top,1.1,bark)
+  local bulb=hp("Overgrown spore pod",x-.5,y-.5,3.2,
+    Vector3.new(3.8,4.2,3.8),sacGreen,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  bulb.Transparency=.22
+ end
+end
+-- Three hidden sanctuaries. The server chooses one for the Queen.
+for _,site in ipairs({{195,14},{218,22},{243,31}}) do
+ local x,y=site[1],site[2]
+ local bed=hp("QUEEN NEST woven organic bedding",x-.5,y-.5,.7,
+  Vector3.new(17,1.3,17),bark,Enum.Material.Slate,Enum.PartType.Ball)
+ for i=1,6 do
+  local angle=i*math.pi/3
+  local px=x+math.cos(angle)*3.2
+  local py=y+math.sin(angle)*3.2
+  local foot=world(px,py,1)
+  local top=world(px+math.cos(angle)*.7,py+math.sin(angle)*.7,16)
+  stem("Queen nest rooted buttress",foot,top,2.4,rootGreen)
+  local cyst=hp("Queen nest green cyst",px-.5,py-.5,10,
+    Vector3.new(3.1,4.1,3.1),sacGreen,Enum.Material.SmoothPlastic,Enum.PartType.Ball)
+  cyst.Transparency=.18
+ end
+ local heart=hp("Queen nest pulsing violet brood pool",x-.5,y-.5,1.5,
+  Vector3.new(8,.65,8),purple,Enum.Material.Neon,Enum.PartType.Ball)
+ heart.Transparency=.35
+ local l=Instance.new("PointLight");l.Color=lightGreen;l.Brightness=1.8;l.Range=34;l.Parent=heart
+end
+
 -- A sector change is a deployment transition, not a permanent respawn location.
 -- Always relocate the character for BOTH sectors, including after a death.
 local function teleport(player,character)
  if not player:GetAttribute("AlienBreachDeployed") then return end
  local sector=player:GetAttribute("AlienBreachSelectedMap")
- if sector~="research" and sector~="containment" then return end
+ if sector~="research" and sector~="containment" and sector~="reactor" and sector~="nest" then return end
  local hrp=character:WaitForChild("HumanoidRootPart",10)
  if not hrp or character~=player.Character or not character.Parent then return end
  if not player:GetAttribute("AlienBreachDeployed") or player:GetAttribute("AlienBreachSelectedMap")~=sector then return end
  if sector=="research" then
   character:PivotTo(CFrame.new(pos(research.x-.5,research.y-.5,5)))
+ elseif sector=="reactor" then
+  character:PivotTo(CFrame.new(pos(reactor.x-.5,reactor.y-.5,5)))
+ elseif sector=="nest" then
+  character:PivotTo(CFrame.new(pos(nestSpawn.x-.5,nestSpawn.y-.5,5)))
  else
   local spawn=root:FindFirstChild("Starting Room Spawn")
   if spawn then character:PivotTo(spawn.CFrame*CFrame.new(0,4,0)) end
