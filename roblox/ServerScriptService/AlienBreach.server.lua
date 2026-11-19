@@ -1143,6 +1143,13 @@ local function makeAlien(x,y,kind,wave)
         local library=game:GetService("ServerStorage"):FindFirstChild("AlienModels")
         local template=library and library:FindFirstChild(
             kind=="armored" and "Armored" or kind=="crawler" and "Crawler" or "Stalker")
+        if not library then
+            warn("[Alien Breach Models] MISSING ServerStorage/AlienModels folder")
+        elseif not template then
+            warn("[Alien Breach Models] MISSING "..(kind=="armored" and "Armored" or kind=="crawler" and "Crawler" or "Stalker").." inside AlienModels")
+        elseif not template:IsA("Model") then
+            warn("[Alien Breach Models] Template "..template.Name.." is not a Model")
+        end
         if template and template:IsA("Model") then
             local rig=template:Clone()
             local rigRoot=rig.PrimaryPart or rig:FindFirstChild("HumanoidRootPart",true)
@@ -1156,6 +1163,7 @@ local function makeAlien(x,y,kind,wave)
                 end
                 rig.PrimaryPart=rigRoot
                 rig:PivotTo(CFrame.new(origin+Vector3.new(0,3,0)))
+                print("[Alien Breach Models] LOADED "..template.Name.." for "..kind.." enemy")
                 rig.Name="AnimatedAlienRig"
                 rig.Parent=model
                 model.PrimaryPart=rigRoot
