@@ -1187,8 +1187,21 @@ local function makeAlien(x,y,kind,wave)
                         end
                     end
                 end
+                -- Built-in procedural gait works immediately with the supplied
+                -- Motor6D models, without uploaded Roblox animation IDs.
+                local motors={}
+                for _,joint in ipairs(rig:GetDescendants()) do
+                    if joint:IsA("Motor6D") then
+                        local n=joint.Name
+                        if n:find("UpperArm") or n:find("Thigh")
+                          or n:find("UpperLeg") or n:find("LowerLeg")
+                          or n:find("Forearm") or n:find("Head") then
+                            table.insert(motors,{motor=joint,name=n})
+                        end
+                    end
+                end
                 if tracks.idle then tracks.idle:Play(.2) end
-                alienAnimation[model]={rig=true,tracks=tracks,phase=0,animationState="idle",lastAttack=0}
+                alienAnimation[model]={rig=true,tracks=tracks,motors=motors,phase=0,animationState="idle",lastAttack=0,kind=kind}
                 model.Destroying:Connect(function()
                     alienAnimation[model]=nil
                     for _,track in pairs(tracks) do track:Stop(0) end
@@ -1713,6 +1726,35 @@ RunService.Heartbeat:Connect(function(dt)
                                 Vector3.new(body.Position.X,eyeHeight,body.Position.Z)
                                 +right*(eyeInfo.side*spread)+forward*depth)
                         end
+                    end
+                end
+                if animation and animation.rig and animation.motors then
+                    local moving=playerDistance>27 and delta.Magnitude>0.12
+                    animation.phase+=dt*(moving and (animation.kind=="crawler" and 13 or animation.kind=="armored" and 5 or 8) or 1.8)
+                    local phase=animation.phase
+                    local strength=moving and 1 or .12
+                    local attacking=os.clock()-(damageClock[alien] or -100)<.42
+                    for _,joint in ipairs(animation.motors) do
+                        local name=joint.name
+                        local side=name:sub(1,1)=="L" and 1 or -1
+                        local rear=name:find("Back")~=nil
+                        local offset=(side==1 and 0 or math.pi)+(rear and math.pi or 0)
+                        local swing=math.sin(phase+offset)*strength
+                        local target=CFrame.identity
+                        if name:find("UpperArm") then
+                            target=CFrame.Angles(attacking and -.85 or swing*.42,0,side*.08)
+                        elseif name:find("Thigh") then
+                            target=CFrame.Angles(swing*.35,0,0)
+                        elseif name:find("UpperLeg") then
+                            target=CFrame.Angles(0,0,side*(.12+swing*.26))
+                        elseif name:find("LowerLeg") then
+                            target=CFrame.Angles(0,0,side*(-.15-swing*.2))
+                        elseif name:find("Forearm") then
+                            target=CFrame.Angles(attacking and -.65 or math.sin(phase+offset+1)*.17,0,0)
+                        elseif name:find("Head") then
+                            target=CFrame.Angles(math.sin(phase*.45)*.045,0,0)
+                        end
+                        joint.motor.Transform=target
                     end
                 end
                 if animation and animation.rig then
