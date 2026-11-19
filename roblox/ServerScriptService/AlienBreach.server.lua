@@ -313,9 +313,11 @@ foundationRect(OMEGA_X2+1,NEST_START-1,OMEGA_Y1,OMEGA_Y2)
 -- One single, collidable grassy hive floor instead of thousands of tiles.
 local nestGround=block("ALIEN NEST continuous overgrown floor",
  Vector3.new((WIDTH-NEST_START+1)*TILE,1,HEIGHT*TILE),
- CFrame.new(pos((NEST_START+WIDTH-1)/2,(HEIGHT-1)/2,-.5)),
+ CFrame.new(pos((NEST_START+WIDTH-1)/2,(HEIGHT-1)/2,.65)),
  Color3.fromRGB(49,91,43),Enum.Material.Grass)
 nestGround.CastShadow=false
+-- Grass top is at Y=1.15, safely above any default Studio Baseplate
+-- or old industrial foundation at Y=0, preventing coplanar z-fighting.
 block("Omega lowered collision floor",Vector3.new((OMEGA_X2-OMEGA_X1+1)*TILE,1,(OMEGA_Y2-OMEGA_Y1+1)*TILE),CFrame.new(pos((OMEGA_X1+OMEGA_X2-1)/2,(OMEGA_Y1+OMEGA_Y2-1)/2,-OMEGA_DROP-.5)),metal)
 
 for y,row in ipairs(map) do
